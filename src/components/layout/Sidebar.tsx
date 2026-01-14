@@ -11,6 +11,8 @@ import {
     ExternalLink
 } from "lucide-react";
 
+import { ThemeToggle } from "../common/ThemeToggle";
+
 const NAV_ITEMS = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Inventory", href: "/inventory", icon: Package },
@@ -48,6 +50,11 @@ export function Sidebar() {
                     );
                 })}
             </nav>
+
+            <div className="p-4">
+                <ThemeToggle />
+            </div>
         </div>
     );
 }
+
