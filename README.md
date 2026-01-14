@@ -66,3 +66,24 @@ To move to a real backend, replace the functions in `src/lib/mockApi.ts` with ac
 
 ---
 Built with ❤️ for the One Piece TCG Community.
+
+
+## Dictionary
+
+- Collectible Card — A physical trading card (Pokémon, One Piece, MTG, etc.).
+- Raw Card (Ungraded) — A card that has not been graded.
+- Graded Card — A card evaluated and sealed by a grading company.
+- Slab — The sealed plastic case containing a graded card.
+- Sealed Product — Factory-sealed items (packs, boxes, cases).
+- Card Profile (Catalog Item) — A canonical reference of a card (set, number, name, variation). Shared by all users.
+- Owned Card (Inventory Item) — A specific physical card owned by a user, with photos and history.
+- Condition — The physical state of a raw card (NM, LP, etc.).
+- Grade — The numeric grade assigned by a grading company.
+- Certification Number — Unique ID used to verify a graded card.
+- Population (Pop Report) — Statistics of how many cards exist at each grade.
+- User — A Slabhub account owner.
+- Seller — A user who lists items for sale.
+- Buyer — A user purchasing listed items.
+- Collector — A user managing a personal collection.
+- Alternate Art Card - A card that uses alternative artwork compared to the standard version, while keeping the same card name, number, and gameplay function.
+- Booster Box — A sealed retail product containing multiple booster packs from the same set, intended for opening or resale.

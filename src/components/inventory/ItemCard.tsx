@@ -6,22 +6,49 @@ import { CardProfile, InventoryItem, PricingSnapshot } from "@/lib/types";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { CreditCard, Tag } from "lucide-react";
 
+import { useDraggable } from "@dnd-kit/core";
+import { cn } from "@/lib/utils";
+
 interface ItemCardProps {
     item: InventoryItem;
     profile?: CardProfile;
     price?: PricingSnapshot;
     onClick?: () => void;
+    isOverlay?: boolean;
 }
 
-export function ItemCard({ item, profile, price, onClick }: ItemCardProps) {
+export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardProps) {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+        id: item.id,
+        data: {
+            item,
+        }
+    });
+
     const marketPrice = item.itemType === "SEALED" ? price?.sealedPrice : price?.rawPrice;
+
+    // Apply transform only if not in overlay (overlay handled by DndContext)
+    const style = transform ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    } : undefined;
 
     return (
         <Card
-            className="group cursor-pointer hover:shadow-md transition-all overflow-hidden border-muted-foreground/10"
-            onClick={onClick}
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
+            {...listeners}
+            className={cn(
+                "group cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow overflow-hidden border-muted-foreground/10",
+                isDragging && !isOverlay && "opacity-40 grayscale-[0.5]",
+                isOverlay && "shadow-2xl ring-2 ring-primary/20 cursor-grabbing"
+            )}
+            onClick={(e) => {
+                // Prevent click if we were dragging
+                if (onClick) onClick();
+            }}
         >
-            <div className="relative">
+            <div className="relative pointer-events-none">
                 <AspectRatio ratio={3 / 4}>
                     <img
                         src={profile?.imageUrl || "https://placehold.co/300x400?text=No+Image"}
@@ -40,7 +67,7 @@ export function ItemCard({ item, profile, price, onClick }: ItemCardProps) {
                     )}
                 </div>
             </div>
-            <CardContent className="p-3 space-y-2">
+            <CardContent className="p-3 space-y-2 pointer-events-none">
                 <div>
                     <h4 className="font-semibold text-sm truncate leading-tight">{profile?.name || "Unknown"}</h4>
                     <p className="text-[10px] text-muted-foreground uppercase">{profile?.set}</p>

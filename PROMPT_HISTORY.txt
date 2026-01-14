@@ -1,0 +1,409 @@
+<-- 0. INITIAL PROMPT -->
+
+You are a full product builder LLM.
+Build a runnable, clickable UI prototype (frontend-only) using:
+
+- Next.js (latest stable) with App Router
+- TypeScript
+- Tailwind CSS
+- shadcn/ui components
+- lucide-react icons
+- localStorage persistence
+- No external backend required
+
+GOAL:
+Create Stage 1 prototype for “One Piece TCG Seller/Collector CRM + Vendor Page”.
+Implement frontend flows end-to-end with realistic mock data and a mock API layer. 
+All network calls must be stubs with latency and occasional failures.
+
+STRICT RULES:
+- Frontend only. No real external API integrations.
+- All data comes from local mock DB seeded in code and persisted to localStorage.
+- Public vendor page must be accessible via route /vendor/[handle]
+- Pricing is centralized per Card Profile (global) and reflected in all inventory items that reference that profile.
+- Output must be runnable locally with clear README.
+
+------------------------------------------------------------
+PROJECT SETUP (must do)
+------------------------------------------------------------
+1) Create a Next.js app (App Router) with TypeScript.
+2) Configure Tailwind.
+3) Install and set up shadcn/ui.
+4) Add a simple toast system (shadcn/toast).
+5) Implement a layout with:
+   - Desktop: sidebar nav
+   - Mobile: bottom nav
+6) Add routing for pages below.
+
+Recommended folder structure:
+
+/app
+  / (landing)
+  /onboarding
+  /(app)
+    /dashboard
+    /inventory
+    /inventory/add
+    /pricing
+    /settings
+  /vendor/[handle]
+/components
+  /layout (Sidebar, BottomNav, Topbar)
+  /inventory (KanbanBoard, ItemCard, ItemDrawer, StageColumn)
+  /cards (CardSearch, CardProfileBadge)
+  /pricing (PricingTable, RefreshButton)
+  /common (EmptyState, Skeletons, ErrorBanner, CopyLinkButton)
+/lib
+  mockApi.ts
+  storage.ts
+  seed.ts
+  types.ts
+  utils.ts
+
+------------------------------------------------------------
+DATA MODEL (types.ts)
+------------------------------------------------------------
+Define types:
+
+CardProfile:
+- id (string)
+- name (string)
+- set (string)
+- rarity (string)
+- cardNumber (string)
+- imageUrl (string)  // can be placeholder
+
+PricingSnapshot:
+- cardProfileId
+- rawPrice (number)
+- sealedPrice (number | null)
+- updatedAt (ISO string)
+- source (string: "Mock:eBay" | "Mock:TCGPlayer")
+
+SellerProfile:
+- handle (string, used in vendor URL)
+- shopName
+- locationCountry
+- locationCity
+- paymentsAccepted (string[])
+- meetupsEnabled (boolean)
+- shippingEnabled (boolean)
+- socials: { instagram?, tiktok?, discord?, tcgplayer?, ebay? }
+- wishlistText (string)
+
+InventoryStage (enum strings):
+- "ACQUIRED"
+- "IN_TRANSIT"
+- "IN_STOCK_UNGRADED"
+- "BEING_GRADED"
+- "UNGRATED_FOR_SALE"
+- "GRADED_FOR_SALE"
+
+InventoryItem:
+- id
+- cardProfileId
+- itemType ("RAW" | "GRADED" | "SEALED")
+- gradeProvider? ("PSA" | "BGS" | null)
+- gradeValue? (number | null)
+- quantity (number)
+- stage (InventoryStage)
+- listingPrice (number | null)
+- acquisitionPrice (number | null)
+- photos: { front?: string; back?: string; extra?: string[] } // store object URLs
+- createdAt
+
+------------------------------------------------------------
+MOCK DATA (seed.ts)
+------------------------------------------------------------
+Seed at least:
+- 30 CardProfiles (One Piece) with plausible names/sets/numbers + placeholder imageUrl
+- 30 PricingSnapshots for those CardProfiles
+- 1 SellerProfile seeded
+- Inventory seeded:
+  - 10 RAW items
+  - 5 GRADED items
+  - 3 SEALED products (quantity > 1 for at least one)
+  - distributed across stages
+
+NOTE:
+You do not need real OPTCG API data; use realistic placeholders.
+
+------------------------------------------------------------
+LOCAL STORAGE (storage.ts)
+------------------------------------------------------------
+Implement storage with versioning:
+- KEY: "opcrm_v1"
+- functions:
+  - loadState()
+  - saveState(state)
+  - resetToSeed()
+
+Persist:
+- sellerProfile
+- cardProfiles (seeded, mostly static)
+- pricingSnapshots
+- inventoryItems
+
+------------------------------------------------------------
+MOCK API (mockApi.ts) — REQUIRED
+------------------------------------------------------------
+Implement async functions with:
+- latency 200–900ms
+- 10% random failure
+- consistent errors (return { ok:false, error } or throw)
+
+Functions:
+- getCurrentUser(): SellerProfile
+- updateProfile(patch: Partial<SellerProfile>)
+- listCardProfiles(query?: string): CardProfile[]
+- getCardProfile(id)
+- listInventory(): InventoryItem[]
+- createInventoryItem(payload)
+- updateInventoryItem(id, patch)
+- deleteInventoryItem(id)
+- listPricing(): PricingSnapshot[]
+- refreshPricing(): PricingSnapshot[]
+    - updates pricingSnapshots for all card profiles randomly within sane bounds
+    - updates updatedAt
+    - returns snapshots
+
+IMPORTANT: pricingSnapshots are global.
+InventoryItems reference CardProfile IDs; market price is derived by joining pricingSnapshots + CardProfile.
+
+------------------------------------------------------------
+PAGES & REQUIRED UX
+------------------------------------------------------------
+
+1) Landing (/)
+- Hero section explaining product
+- CTA: “Get started”
+- If existing profile exists -> “Go to dashboard”
+
+2) Onboarding (/onboarding)
+- Form for SellerProfile fields:
+  shopName, handle, location, payments (multi select),
+  meetups toggle, shipping toggle,
+  socials inputs (no verification, just UI)
+- Submit -> saves profile -> routes to /dashboard
+
+3) App Layout (/(app)/*)
+- Sidebar nav items: Dashboard, Inventory, Pricing, Settings
+- Mobile bottom nav for same
+- Topbar shows shopName + “View Public Page” button linking to /vendor/[handle]
+
+4) Dashboard (/(app)/dashboard)
+- KPI cards: total items, for-sale items, total market value (approx), stages breakdown
+- “Quick add” button -> /inventory/add
+- “Recent price updates” banner (reads last updated timestamp)
+- Show small list of items recently modified (mock)
+
+5) Inventory Kanban (/(app)/inventory)
+- Kanban columns per stage
+- Move items between stages:
+  - Prefer drag-and-drop (can use a light library) OR stage dropdown if easier
+- Item card shows:
+  image, name, set, condition/grade, listing price, market ref price
+- Clicking item opens Item Drawer/Modal with:
+  - images upload front/back/extra
+  - stage selector
+  - for sale toggle (mapped to stage switch into appropriate for-sale stage)
+  - listing price input
+  - acquisition price input
+  - show “Market Price” and “Last updated”
+  - delete button with confirmation
+- Provide:
+  - skeleton loaders
+  - empty states
+  - toast on save/delete
+  - error UI + retry when mock API fails
+
+6) Add Item (/(app)/inventory/add)
+- Stepper UI (shadcn):
+  Step 1: Search/select CardProfile (search box + results list)
+  Step 2: Item details (RAW/GRADED/SEALED, grade provider/value, quantity, acquisitionPrice, initial stage)
+  Step 3: Photos upload
+  Save -> routes back to inventory and highlights newly added item.
+
+CRITICAL RULE:
+User must select from existing CardProfiles (no free-text card creation).
+
+7) Pricing (/(app)/pricing)
+- Table of CardProfiles with:
+  card image, name, set, rawPrice, sealedPrice, updatedAt, source
+- “Refresh pricing” button -> calls refreshPricing()
+- After refresh, dashboard/kanban must reflect updated prices automatically
+- Show progress/loading, toast, and errors
+
+8) Settings (/(app)/settings)
+- Edit SellerProfile
+- Wishlist (textarea)
+- Button “Reset demo data” -> resetToSeed()
+
+9) Public Vendor Page (/vendor/[handle])
+- Read-only page
+- Shows seller profile card:
+  shopName, location, payments accepted, shipping/meetups
+- Shows items for sale (derived from inventory stages “UNGRADED_FOR_SALE” and “GRADED_FOR_SALE”):
+  - grid with filters: search by name, graded/ungraded toggle, price range (simple)
+- Each item card shows:
+  image, listing price, market ref price, condition/grade
+- Wishlist section (“Looking to buy”)
+- Copy link button
+
+------------------------------------------------------------
+UI COMPONENT REQUIREMENTS (use shadcn/ui)
+------------------------------------------------------------
+Must use:
+- Card, Button, Input, Select, Checkbox, Switch, Tabs or Stepper, Dialog/Sheet, Table, Badge, Toast
+- lucide icons
+- consistent spacing + responsive design
+
+------------------------------------------------------------
+QUALITY REQUIREMENTS
+------------------------------------------------------------
+- Type-safe throughout (TypeScript)
+- Clean code structure
+- Reusable components
+- No broken routes
+- No console errors
+- No external network dependency
+
+------------------------------------------------------------
+README (required)
+------------------------------------------------------------
+Include:
+- Setup commands
+- How mock API works
+- Where to adjust seed data
+- How future real API would replace mockApi.ts (mapping table of functions → future endpoints)
+
+------------------------------------------------------------
+OUTPUT
+------------------------------------------------------------
+Return the full codebase (all necessary files) and README.
+Ensure it runs with `npm install` and `npm run dev`.
+
+
+<-- 1. FEATURE PROMPT -->
+
+You are continuing work on an existing Next.js (App Router) + TypeScript + Tailwind + shadcn/ui prototype.
+Current state:
+- Inventory Kanban exists but DOES NOT support drag-and-drop.
+- Inventory currently has only Kanban view.
+Your task:
+1) Implement drag-and-drop moving of inventory items between stages in the Kanban.
+2) Add a view mode toggle: Kanban view (default) and List view.
+3) Preserve existing mock API layer and localStorage persistence.
+4) Ensure all changes are production-quality and fully clickable.
+
+------------------------------------------------------------
+A) DRAG-AND-DROP REQUIREMENTS (MANDATORY)
+------------------------------------------------------------
+Implement real drag-and-drop with a lightweight library.
+
+Preferred library order:
+1) @dnd-kit/core + @dnd-kit/sortable (recommended)
+2) react-beautiful-dnd (only if dnd-kit is problematic)
+3) react-dnd (fallback)
+
+Hard requirements:
+- User can drag an InventoryItem card from one stage column to another.
+- On drop:
+  - Update the item.stage immediately (optimistic UI)
+  - Call mockApi.updateInventoryItem(id, { stage: newStage })
+  - If mockApi fails (random 10%):
+      - Show toast error
+      - Revert the item to its previous stage (rollback)
+      - Keep UI consistent (no duplicates)
+- Maintain smooth UX:
+  - Show drag overlay preview of the dragged card
+  - Show drop target highlight on hovered column
+  - Preserve scroll usability on mobile (reasonable touch support)
+
+Implementation guidance:
+- Model the Kanban board as:
+  - droppable containers per stage column
+  - draggable cards per item
+- Use stable IDs:
+  - draggable id: inventory item id
+  - droppable id: stage enum string
+- Ensure that dragging within same column preserves order in that column OR keep a stable sort key (optional).
+  If ordering is not implemented, keep a deterministic order (e.g., createdAt desc).
+
+Files to create/update:
+- /components/inventory/KanbanBoard.tsx
+- /components/inventory/StageColumn.tsx
+- /components/inventory/ItemCard.tsx
+- /components/inventory/dnd.ts (helpers: stages array, sensors, collision strategy)
+- /lib/types.ts (if stage enums need alignment)
+
+------------------------------------------------------------
+B) INVENTORY VIEW MODE TOGGLE (KANBAN <-> LIST)
+------------------------------------------------------------
+Add a UI control to switch inventory presentation.
+
+Requirements:
+- Add a segmented control / toggle in Inventory page header:
+  - “Kanban” and “List”
+  Use shadcn/ui Tabs or ToggleGroup or Segmented control style.
+- Default view: Kanban
+- Persist user choice in localStorage (e.g., key: "inventory_view_mode")
+- Switching view must be instant and not refetch data.
+- Both views must support opening the Item detail drawer/modal on click.
+- Both views must show the same core info:
+  - image thumbnail, card name, set, condition/grade, stage, listing price, market ref price
+
+List view requirements:
+- Display items as a table (shadcn/ui Table):
+  Columns:
+  - Card (thumb + name)
+  - Set / Number
+  - Type (RAW/GRADED/SEALED)
+  - Condition/Grade
+  - Stage (Badge)
+  - Listing price
+  - Market price
+  - Actions (Open)
+- Add simple filters at top:
+  - search by card name (client-side)
+  - stage filter dropdown (optional but preferred)
+- Allow changing stage from list view:
+  - Stage dropdown per row OR in item detail drawer.
+  If implemented per row:
+    - optimistic update + mockApi.updateInventoryItem
+    - rollback on failure with toast
+
+Files to create/update:
+- /app/(app)/inventory/page.tsx  (add toggle + conditional rendering)
+- /components/inventory/InventoryList.tsx (new)
+- /components/inventory/InventoryHeader.tsx (optional, new)
+- /lib/storage.ts (for view mode persistence helper, optional)
+
+------------------------------------------------------------
+C) QA / ACCEPTANCE CRITERIA (NON-NEGOTIABLE)
+------------------------------------------------------------
+- Dragging a card from Stage A to Stage B updates UI immediately and persists after refresh.
+- On random mock API failure, stage reverts and toast explains it.
+- View toggle works; chosen view persists after refresh.
+- List view is fully usable on mobile (responsive table or stacked rows).
+- No console errors.
+- No broken routes.
+- Existing seeded data remains valid.
+
+------------------------------------------------------------
+D) OUTPUT REQUIREMENTS
+------------------------------------------------------------
+Return:
+- Updated file list + key diffs
+- Any new dependencies added
+- The full updated code for new/modified files
+- Brief note explaining where DnD logic lives and how to extend it
+
+Do not:
+- Add new backend
+- Replace the mock API architecture
+- Remove existing Kanban functionality
+
+
+
+<-- 2. FEATURE PROMPT -->

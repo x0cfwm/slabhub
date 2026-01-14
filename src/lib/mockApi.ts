@@ -2,7 +2,7 @@ import { AppState, CardProfile, InventoryItem, PricingSnapshot, SellerProfile } 
 import { loadState, saveState, resetToSeed } from "./storage";
 
 const LATENCY_MIN = 0;
-const LATENCY_MAX = 100;
+const LATENCY_MAX = 10;
 const FAILURE_RATE = 0;
 
 async function wait() {
