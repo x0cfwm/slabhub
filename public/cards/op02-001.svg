@@ -1,0 +1,22 @@
+<svg width="400" height="560" viewBox="0 0 400 560" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cardGrad-op02-001" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2c3e50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect x="10" y="10" width="380" height="540" rx="20" fill="url(#cardGrad-op02-001)" stroke="#f1c40f" stroke-width="4" />
+  <rect x="30" y="60" width="340" height="300" rx="10" fill="#34495e" />
+  <circle cx="200" cy="180" r="80" fill="#f1c40f" opacity="0.1" />
+  <text x="50%" y="220" font-family="Arial, sans-serif" font-size="60" fill="#f1c40f" opacity="0.2" text-anchor="middle" font-weight="bold">E</text>
+  
+  <text x="40" y="45" font-family="Arial, sans-serif" font-size="22" fill="#f1c40f" font-weight="bold">Edward.Newgate</text>
+  <text x="360" y="45" font-family="Arial, sans-serif" font-size="18" fill="white" text-anchor="end">L</text>
+  
+  <rect x="30" y="380" width="340" height="120" rx="5" fill="#1a1a1a" stroke="#f1c40f" stroke-width="1" />
+  <text x="45" y="410" font-family="Arial, sans-serif" font-size="14" fill="#bdc3c7">Paramount War</text>
+  <text x="45" y="440" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="bold">OP02-001</text>
+  
+  <circle cx="350" cy="520" r="15" fill="#f1c40f" />
+  <text x="350" y="525" font-family="Arial, sans-serif" font-size="12" fill="black" text-anchor="middle" font-weight="bold">OP</text>
+</svg>
