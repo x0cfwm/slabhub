@@ -49,12 +49,14 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
             }}
         >
             <div className="relative pointer-events-none">
-                <AspectRatio ratio={3 / 4}>
-                    <img
-                        src={profile?.imageUrl || "https://placehold.co/300x400?text=No+Image"}
-                        alt={profile?.name}
-                        className="object-cover w-full h-full transition-transform group-hover:scale-105"
-                    />
+                <AspectRatio ratio={1 / 1}>
+                    <div className="flex items-center justify-center w-full h-full bg-accent/10">
+                        <img
+                            src={profile?.imageUrl || "https://placehold.co/300x400?text=No+Image"}
+                            alt={profile?.name}
+                            className="object-contain w-full h-full transition-transform group-hover:scale-110 p-2"
+                        />
+                    </div>
                 </AspectRatio>
                 <div className="absolute top-2 right-2 flex flex-col gap-1">
                     <Badge variant="secondary" className="backdrop-blur-md bg-white/50">
