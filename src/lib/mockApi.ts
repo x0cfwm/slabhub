@@ -1,9 +1,9 @@
 import { AppState, CardProfile, InventoryItem, PricingSnapshot, SellerProfile } from "./types";
 import { loadState, saveState, resetToSeed } from "./storage";
 
-const LATENCY_MIN = 200;
-const LATENCY_MAX = 900;
-const FAILURE_RATE = 0.1;
+const LATENCY_MIN = 0;
+const LATENCY_MAX = 100;
+const FAILURE_RATE = 0;
 
 async function wait() {
     const ms = Math.floor(Math.random() * (LATENCY_MAX - LATENCY_MIN)) + LATENCY_MIN;
