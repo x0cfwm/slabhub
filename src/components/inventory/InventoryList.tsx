@@ -51,67 +51,88 @@ export function InventoryList({ items, setItems, cards, pricing, onUpdate, onIte
     };
 
     return (
-        <div className="rounded-md border bg-card">
+        <div className="rounded-xl border bg-card/50 backdrop-blur-md overflow-hidden">
             <Table>
-                <TableHeader>
+                <TableHeader className="bg-accent/30">
                     <TableRow>
-                        <TableHead className="w-[80px]">Image</TableHead>
-                        <TableHead>Card Name</TableHead>
-                        <TableHead>Set</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Condition</TableHead>
+                        <TableHead className="w-[80px]">Asset</TableHead>
+                        <TableHead>Descriptor</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Grade / Cond</TableHead>
+                        <TableHead>Quantity</TableHead>
                         <TableHead>Stage</TableHead>
-                        <TableHead className="text-right">Market</TableHead>
-                        <TableHead className="text-right">Listing</TableHead>
+                        <TableHead className="text-right">Aquisition</TableHead>
+                        <TableHead className="text-right">Market Est.</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {items.map((item) => {
-                        const profile = cards.find(c => c.id === item.cardProfileId);
-                        const price = pricing.find(p => p.cardProfileId === item.cardProfileId);
-                        const marketPrice = item.itemType === "SEALED" ? price?.sealedPrice : price?.rawPrice;
+                        const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
+                        const isCard = itType.includes("SINGLE_CARD") || (itType as any) === "RAW" || (itType as any) === "GRADED";
+                        const variantId = isCard ? (item as any).cardVariantId || (item as any).cardProfileId : null;
+                        const baseId = variantId?.includes("-") ? variantId.split("-")[0] : variantId;
+                        const profile = cards.find(c => c.id === baseId);
+                        const price = pricing.find(p => p.cardProfileId === baseId || p.cardProfileId === variantId);
+
+                        const isSealed = itType === "SEALED_PRODUCT" || (itType as any) === "SEALED";
+                        const marketPrice = isSealed ? price?.sealedPrice : price?.rawPrice;
+
+                        const displayName = isSealed ? (item as any).productName || profile?.name : profile?.name || "Unknown Asset";
+                        const typeLabel = itType.replace("SINGLE_CARD_", "").replace("_PRODUCT", "");
 
                         return (
-                            <TableRow key={item.id} className="cursor-pointer group" onClick={() => onItemClick(item)}>
+                            <TableRow key={item.id} className="cursor-pointer group hover:bg-primary/5 transition-colors" onClick={() => onItemClick(item)}>
                                 <TableCell onClick={(e) => e.stopPropagation()}>
-                                    <div className="w-12 h-16 rounded overflow-hidden border">
+                                    <div className="w-12 h-16 rounded-lg overflow-hidden border bg-accent/20 flex items-center justify-center">
                                         <img
-                                            src={profile?.imageUrl || "https://placehold.co/100x150?text=?"}
-                                            alt={profile?.name}
-                                            className="w-full h-full object-cover"
+                                            src={profile?.imageUrl || "https://placehold.co/100x150?text=📦"}
+                                            alt={displayName}
+                                            className="w-full h-full object-contain p-1"
                                         />
                                     </div>
                                 </TableCell>
-                                <TableCell className="font-medium">
-                                    {profile?.name}
-                                </TableCell>
-                                <TableCell className="text-muted-foreground text-xs">
-                                    {profile?.set} {profile?.cardNumber && `#${profile.cardNumber}`}
+                                <TableCell>
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-sm tracking-tight">{displayName}</span>
+                                        <span className="text-[10px] text-muted-foreground uppercase">{isSealed ? (item as any).productType || "Sealed" : profile?.set}</span>
+                                    </div>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant="outline" className="text-[10px]">{item.itemType}</Badge>
+                                    <Badge variant="secondary" className="text-[9px] font-bold tracking-widest uppercase py-0 px-1.5 opacity-70">
+                                        {typeLabel}
+                                    </Badge>
                                 </TableCell>
                                 <TableCell>
-                                    {item.gradeValue ? (
-                                        <Badge className="bg-blue-600 text-[10px]">
-                                            {item.gradeProvider} {item.gradeValue}
+                                    {itType === "SINGLE_CARD_GRADED" || (itType as any) === "GRADED" ? (
+                                        <div className="flex flex-col gap-0.5">
+                                            <Badge className="bg-blue-600 text-[9px] w-fit font-mono">
+                                                {(item as any).gradingCompany || "???"} {(item as any).grade || ""}
+                                            </Badge>
+                                            <span className="text-[8px] font-mono text-muted-foreground">{(item as any).certNumber}</span>
+                                        </div>
+                                    ) : itType === "SINGLE_CARD_RAW" || (itType as any) === "RAW" ? (
+                                        <Badge variant="outline" className="text-[9px] font-bold border-primary/30">
+                                            {(item as any).condition || "Raw"}
                                         </Badge>
                                     ) : (
-                                        <span className="text-xs text-muted-foreground italic">Raw</span>
+                                        <span className="text-xs text-muted-foreground italic">{(item as any).integrity || "Asset"}</span>
                                     )}
+                                </TableCell>
+                                <TableCell>
+                                    <span className="text-sm font-mono">x{item.quantity}</span>
                                 </TableCell>
                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                     <Select
                                         defaultValue={item.stage}
                                         onValueChange={(val) => handleStageChange(item.id, val as InventoryStage)}
                                     >
-                                        <SelectTrigger className="h-8 w-[140px] text-xs">
+                                        <SelectTrigger className="h-7 w-[130px] text-[10px] font-bold bg-background/50 border-primary/20">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {COLUMNS.map(col => (
-                                                <SelectItem key={col.id} value={col.id} className="text-xs">
+                                                <SelectItem key={col.id} value={col.id} className="text-[10px]">
                                                     {col.label}
                                                 </SelectItem>
                                             ))}
@@ -119,10 +140,10 @@ export function InventoryList({ items, setItems, cards, pricing, onUpdate, onIte
                                     </Select>
                                 </TableCell>
                                 <TableCell className="text-right font-mono text-xs">
-                                    ${marketPrice?.toFixed(2) || "-"}
+                                    ${item.acquisitionPrice.toFixed(2)}
                                 </TableCell>
-                                <TableCell className="text-right font-bold text-xs">
-                                    {item.listingPrice ? `$${item.listingPrice.toFixed(2)}` : "-"}
+                                <TableCell className="text-right font-bold text-xs text-primary">
+                                    {marketPrice ? `$${marketPrice.toFixed(2)}` : "-"}
                                 </TableCell>
                                 <TableCell>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -135,7 +156,7 @@ export function InventoryList({ items, setItems, cards, pricing, onUpdate, onIte
                     {items.length === 0 && (
                         <TableRow>
                             <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                                No items found matching your filters.
+                                No assets found in registry.
                             </TableCell>
                         </TableRow>
                     )}

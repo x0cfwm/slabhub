@@ -84,8 +84,16 @@ export function KanbanBoard({ items, setItems, cards, pricing, onUpdate, onItemC
                                 <ItemCard
                                     key={item.id}
                                     item={item}
-                                    profile={cards.find(c => c.id === item.cardProfileId)}
-                                    price={pricing.find(p => p.cardProfileId === item.cardProfileId)}
+                                    profile={cards.find(c => {
+                                        const vid = (item as any).cardVariantId || (item as any).cardProfileId;
+                                        const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
+                                        return c.id === bid;
+                                    })}
+                                    price={pricing.find(p => {
+                                        const vid = (item as any).cardVariantId || (item as any).cardProfileId;
+                                        const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
+                                        return p.cardProfileId === bid || p.cardProfileId === vid;
+                                    })}
                                     onClick={() => onItemClick(item)}
                                 />
                             ))}
@@ -105,8 +113,16 @@ export function KanbanBoard({ items, setItems, cards, pricing, onUpdate, onItemC
                 {activeId && activeItem ? (
                     <ItemCard
                         item={activeItem}
-                        profile={cards.find(c => c.id === activeItem.cardProfileId)}
-                        price={pricing.find(p => p.cardProfileId === activeItem.cardProfileId)}
+                        profile={cards.find(c => {
+                            const vid = (activeItem as any).cardVariantId || (activeItem as any).cardProfileId;
+                            const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
+                            return c.id === bid;
+                        })}
+                        price={pricing.find(p => {
+                            const vid = (activeItem as any).cardVariantId || (activeItem as any).cardProfileId;
+                            const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
+                            return p.cardProfileId === bid || p.cardProfileId === vid;
+                        })}
                         isOverlay
                     />
                 ) : null}

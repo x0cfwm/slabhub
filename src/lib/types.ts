@@ -1,10 +1,106 @@
+export type Game = "MAGIC" | "POKEMON" | "ONE_PIECE" | "LORCANA" | "YU_GI_OH";
+
+export type Condition = "NM" | "LP" | "MP" | "HP" | "DMG";
+
+export type GradingCompany = "PSA" | "BGS" | "CGC" | "ARS" | "SGC";
+
 export type InventoryStage =
     | "ACQUIRED"
     | "IN_TRANSIT"
-    | "IN_STOCK_UNGRADED"
     | "BEING_GRADED"
-    | "UNGRADED_FOR_SALE"
-    | "GRADED_FOR_SALE";
+    | "AUTHENTICATED"
+    | "IN_STOCK"
+    | "LISTED"
+    | "SOLD"
+    | "ARCHIVED";
+
+export type SealedIntegrity = "MINT" | "MINOR_DENTS" | "DAMAGED" | "OPENED";
+
+export type ProductType =
+    | "BOOSTER_BOX"
+    | "BOOSTER_PACK"
+    | "STARTER_DECK"
+    | "ILLUSTRATION_BOX"
+    | "MINI_TIN"
+    | "PREMIUM_BOX"
+    | "GIFT_BOX"
+    | "ANNIVERSARY_SET"
+    | "PROMO_PACK"
+    | "TOURNAMENT_KIT"
+    | "CASE"
+    | "BUNDLE"
+    | "OTHER";
+
+export type VariantType = "NORMAL" | "ALTERNATE_ART" | "PARALLEL_FOIL";
+
+export type Language = "JP" | "EN";
+
+export interface CardVariant {
+    id: string;
+    game: Game;
+    cardId: string; // Reference to base CardProfile
+    variantType: VariantType;
+    language: Language;
+    imageUrl: string;
+    // Mirrored for performance/denormalization
+    name: string;
+    setName: string;
+    setNumber: string;
+}
+
+export interface InventoryBase {
+    id: string;
+    acquisitionPrice: number;
+    acquisitionDate: string;
+    acquisitionSource?: string;
+    storageLocation?: string;
+    stage: InventoryStage;
+    notes?: string;
+    createdAt: string;
+}
+
+export interface SingleCardRaw extends InventoryBase {
+    type: "SINGLE_CARD_RAW";
+    cardVariantId: string;
+    condition: Condition;
+    quantity: number;
+}
+
+export interface SingleCardGraded extends InventoryBase {
+    type: "SINGLE_CARD_GRADED";
+    cardVariantId: string;
+    gradingCompany: GradingCompany;
+    grade: number | string; // 10, 9.5, "Authentic", etc.
+    certNumber: string;
+    quantity: 1; // Always 1 for graded cards
+    gradingCost?: number;
+    slabImages: {
+        front?: string;
+        back?: string;
+    };
+    // Re-submission history / Archive
+    previousCertNumbers?: string[];
+}
+
+export interface SealedProduct extends InventoryBase {
+    type: "SEALED_PRODUCT";
+    productName: string;
+    productType: ProductType;
+    language: string;
+    setName?: string;
+    edition?: string; // e.g. "1st Edition", "Unlimited"
+    integrity: SealedIntegrity;
+    quantity: number;
+    configuration: {
+        containsBoosters: boolean;
+        boosterSets?: string[];
+        packsPerUnit?: number;
+        containsFixedCards: boolean;
+        containsPromo: boolean;
+    };
+}
+
+export type InventoryItem = SingleCardRaw | SingleCardGraded | SealedProduct;
 
 export interface CardProfile {
     id: string;
@@ -40,27 +136,6 @@ export interface SellerProfile {
         ebay?: string;
     };
     wishlistText: string;
-}
-
-export type ItemType = "RAW" | "GRADED" | "SEALED";
-export type GradeProvider = "PSA" | "BGS" | null;
-
-export interface InventoryItem {
-    id: string;
-    cardProfileId: string;
-    itemType: ItemType;
-    gradeProvider?: GradeProvider;
-    gradeValue?: number | null;
-    quantity: number;
-    stage: InventoryStage;
-    listingPrice: number | null;
-    acquisitionPrice: number | null;
-    photos: {
-        front?: string;
-        back?: string;
-        extra?: string[];
-    };
-    createdAt: string;
 }
 
 export interface AppState {

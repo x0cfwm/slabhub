@@ -62,41 +62,69 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     // 10 RAW items
     ...INITIAL_CARD_PROFILES.slice(0, 10).map((card, i) => ({
         id: `inv-raw-${i}`,
-        cardProfileId: card.id,
-        itemType: "RAW" as const,
-        quantity: 1,
-        stage: (i % 3 === 0 ? "UNGRADED_FOR_SALE" : i % 2 === 0 ? "ACQUIRED" : "IN_STOCK_UNGRADED") as any,
-        listingPrice: (i % 3 === 0 ? Math.floor(Math.random() * 60) + 10 : null),
-        acquisitionPrice: Math.floor(Math.random() * 30) + 5,
-        photos: {},
+        type: "SINGLE_CARD_RAW" as const,
+        cardVariantId: `${card.id}-${i % 2 === 0 ? "NORMAL" : "PARALLEL_FOIL"}-${i % 3 === 0 ? "JP" : "EN"}`,
+        condition: (["NM", "LP", "MP"][i % 3]) as any,
+        quantity: i === 0 ? 12 : 1,
+        acquisitionPrice: 5 + i,
+        acquisitionDate: "2024-01-01",
+        stage: "IN_STOCK" as any,
         createdAt: new Date().toISOString()
     })),
     // 5 GRADED items
     ...INITIAL_CARD_PROFILES.slice(10, 15).map((card, i) => ({
         id: `inv-graded-${i}`,
-        cardProfileId: card.id,
-        itemType: "GRADED" as const,
-        gradeProvider: "PSA" as const,
-        gradeValue: 10,
-        quantity: 1,
-        stage: "GRADED_FOR_SALE" as any,
-        listingPrice: Math.floor(Math.random() * 500) + 100,
-        acquisitionPrice: Math.floor(Math.random() * 100) + 50,
-        photos: {},
+        type: "SINGLE_CARD_GRADED" as const,
+        cardVariantId: `${card.id}-ALTERNATE_ART-EN`,
+        gradingCompany: "PSA" as any,
+        grade: 10,
+        certNumber: `CERT-9900${i}`,
+        quantity: 1 as const,
+        slabImages: {},
+        acquisitionPrice: 150 + i * 50,
+        acquisitionDate: "2024-02-01",
+        stage: "LISTED" as any,
         createdAt: new Date().toISOString()
     })),
     // 3 SEALED products
-    ...INITIAL_CARD_PROFILES.slice(15, 18).map((card, i) => ({
-        id: `inv-sealed-${i}`,
-        cardProfileId: card.id,
-        itemType: "SEALED" as const,
-        quantity: i === 0 ? 5 : 1,
-        stage: "UNGRADED_FOR_SALE" as any,
-        listingPrice: Math.floor(Math.random() * 300) + 150,
-        acquisitionPrice: Math.floor(Math.random() * 120) + 80,
-        photos: {},
+    {
+        id: "inv-sealed-1",
+        type: "SEALED_PRODUCT",
+        productName: "Romance Dawn Booster Box",
+        productType: "BOOSTER_BOX",
+        language: "JP",
+        integrity: "MINT",
+        quantity: 2,
+        acquisitionPrice: 120,
+        acquisitionDate: "2023-12-15",
+        stage: "IN_STOCK",
+        configuration: {
+            containsBoosters: true,
+            packsPerUnit: 24,
+            containsFixedCards: false,
+            containsPromo: false
+        },
         createdAt: new Date().toISOString()
-    }))
+    },
+    {
+        id: "inv-sealed-2",
+        type: "SEALED_PRODUCT",
+        productName: "Monkey.D.Luffy Illustration Box",
+        productType: "ILLUSTRATION_BOX",
+        language: "EN",
+        integrity: "MINOR_DENTS",
+        quantity: 1,
+        acquisitionPrice: 45,
+        acquisitionDate: "2024-01-10",
+        stage: "LISTED",
+        configuration: {
+            containsBoosters: true,
+            packsPerUnit: 10,
+            containsFixedCards: true,
+            containsPromo: true
+        },
+        createdAt: new Date().toISOString()
+    }
 ];
 
 export const SEED_DATA: AppState = {

@@ -70,7 +70,13 @@ export default function InventoryPage() {
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             .filter(item => {
                 const matchesSearch = !search || (() => {
-                    const card = cards.find(c => c.id === item.cardProfileId);
+                    const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
+                    if (itType === "SEALED_PRODUCT" || (itType as any) === "SEALED") {
+                        return (item as any).productName?.toLowerCase().includes(s) ||
+                            (item as any).productType?.toLowerCase().includes(s);
+                    }
+
+                    const card = cards.find(c => c.id === ((item as any).cardVariantId || (item as any).cardProfileId));
                     return (
                         card?.name.toLowerCase().includes(s) ||
                         card?.set.toLowerCase().includes(s) ||
@@ -168,7 +174,11 @@ export default function InventoryPage() {
             <ItemDrawer
                 isOpen={!!selectedItem}
                 item={selectedItem}
-                profile={cards.find(c => c.id === selectedItem?.cardProfileId)}
+                profile={cards.find(c => {
+                    const vid = (selectedItem as any)?.cardVariantId || (selectedItem as any)?.cardProfileId;
+                    const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
+                    return c.id === bid;
+                })}
                 onClose={() => setSelectedItem(null)}
                 onUpdate={fetchData}
             />

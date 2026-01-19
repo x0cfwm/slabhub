@@ -407,3 +407,230 @@ Do not:
 
 
 <-- 2. FEATURE PROMPT -->
+
+
+You are a senior full-stack engineer and domain expert in TCG marketplaces
+(Magic, Pokémon, One Piece).
+
+You are working on SLabHub CRM — a professional inventory management system
+for TCG sellers and collectors.
+
+Your task is to refactor and extend the Inventory module to strictly follow
+real-world TCG domain logic.
+Do NOT simplify the model.
+Do NOT collapse different asset types into a single generic item.
+Respect market-grade distinctions and corner cases.
+
+========================================
+CORE DOMAIN PRINCIPLES (MANDATORY)
+========================================
+
+1. InventoryItem is an ASSET, not a Card.
+2. Card, CardVariant, PhysicalCopy and InventoryItem are different concepts.
+3. Condition belongs to InventoryItem, not to Card.
+4. Graded cards are NON-FUNGIBLE assets.
+5. Raw cards and sealed products ARE fungible and can be aggregated.
+6. Alternate Art is a CardVariant, NOT a separate Card.
+7. Certification (PSA/BGS/CGC) creates a UNIQUE physical asset via cert_number.
+
+========================================
+INVENTORY TYPES
+========================================
+
+Inventory must support EXACTLY these asset categories:
+
+1) Single Card — RAW
+2) Single Card — GRADED
+3) Sealed Product
+
+Each type must:
+- have its own required fields
+- have its own invariants
+- have its own UX flow
+
+========================================
+SINGLE CARD — RAW
+========================================
+
+Fields:
+- card_variant_id (lookup: game, set, number, variant, language)
+- condition (NM/LP/MP/HP/DMG)
+- quantity (>= 1)
+- acquisition_price_per_unit
+- acquisition_date
+- acquisition_source
+- storage_location
+- inventory_stage
+
+Rules:
+- quantity > 1 allowed
+- cert_number FORBIDDEN
+- condition REQUIRED
+- multiple conditions must be split into separate inventory items
+
+========================================
+SINGLE CARD — GRADED
+========================================
+
+Fields:
+- card_variant_id
+- grading_company (PSA / BGS / CGC)
+- grade
+- cert_number (globally unique)
+- slab_images (front/back)
+- grading_cost
+- acquisition_price
+- inventory_stage
+
+Rules:
+- quantity MUST be 1
+- cert_number REQUIRED
+- condition NOT allowed
+- each graded card is a unique non-fungible asset
+- listing must be 1-to-1 with physical card
+
+Support corner cases:
+- crack & resubmit (archive old cert)
+- cross-grading
+- reholder
+- lost slab
+
+========================================
+SEALED PRODUCT (LONG-TAIL SAFE)
+========================================
+
+Do NOT hardcode product types.
+
+Use a flexible ProductType registry:
+- Booster Box
+- Booster Pack
+- Starter Deck
+- Illustration Box
+- Mini Tin
+- Premium Box
+- Gift Box
+- Anniversary Set
+- Promo Pack
+- Tournament Kit
+- Case
+- Bundle
+- Other (admin-reviewed)
+
+Fields:
+- product_name
+- product_type (registry-based)
+- language
+- set (nullable)
+- edition / print_wave (optional)
+- configuration:
+    - contains_boosters (bool)
+    - booster_sets[]
+    - packs_per_unit
+    - contains_fixed_cards (bool)
+    - contains_promo (bool)
+    - bundle_components[] (optional)
+- sealed_integrity (mint / minor_dents / damaged / opened)
+- quantity
+- acquisition_price_per_unit
+- acquisition_date
+- storage_location
+- inventory_stage
+
+Rules:
+- sealed products have NO condition
+- sealed products can be aggregated
+- sealed → opened must spawn raw inventory items
+
+========================================
+UX REQUIREMENTS
+========================================
+
+- Inventory type selection MUST be the first step
+- Form fields MUST change dynamically by inventory type
+- Provide presets for:
+    - Illustration Box
+    - Mini Tin
+- Prevent invalid states at UI level
+- Use clear seller-grade copy, not developer jargon
+
+========================================
+DATA MODEL & VALIDATION
+========================================
+
+- Enforce invariants at BOTH UI and backend level
+- Use strict schema validation (e.g. Zod / Prisma)
+- Prevent:
+    - graded items with quantity > 1
+    - raw items with cert_number
+    - sealed items with condition
+
+========================================
+DELIVERABLES
+========================================
+
+Produce:
+1) Updated Inventory data model
+2) Form field specification per inventory type
+3) Validation rules
+4) Inventory workflow states (raw → grading → graded → listed)
+5) Notes explaining how corner cases are handled
+
+Do NOT output explanations of this prompt.
+Only output the implementation-ready result.
+
+
+========================================
+CARD VARIANT & LANGUAGE (MANDATORY)
+========================================
+
+All single-card inventory items (RAW and GRADED) MUST be linked to a
+CardVariant, not directly to a Card.
+
+A CardVariant is uniquely defined by:
+- base Card (set_code + card_number)
+- variant_type:
+    - Normal
+    - Alternate Art
+    - Parallel / Foil
+- language:
+    - JP
+    - EN
+
+Rules:
+- Variant selection is REQUIRED when adding inventory
+- Variant determines:
+    - market price
+    - liquidity
+    - legality in some regions
+- Alternate Art is NOT a separate Card
+- Parallel / Foil is NOT a separate Card
+- Language differences MUST create separate CardVariants
+
+Inventory constraints:
+- Raw inventory items reference:
+    - card_variant_id
+    - condition
+- Graded inventory items reference:
+    - card_variant_id
+    - grading metadata (cert_number, grade, grader)
+
+UI / UX requirements:
+- Card lookup MUST include:
+    - Set
+    - Card number
+    - Card name
+    - Variant type selector
+    - Language selector
+- Variant preview (image) SHOULD update when variant or language changes
+
+Data model requirements:
+- card_variant_id MUST be immutable once inventory is created
+- card_variant_id MUST be indexed
+- price history and listings MUST resolve through card_variant_id
+
+Validation:
+- Prevent creating inventory without specifying variant_type
+- Prevent merging inventory across different variants or languages
+
+
+<-- 3. FEATURE PROMPT -->
