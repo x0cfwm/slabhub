@@ -53,13 +53,18 @@ export default function DashboardPage() {
 
     const stats = useMemo(() => {
         const totalItems = items.reduce((acc, i) => acc + i.quantity, 0);
-        const forSaleItems = items.filter(i =>
-            i.stage === "UNGRADED_FOR_SALE" || i.stage === "GRADED_FOR_SALE"
-        ).reduce((acc, i) => acc + i.quantity, 0);
+        const forSaleItems = items.filter(i => i.stage === "LISTED").reduce((acc, i) => acc + i.quantity, 0);
 
         const marketValue = items.reduce((acc, item) => {
-            const price = pricing.find(p => p.cardProfileId === item.cardProfileId);
-            const unitPrice = item.itemType === "SEALED" ? (price?.sealedPrice ?? 0) : (price?.rawPrice ?? 0);
+            const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
+            const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
+
+            const vid = (item as any).cardVariantId || (item as any).cardProfileId;
+            const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
+
+            const price = pricing.find(p => p.cardProfileId === bid || p.cardProfileId === vid);
+            const unitPrice = isSealed ? (price?.sealedPrice ?? 0) : (price?.rawPrice ?? 0);
+
             return acc + (unitPrice * item.quantity);
         }, 0);
 
@@ -197,13 +202,21 @@ export default function DashboardPage() {
                     <CardContent>
                         <div className="space-y-8">
                             {items.slice(0, 5).map((item) => {
-                                const card = cards.find(c => c.id === item.cardProfileId);
+                                const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
+                                const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
+
+                                const vid = (item as any).cardVariantId || (item as any).cardProfileId;
+                                const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
+                                const profile = cards.find(c => c.id === bid);
+
+                                const displayName = isSealed ? (item as any).productName : profile?.name || "Unknown Asset";
+
                                 return (
                                     <div key={item.id} className="flex items-center">
                                         <div className="space-y-1">
-                                            <p className="text-sm font-medium leading-none">{card?.name || "Unknown Card"}</p>
+                                            <p className="text-sm font-medium leading-none">{displayName}</p>
                                             <p className="text-sm text-muted-foreground">
-                                                Moved to <span className="font-semibold">{item.stage.toLowerCase()}</span>
+                                                Status: <span className="font-semibold text-primary">{item.stage.replace(/_/g, " ").toLowerCase()}</span>
                                             </p>
                                         </div>
                                         <div className="ml-auto font-medium">
