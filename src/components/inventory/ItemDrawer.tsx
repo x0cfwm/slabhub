@@ -152,6 +152,27 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                         <Save className="mr-2 h-5 w-5" />
                         Save Asset Changes
                     </Button>
+                    <Button
+                        variant="ghost"
+                        className="w-full h-12 text-sm font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={async () => {
+                            if (!item) return;
+                            if (window.confirm("Are you sure you want to remove this asset?")) {
+                                try {
+                                    await mockApi.deleteInventoryItem(item.id);
+                                    toast.success("Asset removed from inventory");
+                                    onUpdate();
+                                    onClose();
+                                } catch (err) {
+                                    toast.error("Failed to delete asset");
+                                }
+                            }
+                        }}
+                        disabled={loading}
+                    >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Remove From Portfolio
+                    </Button>
                 </SheetFooter>
             </SheetContent>
         </Sheet>

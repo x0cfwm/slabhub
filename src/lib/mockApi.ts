@@ -75,11 +75,11 @@ export const mockApi = {
         await wait();
         maybeFail();
         const state = loadState();
-        const newItem: InventoryItem = {
+        const newItem = {
             ...item,
             id: `inv-${Date.now()}`,
             createdAt: new Date().toISOString()
-        };
+        } as InventoryItem;
         state.inventoryItems.push(newItem);
         saveState(state);
         return newItem;
@@ -91,7 +91,7 @@ export const mockApi = {
         const state = loadState();
         const idx = state.inventoryItems.findIndex(i => i.id === id);
         if (idx === -1) throw new Error("Item not found");
-        state.inventoryItems[idx] = { ...state.inventoryItems[idx], ...patch };
+        state.inventoryItems[idx] = { ...state.inventoryItems[idx], ...patch } as any;
         saveState(state);
         return state.inventoryItems[idx];
     },

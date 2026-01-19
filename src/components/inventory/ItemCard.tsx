@@ -74,8 +74,11 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
                                 variantType === "PARALLEL_FOIL" && "contrast-125 brightness-110"
                             )}
                         />
+                        {variantType === "PARALLEL_FOIL" && (
+                            <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-white/20 pointer-events-none animate-pulse" />
+                        )}
                         {variantType !== "NORMAL" && (
-                            <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent pointer-events-none" />
+                            <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent pointer-events-none mix-blend-overlay" />
                         )}
                         {isNewVariantId && (
                             <div className="absolute bottom-2 left-2">

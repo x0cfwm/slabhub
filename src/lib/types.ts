@@ -51,6 +51,8 @@ export interface CardVariant {
 export interface InventoryBase {
     id: string;
     acquisitionPrice: number;
+    listingPrice?: number;
+    marketPriceSnapshot?: number;
     acquisitionDate: string;
     acquisitionSource?: string;
     storageLocation?: string;

@@ -44,7 +44,7 @@ export default function VendorClient() {
                 // In real app, we would fetch by handle. Mock just gets current user.
                 setProfile(prof);
                 setItems(inv.filter(i =>
-                    i.stage === "UNGRADED_FOR_SALE" || i.stage === "GRADED_FOR_SALE"
+                    i.stage === "LISTED"
                 ));
                 setCards(crd);
                 setPricing(prc);
@@ -58,10 +58,19 @@ export default function VendorClient() {
     }, [handle]);
 
     const filteredItems = useMemo(() => {
-        if (!search) return items;
         const s = search.toLowerCase();
         return items.filter(item => {
-            const card = cards.find(c => c.id === item.cardProfileId);
+            const vid = (item as any).cardVariantId || (item as any).cardProfileId;
+            const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
+            const card = cards.find(c => c.id === bid);
+
+            if (!search) return true;
+
+            const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
+            if (itType === "SEALED_PRODUCT" || itType === "SEALED") {
+                return (item as any).productName?.toLowerCase().includes(s);
+            }
+
             return card?.name.toLowerCase().includes(s) || card?.set.toLowerCase().includes(s);
         });
     }, [items, cards, search]);
@@ -167,34 +176,46 @@ export default function VendorClient() {
                     <TabsContent value="for-sale">
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
                             {filteredItems.map(item => {
-                                const card = cards.find(c => c.id === item.cardProfileId);
-                                const price = pricing.find(p => p.cardProfileId === item.cardProfileId);
-                                const marketPrice = item.itemType === "SEALED" ? price?.sealedPrice : price?.rawPrice;
+                                const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
+                                const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
+
+                                const vid = (item as any).cardVariantId || (item as any).cardProfileId;
+                                const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
+                                const profile = cards.find(c => c.id === bid);
+                                const price = pricing.find(p => p.cardProfileId === bid || p.cardProfileId === vid);
+
+                                const marketPrice = isSealed ? price?.sealedPrice : price?.rawPrice;
+                                const displayName = isSealed ? (item as any).productName : profile?.name || "Unknown Asset";
 
                                 return (
                                     <div key={item.id} className="group relative">
                                         <div className="absolute -inset-0.5 bg-gradient-to-b from-primary/20 to-transparent rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                                        <Card className="relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md">
-                                            <div className="aspect-[3/4] overflow-hidden relative">
+                                        <Card className="relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md border-primary/10 bg-card/50 backdrop-blur-md">
+                                            <div className="aspect-[3/4] overflow-hidden relative bg-accent/5">
                                                 <img
-                                                    src={card?.imageUrl}
-                                                    className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
-                                                    alt={card?.name}
+                                                    src={profile?.imageUrl || "https://placehold.co/300x400?text=Asset"}
+                                                    className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-110 p-4"
+                                                    alt={displayName}
                                                 />
                                                 <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black via-black/50 to-transparent">
-                                                    <p className="text-[10px] text-primary font-black uppercase tracking-[0.2em] truncate">{card?.set}</p>
+                                                    <p className="text-[10px] text-primary font-black uppercase tracking-[0.2em] truncate">{profile?.set || "TCG Asset"}</p>
                                                 </div>
                                             </div>
                                             <CardContent className="p-4 space-y-4">
                                                 <div>
-                                                    <h4 className="font-bold text-sm tracking-tight truncate group-hover:text-primary transition-colors">{card?.name}</h4>
-                                                    <div className="flex items-center gap-1.5 mt-2">
+                                                    <h4 className="font-bold text-sm tracking-tight truncate group-hover:text-primary transition-colors">{displayName}</h4>
+                                                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                                                         <Badge className="text-[9px] h-4 px-2 uppercase font-black bg-primary text-black">
                                                             {item.quantity} In Stock
                                                         </Badge>
-                                                        {item.gradeValue && (
+                                                        {(item as any).grade && (
                                                             <Badge variant="outline" className="text-[9px] h-4 px-2 font-bold border-primary/20 bg-primary/5 text-primary">
-                                                                {item.gradeProvider} {item.gradeValue}
+                                                                {(item as any).gradingCompany} {(item as any).grade}
+                                                            </Badge>
+                                                        )}
+                                                        {(item as any).condition && !isSealed && (
+                                                            <Badge variant="outline" className="text-[9px] h-4 px-2 font-bold border-primary/20">
+                                                                {(item as any).condition}
                                                             </Badge>
                                                         )}
                                                     </div>
@@ -202,12 +223,12 @@ export default function VendorClient() {
 
                                                 <div className="pt-3 border-t border-border flex items-end justify-between">
                                                     <div className="flex flex-col">
-                                                        <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Market</span>
-                                                        <span className="text-xs font-medium text-muted-foreground line-through">${marketPrice?.toFixed(2)}</span>
+                                                        <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Market Avg</span>
+                                                        <span className="text-xs font-medium text-muted-foreground line-through">${marketPrice?.toFixed(2) || "0.00"}</span>
                                                     </div>
                                                     <div className="text-right">
                                                         <span className="text-[10px] text-primary uppercase font-black block leading-none mb-0.5">Price</span>
-                                                        <span className="text-lg font-black">${item.listingPrice?.toFixed(2)}</span>
+                                                        <span className="text-lg font-black tracking-tighter">${item.listingPrice?.toFixed(2) || (item.acquisitionPrice * 1.2).toFixed(2)}</span>
                                                     </div>
                                                 </div>
                                             </CardContent>
