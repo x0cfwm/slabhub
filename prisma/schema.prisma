@@ -1,0 +1,223 @@
+// Prisma schema for SlabHub - One Piece TCG Seller/Collector CRM
+// Stage 1: Core entities for seller profiles, cards, inventory, and pricing
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum InventoryStage {
+  ACQUIRED
+  IN_TRANSIT
+  BEING_GRADED
+  AUTHENTICATED
+  IN_STOCK
+  LISTED
+  SOLD
+  ARCHIVED
+}
+
+enum ItemType {
+  SINGLE_CARD_RAW
+  SINGLE_CARD_GRADED
+  SEALED_PRODUCT
+}
+
+enum GradeProvider {
+  PSA
+  BGS
+  CGC
+  ARS
+  SGC
+}
+
+enum Condition {
+  NM
+  LP
+  MP
+  HP
+  DMG
+}
+
+enum ProductType {
+  BOOSTER_BOX
+  BOOSTER_PACK
+  STARTER_DECK
+  ILLUSTRATION_BOX
+  MINI_TIN
+  PREMIUM_BOX
+  GIFT_BOX
+  ANNIVERSARY_SET
+  PROMO_PACK
+  TOURNAMENT_KIT
+  CASE
+  BUNDLE
+  OTHER
+}
+
+enum SealedIntegrity {
+  MINT
+  MINOR_DENTS
+  DAMAGED
+  OPENED
+}
+
+enum VariantType {
+  NORMAL
+  ALTERNATE_ART
+  PARALLEL_FOIL
+}
+
+enum Language {
+  JP
+  EN
+}
+
+// ============================================================================
+// MODELS
+// ============================================================================
+
+/// Seller profile - one per user for MVP
+model SellerProfile {
+  id               String          @id @default(cuid())
+  handle           String          @unique
+  shopName         String
+  isActive         Boolean         @default(true)
+  locationCountry  String
+  locationCity     String
+  paymentsAccepted String[]
+  meetupsEnabled   Boolean         @default(false)
+  shippingEnabled  Boolean         @default(false)
+  socials          Json            @default("{}")
+  wishlistText     String          @default("")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  // Relations
+  inventoryItems   InventoryItem[]
+
+  @@index([handle])
+}
+
+/// Global card catalog - One Piece TCG cards
+model CardProfile {
+  id             String           @id // Use stable IDs like "op01-001"
+  name           String
+  set            String
+  rarity         String
+  cardNumber     String
+  imageUrl       String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Relations
+  pricingSnapshot PricingSnapshot?
+  cardVariants    CardVariant[]
+
+  @@index([name])
+  @@index([set])
+  @@index([cardNumber])
+}
+
+/// Card variants - specific print variants of a base card
+model CardVariant {
+  id           String      @id @default(cuid())
+  cardId       String      // Reference to base CardProfile
+  variantType  VariantType
+  language     Language
+  imageUrl     String
+  // Denormalized for performance
+  name         String
+  setName      String
+  setNumber    String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  // Relations
+  card         CardProfile @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  inventoryItems InventoryItem[]
+
+  @@unique([cardId, variantType, language])
+  @@index([cardId])
+}
+
+/// Global pricing per CardProfile - one snapshot per card for MVP
+model PricingSnapshot {
+  id            String      @id @default(cuid())
+  cardProfileId String      @unique
+  rawPrice      Decimal     @db.Decimal(10, 2)
+  sealedPrice   Decimal?    @db.Decimal(10, 2)
+  source        String      @default("Mock:TCGPlayer")
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  cardProfile   CardProfile @relation(fields: [cardProfileId], references: [id], onDelete: Cascade)
+
+  @@index([cardProfileId])
+}
+
+/// Inventory items - belongs to a seller
+model InventoryItem {
+  id               String          @id @default(cuid())
+  sellerId         String
+  
+  // Item type discriminator
+  itemType         ItemType
+  
+  // Card reference (for single cards)
+  cardVariantId    String?
+  
+  // Sealed product fields
+  productName      String?
+  productType      ProductType?
+  language         String?
+  setName          String?
+  edition          String?
+  integrity        SealedIntegrity?
+  configuration    Json?
+  
+  // Grading fields (for graded cards)
+  gradeProvider    GradeProvider?
+  gradeValue       String?         // Can be "10", "9.5", "Authentic", etc.
+  certNumber       String?
+  gradingCost      Decimal?        @db.Decimal(10, 2)
+  slabImages       Json?           @default("{}")
+  previousCertNumbers String[]     @default([])
+  
+  // Raw card fields
+  condition        Condition?
+  
+  // Common fields
+  quantity         Int             @default(1)
+  stage            InventoryStage  @default(ACQUIRED)
+  listingPrice     Decimal?        @db.Decimal(10, 2)
+  acquisitionPrice Decimal?        @db.Decimal(10, 2)
+  acquisitionDate  DateTime?
+  acquisitionSource String?
+  storageLocation  String?
+  notes            String?
+  marketPriceSnapshot Decimal?     @db.Decimal(10, 2)
+  
+  // Photos stored as JSON for Stage 1
+  photos           Json            @default("[]")
+  
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  // Relations
+  seller           SellerProfile   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  cardVariant      CardVariant?    @relation(fields: [cardVariantId], references: [id], onDelete: SetNull)
+
+  @@index([sellerId])
+  @@index([stage])
+  @@index([itemType])
+  @@index([cardVariantId])
+}
