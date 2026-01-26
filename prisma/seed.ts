@@ -275,7 +275,49 @@ async function main() {
             },
         });
     }
-    console.log('✅ Created 3 SEALED inventory items');
+    // 7. Seed some RefProducts for Market Pricing
+    console.log('🛒 Seeding RefProducts...');
+    const refProducts = [
+        {
+            externalId: 'prod-1',
+            name: 'Monkey.D.Luffy (Parallel)',
+            number: 'OP01-001',
+            imageUrl: '/cards/op01-001.svg',
+            priceChartingUrl: 'https://www.pricecharting.com/game/pokemon-promo/pikachu-on-the-ball-001'
+        },
+        {
+            externalId: 'prod-2',
+            name: 'Nami (Alternate Art)',
+            number: 'OP01-016',
+            imageUrl: '/cards/op01-016.svg',
+            priceChartingUrl: 'https://www.pricecharting.com/game/pokemon-jungle/pikachu-60'
+        },
+        {
+            externalId: 'prod-3',
+            name: 'Shanks (Manga Art)',
+            number: 'OP01-120',
+            imageUrl: '/cards/op01-120.svg',
+            priceChartingUrl: 'https://www.pricecharting.com/game/pokemon-base-set/charizard-4'
+        },
+        {
+            externalId: 'prod-4',
+            name: 'Trafalgar Law',
+            number: 'OP01-047',
+            imageUrl: '/cards/op01-047.svg',
+            priceChartingUrl: null
+        }
+    ];
+
+    for (const prod of refProducts) {
+        await prisma.refProduct.upsert({
+            where: { externalId: prod.externalId },
+            update: {
+                priceChartingUrl: prod.priceChartingUrl
+            },
+            create: prod
+        });
+    }
+    console.log(`✅ Seeded ${refProducts.length} RefProducts`);
 
     // Summary
     const totalItems = await prisma.inventoryItem.count({

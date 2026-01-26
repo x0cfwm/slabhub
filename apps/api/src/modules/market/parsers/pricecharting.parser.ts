@@ -1,0 +1,137 @@
+import { Injectable, Logger } from '@nestjs/common';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+
+export interface PriceChartingEntry {
+    date: string;
+    title: string;
+    price: number;
+    source: 'eBay' | 'TCGPlayer' | 'Unknown';
+    link?: string;
+}
+
+@Injectable()
+export class PriceChartingParser {
+    private readonly logger = new Logger(PriceChartingParser.name);
+    private readonly userAgent =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+    async parse(url: string): Promise<PriceChartingEntry[]> {
+        try {
+            this.logger.log(`Fetching PriceCharting data from: ${url}`);
+            const response = await axios.get(url, {
+                headers: {
+                    'User-Agent': this.userAgent,
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                },
+                timeout: 10000,
+            });
+
+            const $ = cheerio.load(response.data);
+            const entries: PriceChartingEntry[] = [];
+
+            // Primary selector based on browser inspection
+            let table = $('#completed_sales_table');
+            if (table.length === 0) {
+                table = $('.js-completed-sales-table');
+            }
+
+            if (table.length === 0) {
+                // Fallback: Find table that contains "Date" and "Price" headers
+                $('table').each((i, el) => {
+                    const text = $(el).text();
+                    if (text.includes('Date') && text.includes('Price') && (text.includes('Title') || text.includes('Sale'))) {
+                        table = $(el);
+                        return false;
+                    }
+                });
+            }
+
+            const rows = table.find('tbody tr');
+
+            if (rows.length === 0) {
+                this.logger.warn(`No sales rows found for ${url}`);
+                // Try to find ANY rows that look like sales if table finding failed
+                const anyRows = $('tr').filter((i: number, el: any) => {
+                    const text = $(el).text();
+                    return text.includes('$') && /\d{4}-\d{2}-\d{2}/.test(text);
+                });
+                if (anyRows.length > 0) {
+                    this.logger.log(`Found ${anyRows.length} rows using pattern fallback`);
+                    this.processRows($, anyRows, entries);
+                }
+            } else {
+                this.processRows($, rows, entries);
+            }
+
+            if (entries.length === 0) {
+                throw new Error('No entries could be parsed from the page structure.');
+            }
+
+            return entries;
+        } catch (error) {
+            this.logger.error(`Failed to parse PriceCharting URL ${url}: ${error.message}`);
+            throw error;
+        }
+    }
+
+    private processRows($: cheerio.CheerioAPI, rows: cheerio.Cheerio<any>, entries: PriceChartingEntry[]) {
+        rows.each((i: number, el: any) => {
+            if (entries.length >= 10) return false;
+
+            const dateTd = $(el).find('td.date');
+            const titleTd = $(el).find('td.title');
+            const priceTd = $(el).find('td.price, td.numeric');
+
+            const dateStr = dateTd.text().trim();
+            const titleLink = titleTd.find('a');
+            const titleText = titleLink.text().trim();
+            const fullTitleCellText = titleTd.text().trim();
+            const link = titleLink.attr('href');
+
+            // Price can be in a span with .js-price or directly in .numeric
+            let priceStr = priceTd.find('.js-price').text().trim();
+            if (!priceStr) {
+                priceStr = priceTd.text().trim();
+            }
+
+            if (!dateStr || !titleText || !priceStr) return;
+
+            const price = this.parsePrice(priceStr);
+            const date = this.normalizeDate(dateStr);
+            const source = this.inferSource(fullTitleCellText);
+
+            entries.push({
+                date,
+                title: titleText,
+                price,
+                source,
+                link: link ? (link.startsWith('http') ? link : `https://www.pricecharting.com${link}`) : undefined,
+            });
+        });
+    }
+
+    private parsePrice(priceStr: string): number {
+        // Remove currency symbols and commas
+        const cleaned = priceStr.replace(/[^\d.]/g, '');
+        return parseFloat(cleaned) || 0;
+    }
+
+    private normalizeDate(dateStr: string): string {
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toISOString().split('T')[0];
+        } catch {
+            return dateStr;
+        }
+    }
+
+    private inferSource(text: string): 'eBay' | 'TCGPlayer' | 'Unknown' {
+        const lower = text.toLowerCase();
+        if (lower.includes('ebay')) return 'eBay';
+        if (lower.includes('tcgplayer')) return 'TCGPlayer';
+        return 'Unknown';
+    }
+}

@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const market_controller_1 = require("./market.controller");
 const market_service_1 = require("./market.service");
 const prisma_module_1 = require("../prisma/prisma.module");
+const pricecharting_parser_1 = require("./parsers/pricecharting.parser");
 let MarketModule = class MarketModule {
 };
 exports.MarketModule = MarketModule;
@@ -18,7 +19,7 @@ exports.MarketModule = MarketModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
         controllers: [market_controller_1.MarketPricingController],
-        providers: [market_service_1.MarketPricingService],
+        providers: [market_service_1.MarketPricingService, pricecharting_parser_1.PriceChartingParser],
         exports: [market_service_1.MarketPricingService],
     })
 ], MarketModule);

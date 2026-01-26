@@ -1502,3 +1502,166 @@ Return:
 - Updated frontend page + drawer components
 - Any new DTOs or types
 - Brief note explaining mock pricing strategy and how it will be replaced later
+
+
+<-- 7. FEATURE PROMPT -->
+
+
+You are extending an existing monorepo product:
+
+Frontend:
+- Next.js (App Router) + TypeScript + Tailwind + shadcn/ui
+Backend:
+- NestJS + TypeScript + PostgreSQL + Prisma
+- Existing Market Pricing page is already bound to backend RefProduct list with pagination + unified search.
+- There is a detail drawer which currently shows mocked last-10 price points from backend endpoint.
+
+NEW GOAL:
+1) Add a new field `priceChartingUrl` to RefProduct.
+2) If `priceChartingUrl` is present (non-empty) for a product, the drawer must show REAL sold listing rows
+parsed from the PriceCharting page at that URL.
+3) Extract from the parsed page at least: sale date, title, price, source (eBay or TCGPlayer).
+4) If `priceChartingUrl` is empty, keep the existing mocked behavior.
+
+IMPORTANT:
+- Parsing must be done server-side in the backend (never in the browser).
+- Frontend should not change logic beyond calling the same endpoint and rendering results.
+- Be resilient: HTML changes must not crash the app; show a friendly error and fallback to mock if allowed.
+
+------------------------------------------------------------
+A) DATABASE / PRISMA CHANGES (MANDATORY)
+------------------------------------------------------------
+Update Prisma model RefProduct:
+- add priceChartingUrl String? @db.Text
+- add index optionally if you need lookup; not required
+
+Create migration.
+
+Seed changes:
+- Set priceChartingUrl for at least 3 seeded RefProducts to real-looking URLs (use placeholders if needed).
+- Keep other products null.
+
+------------------------------------------------------------
+B) BACKEND API: PRICE HISTORY ENDPOINT (ENHANCED)
+------------------------------------------------------------
+Existing endpoint:
+GET /v1/market/products/:id/prices
+
+Update behavior:
+
+1) Fetch RefProduct by id
+2) If product.priceChartingUrl is non-empty:
+   - Attempt to fetch and parse the PriceCharting page
+   - Return parsed results (max 10 entries, most recent first if possible)
+   - Each entry must include:
+     - date (YYYY-MM-DD or ISO)
+     - title (string)
+     - price (number)
+     - source ("eBay" | "TCGPlayer" | "Unknown")
+     - link (optional, if available on page)
+
+3) If priceChartingUrl is empty OR parsing fails:
+   - Return the current mocked list (existing behavior)
+   - Additionally include meta flags:
+     - { mode: "parsed" | "mock", parseError?: string }
+
+Response shape (required):
+{
+  "productId": "...",
+  "mode": "parsed" | "mock",
+  "parseError": null | "string",
+  "prices": [
+    { "date": "2026-01-14", "title": "...", "price": 3.45, "source": "eBay" }
+  ]
+}
+
+Error handling:
+- If RefProduct not found -> 404
+- If upstream is unreachable or blocked -> do NOT 500 the whole app; return mock with parseError unless strict mode requested.
+Optional query param:
+- strict=true → return 502 on parse failure (optional)
+
+Caching:
+- Cache parsed results by productId for 6–24 hours (in-memory OK for MVP).
+- Add basic rate limiting for this endpoint to avoid hammering PriceCharting.
+
+------------------------------------------------------------
+C) BACKEND: PRICECHARTING PARSER SERVICE (MANDATORY)
+------------------------------------------------------------
+Create module/service:
+apps/api/src/modules/market/parsers/pricecharting.parser.ts
+or
+apps/api/src/modules/pricecharting/pricecharting.service.ts
+
+Requirements:
+- Fetch HTML via server-side HTTP client (axios/@nestjs/axios or fetch)
+- Set a realistic User-Agent header
+- Use cheerio for parsing
+- Implement parsing with fallback strategies:
+  - Prefer structured tables/lists for “Sold Listings”
+  - Fallback: parse rows by scanning for patterns like date + price + [eBay]/[TCGPlayer] markers
+
+Extraction targets (minimum):
+- Sold listing rows:
+  - Sale Date column
+  - Title column (anchor text)
+  - Price column (currency)
+  - Source derived from:
+    - explicit label “eBay” or “TCGPlayer” near title OR
+    - bracket suffix like “[eBay]” / “[TCGPlayer]” in the row
+
+Normalize:
+- Parse price string into number (USD)
+- Normalize date into YYYY-MM-DD (best effort)
+- Trim title
+- Source mapping:
+  - contains "ebay" -> "eBay"
+  - contains "tcgplayer" -> "TCGPlayer"
+  - else "Unknown"
+
+Limit:
+- Return only the last 10 rows.
+
+Robustness:
+- If HTML structure unexpected, throw a controlled ParseError.
+- Do not log full HTML. Log only summary.
+
+------------------------------------------------------------
+D) FRONTEND: DETAIL DRAWER (MINIMAL CHANGES)
+------------------------------------------------------------
+The drawer continues to call:
+GET /v1/market/products/:id/prices
+
+Update UI:
+- If response.mode === "parsed": show “Live data from PriceCharting” badge.
+- If mode === "mock" and parseError exists:
+  - Show a small warning: “Live parsing unavailable, showing mock data”
+- Render prices list exactly the same shape as before.
+- Add a source badge column: eBay / TCGPlayer.
+
+No parsing logic in frontend.
+
+------------------------------------------------------------
+E) ACCEPTANCE CRITERIA
+------------------------------------------------------------
+1) RefProduct has new field priceChartingUrl (migrated + seeded).
+2) For products with priceChartingUrl:
+   - /v1/market/products/:id/prices returns mode="parsed" and 1–10 entries with date/title/price/source.
+3) For products without it:
+   - endpoint returns mode="mock" and mocked entries (existing).
+4) If parsing fails for a product with URL:
+   - endpoint returns mode="mock" + parseError (unless strict=true)
+   - UI shows warning and still works.
+5) No CORS/browser scraping; all parsing is backend-only.
+6) Caching prevents repeated fetches during rapid drawer open/close.
+
+------------------------------------------------------------
+F) OUTPUT REQUIRED
+------------------------------------------------------------
+Return:
+- Prisma schema diff + migration instructions
+- Updated seed
+- New parser service code + tests (optional)
+- Updated controller/service for /v1/market/products/:id/prices
+- Any new dependencies (cheerio, etc.)
+- Small frontend UI update for mode badges/warnings

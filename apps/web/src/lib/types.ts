@@ -154,6 +154,7 @@ export interface MarketProduct {
     name: string;
     number: string | null;
     imageUrl: string | null;
+    priceChartingUrl?: string | null;
     rawPrice: number;
     sealedPrice: number | null;
     lastUpdated: string;
@@ -169,6 +170,8 @@ export interface MarketPriceHistoryEntry {
 
 export interface MarketPriceHistory {
     productId: string;
+    mode: "parsed" | "mock";
+    parseError: string | null;
     prices: MarketPriceHistoryEntry[];
 }
 

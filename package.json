@@ -35,5 +35,8 @@
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=18"
+  },
+  "prisma": {
+    "seed": "npx ts-node prisma/seed.ts"
   }
 }

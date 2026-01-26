@@ -57,8 +57,12 @@ export async function getMarketProducts(params: { page: number; limit: number; s
     return response.json();
 }
 
-export async function getProductPriceHistory(productId: string): Promise<MarketPriceHistory> {
-    const response = await fetch(`${API_BASE_URL}/v1/market/products/${productId}/prices`);
+export async function getProductPriceHistory(productId: string, refresh = false): Promise<MarketPriceHistory> {
+    const url = new URL(`${API_BASE_URL}/v1/market/products/${productId}/prices`);
+    if (refresh) {
+        url.searchParams.set('refresh', 'true');
+    }
+    const response = await fetch(url.toString());
     if (!response.ok) {
         throw new Error('Failed to fetch price history');
     }

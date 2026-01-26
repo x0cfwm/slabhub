@@ -12,7 +12,15 @@ export class MarketPricingController {
     }
 
     @Get('products/:id/prices')
-    async getProductPrices(@Param('id') id: string) {
-        return this.marketService.getProductPriceHistory(id);
+    async getProductPrices(
+        @Param('id') id: string,
+        @Query('strict') strict?: string,
+        @Query('refresh') refresh?: string
+    ) {
+        return this.marketService.getProductPriceHistory(
+            id,
+            strict === 'true',
+            refresh === 'true'
+        );
     }
 }

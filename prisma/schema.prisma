@@ -311,6 +311,7 @@ model RefProduct {
   name             String
   number           String?
   imageUrl         String?
+  priceChartingUrl String?  @db.Text
   setExternalId    String?
   rarityExternalId String?
   gameExternalId   String?

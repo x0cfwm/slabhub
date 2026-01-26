@@ -23,8 +23,8 @@ let MarketPricingController = class MarketPricingController {
     async getProducts(query) {
         return this.marketService.listProducts(query);
     }
-    async getProductPrices(id) {
-        return this.marketService.getProductPriceHistory(id);
+    async getProductPrices(id, strict, refresh) {
+        return this.marketService.getProductPriceHistory(id, strict === 'true', refresh === 'true');
     }
 };
 exports.MarketPricingController = MarketPricingController;
@@ -38,8 +38,10 @@ __decorate([
 __decorate([
     (0, common_1.Get)('products/:id/prices'),
     __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Query)('strict')),
+    __param(2, (0, common_1.Query)('refresh')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
 ], MarketPricingController.prototype, "getProductPrices", null);
 exports.MarketPricingController = MarketPricingController = __decorate([

@@ -7,6 +7,8 @@ import { getProductPriceHistory } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MarketPricingDrawerProps {
     product: MarketProduct | null;
@@ -17,33 +19,61 @@ interface MarketPricingDrawerProps {
 export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPricingDrawerProps) {
     const [history, setHistory] = useState<MarketPriceHistory | null>(null);
     const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const fetchHistory = (isRefresh = false) => {
+        if (!product) return;
+
+        if (isRefresh) setRefreshing(true);
+        else setLoading(true);
+
+        getProductPriceHistory(product.id, isRefresh)
+            .then(setHistory)
+            .catch((err) => {
+                console.error("Failed to fetch history", err);
+            })
+            .finally(() => {
+                setLoading(false);
+                setRefreshing(false);
+            });
+    };
 
     useEffect(() => {
         if (product && open) {
-            setLoading(true);
-            getProductPriceHistory(product.id)
-                .then(setHistory)
-                .catch((err) => {
-                    console.error("Failed to fetch history", err);
-                })
-                .finally(() => setLoading(false));
+            fetchHistory();
         } else if (!open) {
-            // Reset history when closed to avoid showing old data next time
             setHistory(null);
         }
     }, [product, open]);
 
     if (!product) return null;
 
+    const handleRefresh = () => {
+        fetchHistory(true);
+    };
+
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent className="sm:max-w-2xl overflow-y-auto w-full sm:p-10">
                 <SheetHeader className="mb-8">
-                    <SheetTitle className="text-2xl font-bold">{product.name}</SheetTitle>
-                    <SheetDescription className="font-mono text-sm flex items-center gap-3">
-                        {product.number}
-                        <Badge variant="secondary" className="font-sans text-xs px-2">{product.source}</Badge>
-                    </SheetDescription>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <SheetTitle className="text-2xl font-bold">{product.name}</SheetTitle>
+                            <SheetDescription className="font-mono text-sm flex items-center gap-3">
+                                {product.number}
+                                <Badge variant="secondary" className="font-sans text-xs px-2">{product.source}</Badge>
+                            </SheetDescription>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors"
+                            onClick={handleRefresh}
+                            disabled={refreshing || loading}
+                        >
+                            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                        </Button>
+                    </div>
                 </SheetHeader>
 
                 <div className="space-y-6">
@@ -83,9 +113,24 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
 
                     <div className="space-y-3">
                         <h3 className="text-sm font-semibold flex items-center justify-between">
-                            Recent Sales
+                            <div className="flex items-center gap-2">
+                                Recent Sales
+                                {history?.mode === "parsed" && (
+                                    <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20 text-[10px] h-5 py-0">
+                                        Live: PriceCharting
+                                    </Badge>
+                                )}
+                            </div>
                             <span className="text-[10px] font-normal text-muted-foreground">Last 10 entries</span>
                         </h3>
+
+                        {history?.mode === "mock" && history.parseError && (
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 text-[10px] text-amber-500 flex items-center gap-2">
+                                <span className="font-bold uppercase tracking-wider">Note:</span>
+                                <span>Live parsing failed, showing mock history</span>
+                            </div>
+                        )}
+
                         {loading ? (
                             <div className="space-y-2">
                                 {[...Array(5)].map((_, i) => (
@@ -110,7 +155,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                     <TableBody>
                                         {history.prices.map((entry, idx) => (
                                             <TableRow key={idx}>
-                                                <TableCell className="text-xs py-3 px-4 font-medium">{entry.date}</TableCell>
+                                                <TableCell className="text-xs py-3 px-4 font-medium whitespace-nowrap">{entry.date}</TableCell>
                                                 <TableCell className="text-xs py-3 px-4 max-w-[280px] truncate" title={entry.title}>
                                                     {entry.title}
                                                 </TableCell>
@@ -118,7 +163,13 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                                     ${entry.price.toFixed(2)}
                                                 </TableCell>
                                                 <TableCell className="text-right py-3 pr-6">
-                                                    <Badge variant="outline" className="text-[10px] px-2 h-5 font-normal">
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={`text-[10px] px-2 h-5 font-normal ${entry.source === 'eBay' ? 'border-blue-500/30 text-blue-500' :
+                                                            entry.source === 'TCGPlayer' ? 'border-orange-500/30 text-orange-500' :
+                                                                ''
+                                                            }`}
+                                                    >
                                                         {entry.source}
                                                     </Badge>
                                                 </TableCell>

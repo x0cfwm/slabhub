@@ -9,6 +9,7 @@ export declare class MarketPricingController {
             name: string;
             number: string | null;
             imageUrl: string | null;
+            priceChartingUrl: string | null;
             rawPrice: number;
             sealedPrice: number | null;
             lastUpdated: string;
@@ -18,13 +19,5 @@ export declare class MarketPricingController {
         limit: number;
         total: number;
     }>;
-    getProductPrices(id: string): Promise<{
-        productId: string;
-        prices: {
-            date: string;
-            title: string;
-            price: number;
-            source: string;
-        }[];
-    }>;
+    getProductPrices(id: string, strict?: string, refresh?: string): Promise<any>;
 }

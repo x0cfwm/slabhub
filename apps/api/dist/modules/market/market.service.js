@@ -12,9 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MarketPricingService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const pricecharting_parser_1 = require("./parsers/pricecharting.parser");
 let MarketPricingService = class MarketPricingService {
-    constructor(prisma) {
+    constructor(prisma, parser) {
         this.prisma = prisma;
+        this.parser = parser;
+        this.cache = new Map();
+        this.rateLimit = new Map();
     }
     async listProducts(query) {
         const { page = 1, limit = 25, search } = query;
@@ -43,6 +47,7 @@ let MarketPricingService = class MarketPricingService {
                 name: product.name,
                 number: product.number,
                 imageUrl: product.imageUrl,
+                priceChartingUrl: product.priceChartingUrl,
                 rawPrice: parseFloat(basePrice.toFixed(2)),
                 sealedPrice: hash % 3 === 0 ? parseFloat((basePrice * 4.5).toFixed(2)) : null,
                 lastUpdated: new Date().toISOString(),
@@ -56,13 +61,60 @@ let MarketPricingService = class MarketPricingService {
             total,
         };
     }
-    async getProductPriceHistory(productId) {
+    async getProductPriceHistory(productId, strict = false, refresh = false) {
         const product = await this.prisma.refProduct.findUnique({
             where: { id: productId },
         });
         if (!product) {
             throw new common_1.NotFoundException('Product not found');
         }
+        if (!product.priceChartingUrl) {
+            return {
+                productId,
+                mode: 'mock',
+                parseError: null,
+                prices: this.generateMockPrices(product),
+            };
+        }
+        const cached = this.cache.get(productId);
+        if (!refresh && cached && cached.expires > Date.now()) {
+            return cached.data;
+        }
+        const lastRequest = this.rateLimit.get(productId) || 0;
+        if (!refresh && Date.now() - lastRequest < 10000 && cached) {
+            return cached.data;
+        }
+        this.rateLimit.set(productId, Date.now());
+        try {
+            const parsedPrices = await this.parser.parse(product.priceChartingUrl);
+            const response = {
+                productId,
+                mode: 'parsed',
+                parseError: null,
+                prices: parsedPrices,
+            };
+            this.cache.set(productId, {
+                data: response,
+                expires: Date.now() + 12 * 60 * 60 * 1000,
+            });
+            return response;
+        }
+        catch (error) {
+            if (strict) {
+                if (error.message.includes('404')) {
+                    throw new common_1.NotFoundException(`PriceCharting page not found: ${product.priceChartingUrl}`);
+                }
+                throw new common_1.BadGatewayException(`Failed to parse PriceCharting: ${error.message}`);
+            }
+            return {
+                productId,
+                mode: 'mock',
+                parseError: error.message,
+                prices: this.generateMockPrices(product),
+            };
+        }
+    }
+    generateMockPrices(product) {
         const hash = this.simpleHash(product.id);
         const basePrice = (hash % 100) + 10;
         const prices = [];
@@ -78,10 +130,7 @@ let MarketPricingService = class MarketPricingService {
                 source: (hash + i) % 2 === 0 ? 'eBay' : 'TCGPlayer',
             });
         }
-        return {
-            productId,
-            prices,
-        };
+        return prices;
     }
     simpleHash(str) {
         let hash = 0;
@@ -96,6 +145,7 @@ let MarketPricingService = class MarketPricingService {
 exports.MarketPricingService = MarketPricingService;
 exports.MarketPricingService = MarketPricingService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        pricecharting_parser_1.PriceChartingParser])
 ], MarketPricingService);
 //# sourceMappingURL=market.service.js.map
