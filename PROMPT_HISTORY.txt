@@ -1083,3 +1083,221 @@ DO NOT:
 - implement real external pricing usage
 - implement auth beyond env header
 - require screenshot parsing
+
+
+
+<-- 5. FEATURE PROMPT -->
+
+You are extending an existing product with:
+- Frontend: Next.js (App Router) + TS + Tailwind + shadcn/ui
+- Backend: NestJS + TS + PostgreSQL + Prisma (monorepo)
+- Inventory “Add Item” flow already exists and supports itemType=GRADED with detailed fields.
+Goal:
+Simplify the graded slab ingestion UX so users only enter:
+1) Grader (PSA or BGS)
+2) Certification number
+Then the app automatically fetches and parses the grader certificate page to populate all available fields.
+
+------------------------------------------------------------
+A) UX CHANGES (FRONTEND)
+------------------------------------------------------------
+Update the “Add Item → Graded” step UI:
+
+1) Replace existing graded slab inputs with minimal form:
+- Grader selector: PSA | BGS (required)
+- Certification # input (required, numeric)
+- Button: “Fetch details” (primary)
+- Auto-fetch on blur or after 500ms debounce is optional; explicit button is acceptable.
+
+2) After fetch success, render a “Parsed details” preview card:
+- Card title/name
+- Set/series
+- Card number (if found)
+- Grade (PSA 10, BGS 9.5 etc.)
+- Any extra fields available (year, parallel/variant, attributes)
+- Images (if present as URLs; otherwise skip)
+
+3) Provide an “Edit manually” accordion (collapsed by default):
+- Allows user override of parsed fields (name, set, grade, etc.)
+- But keep minimal by default.
+
+4) Show loading skeleton and clear error states:
+- “Cert not found”
+- “Parsing failed”
+- “Rate limited / blocked”
+- Retry button
+
+5) Quantity must be locked to 1 for graded slabs (keep current behavior).
+
+6) Ensure the final saved InventoryItem contains:
+- gradeProvider = PSA or BGS
+- certificationNumber stored
+- gradeValue / gradeLabel stored
+- parsed metadata stored as structured JSON in item “gradingMeta” (new field) or photos/meta json.
+
+Add a new optional field on InventoryItem:
+- certificationNumber (string)
+- gradingMeta (json) // parsed data raw for auditing/debug
+
+------------------------------------------------------------
+B) BACKEND SERVICE (NESTJS) — CERT PARSING
+------------------------------------------------------------
+Implement a backend module that:
+- Accepts grader + cert number
+- Fetches the public certificate page HTML
+- Parses required fields
+- Returns structured JSON to frontend
+
+Create:
+apps/api/src/modules/grading
+- grading.module.ts
+- grading.controller.ts
+- grading.service.ts
+- parsers/
+   - psa.parser.ts
+   - bgs.parser.ts
+- http/grading-http.client.ts (handles fetch + headers + retries)
+- dto/lookup.dto.ts
+- types/grading.types.ts
+
+Endpoint:
+POST /v1/grading/lookup
+Body:
+{
+  "grader": "PSA" | "BGS",
+  "certNumber": "112983707"
+}
+
+Response (example):
+{
+  "grader": "PSA",
+  "certNumber": "112983707",
+  "success": true,
+  "data": {
+    "gradeLabel": "PSA 10",
+    "gradeValue": 10,
+    "cardName": "...",
+    "setName": "...",
+    "cardNumber": "...",
+    "year": "...",
+    "variant": "...",
+    "population": null,
+    "images": { "frontUrl": "...", "backUrl": "..." },
+    "raw": { ... } // optional raw parsed map
+  }
+}
+
+Failure:
+- 404 when cert not found
+- 422 when page fetched but parsing failed
+- 429 when upstream rate limited
+- 502 when upstream blocked or HTML inaccessible
+
+Important:
+- Do NOT scrape from frontend (CORS, exposure); do it server-side only.
+- Add caching to reduce repeated hits:
+  - cache by (grader, certNumber) for 24h (in-memory is OK for MVP; Redis optional).
+- Add rate limiting per IP/user to prevent abuse (simple Nest throttler acceptable).
+
+------------------------------------------------------------
+C) PSA CERT PAGE (MANDATORY SUPPORT)
+------------------------------------------------------------
+Support PSA cert page parsing using URL format:
+https://www.psacard.com/cert/{certNumber}/psa
+
+Implementation requirements:
+- Fetch HTML with a realistic user-agent header
+- Parse using a robust HTML parser (cheerio recommended)
+- Extract:
+  - grade (numeric or label)
+  - card name / subject line
+  - set/series
+  - card number (if present)
+  - any extra attributes shown on page
+- Be resilient:
+  - selectors may change; implement parsing with fallback strategies:
+    - primary selectors
+    - regex fallback over text blocks
+
+------------------------------------------------------------
+D) BGS SUPPORT (OPTIONAL BUT PREFERRED)
+------------------------------------------------------------
+If BGS certificate lookup has a known URL pattern, implement it.
+If unknown, implement BGS as a stub that returns “NOT_IMPLEMENTED” but keep the architecture ready.
+
+For BGS stub:
+- return 501 with message “BGS parsing not yet configured”
+- frontend shows friendly message and allows manual entry fallback.
+
+(If you know the BGS cert URL format from your codebase/config, use it.)
+
+------------------------------------------------------------
+E) DATABASE CHANGES (PRISMA)
+------------------------------------------------------------
+Update Prisma InventoryItem model:
+- add certificationNumber String? (indexed)
+- add gradingMeta Json? (optional)
+- ensure gradeProvider + gradeValue already exist or add them.
+
+Migration required.
+
+When saving a graded item:
+- certificationNumber must be stored
+- gradeProvider set from selected grader
+- gradeValue / gradeLabel stored
+- gradingMeta stores parsed object
+
+------------------------------------------------------------
+F) INVENTORY CREATION FLOW (FRONTEND + BACKEND)
+------------------------------------------------------------
+Frontend flow:
+1) user selects grader + cert#
+2) calls POST /v1/grading/lookup
+3) displays parsed preview
+4) user clicks “Continue / Save”
+5) create inventory item payload includes:
+   - itemType="GRADED"
+   - gradeProvider
+   - certificationNumber
+   - gradeValue
+   - gradingMeta (parsed data)
+   - cardProfileId resolution:
+       - Attempt to match parsed info to existing CardProfile by:
+         - card number + set name
+         - fallback: name contains + set contains
+       - If no confident match:
+         - allow user to manually search/select CardProfile (required)
+       - Do NOT auto-create new CardProfile in Stage 1 unless existing system already supports it.
+
+Important:
+- If parsed data indicates a known card already in catalog, preselect it and show confidence badge.
+
+------------------------------------------------------------
+G) NON-FUNCTIONAL REQUIREMENTS
+------------------------------------------------------------
+- Do not violate robots.txt intentionally, but implement minimal MVP.
+- Add timeouts + retries.
+- Do not store full HTML; store only parsed fields.
+- Add safe logging (no PII).
+- Ensure code is modular: adding CGC later should be easy.
+
+------------------------------------------------------------
+H) ACCEPTANCE CRITERIA
+------------------------------------------------------------
+1) Graded slab form is simplified to grader + cert#.
+2) PSA example works:
+   - grader=PSA, certNumber=112983707
+   - backend fetches https://www.psacard.com/cert/112983707/psa
+   - returns parsed grade + card metadata
+3) User can save the graded item with quantity locked to 1.
+4) If parsing fails, user can still proceed via “manual entry fallback”.
+5) Result persists in DB with certificationNumber + gradingMeta.
+
+------------------------------------------------------------
+I) OUTPUT
+------------------------------------------------------------
+Return:
+- updated frontend files (new UI + API call)
+- new backend module files
+- prisma schema + migration
+- README notes: how parsing works, how to add BGS URL/selectors, known limitations

@@ -31,6 +31,9 @@ import { toast } from "sonner";
 import { Search, ChevronRight, ChevronLeft, Check, Package as PackageIcon, FileText, BadgeCheck, Box } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { lookupGrading, GradingLookupResult } from "@/lib/api";
+import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type InventoryCategory = "SINGLE_CARD_RAW" | "SINGLE_CARD_GRADED" | "SEALED_PRODUCT";
 
@@ -41,6 +44,9 @@ export default function AddItemPage() {
     const [category, setCategory] = useState<InventoryCategory | null>(null);
     const [cards, setCards] = useState<CardProfile[]>([]);
     const [search, setSearch] = useState("");
+    const [isFetching, setIsFetching] = useState(false);
+    const [lookupResult, setLookupResult] = useState<GradingLookupResult | null>(null);
+    const [manualEntry, setManualEntry] = useState(false);
 
     // Unified Form State
     const [formData, setFormData] = useState<any>({
@@ -62,6 +68,37 @@ export default function AddItemPage() {
             mockApi.listCardProfiles(search).then(setCards);
         }
     }, [search]);
+
+    const handleFetchDetails = async () => {
+        if (!formData.gradingCompany || !formData.certNumber) {
+            toast.error("Please provide both Grader and Certification Number");
+            return;
+        }
+
+        setIsFetching(true);
+        setLookupResult(null);
+        try {
+            const result = await lookupGrading(formData.gradingCompany, formData.certNumber);
+            setLookupResult(result);
+            if (result.success && result.data) {
+                setFormData({
+                    ...formData,
+                    grade: result.data.gradeLabel,
+                    gradeValue: result.data.gradeValue,
+                    certificationNumber: result.certNumber,
+                    gradingMeta: result.data,
+                    // Optionally attempt to match card name
+                });
+                toast.success("Details fetched successfully");
+            } else {
+                toast.error(result.error || "Failed to parse certificate");
+            }
+        } catch (err: any) {
+            toast.error(err.message || "Failed to fetch details");
+        } finally {
+            setIsFetching(false);
+        }
+    };
 
     const handleSave = async () => {
         setLoading(true);
@@ -322,41 +359,116 @@ export default function AddItemPage() {
 
                                 {category === "SINGLE_CARD_GRADED" && (
                                     <div className="space-y-6">
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <div className="space-y-2">
-                                                <Label>Authority</Label>
-                                                <Select
-                                                    value={formData.gradingCompany}
-                                                    onValueChange={v => setFormData({ ...formData, gradingCompany: v as GradingCompany })}
-                                                >
-                                                    <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="PSA">PSA</SelectItem>
-                                                        <SelectItem value="BGS">BGS</SelectItem>
-                                                        <SelectItem value="CGC">CGC</SelectItem>
-                                                        <SelectItem value="ARS">ARS</SelectItem>
-                                                        <SelectItem value="SGC">SGC</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl bg-accent/10 border border-primary/10">
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs font-bold uppercase tracking-wider">Grader</Label>
+                                                    <Select
+                                                        value={formData.gradingCompany}
+                                                        onValueChange={v => setFormData({ ...formData, gradingCompany: v as GradingCompany })}
+                                                    >
+                                                        <SelectTrigger className="h-12 border-primary/20 bg-background"><SelectValue placeholder="Select Grader (PSA/BGS...)" /></SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="PSA">PSA</SelectItem>
+                                                            <SelectItem value="BGS">BGS</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs font-bold uppercase tracking-wider">Certification Number</Label>
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            placeholder="e.g. 112983707"
+                                                            className="h-12 font-mono text-lg border-primary/20 bg-background"
+                                                            value={formData.certNumber || ""}
+                                                            onChange={e => setFormData({ ...formData, certNumber: e.target.value })}
+                                                        />
+                                                        <Button
+                                                            className="h-12 px-6 bg-primary hover:bg-primary/90 shadow-[0_0_15px_rgba(var(--primary),0.3)]"
+                                                            onClick={handleFetchDetails}
+                                                            disabled={isFetching || !formData.gradingCompany || !formData.certNumber}
+                                                        >
+                                                            {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                                                            <span className="ml-2 hidden md:inline">Fetch details</span>
+                                                        </Button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="space-y-2 text-primary font-mono">
-                                                <Label>Grade/Score</Label>
-                                                <Input
-                                                    placeholder="10 / 9.5"
-                                                    value={formData.grade || ""}
-                                                    onChange={e => setFormData({ ...formData, grade: e.target.value })}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Certification #</Label>
-                                                <Input
-                                                    placeholder="00000000"
-                                                    className="font-mono"
-                                                    value={formData.certNumber || ""}
-                                                    onChange={e => setFormData({ ...formData, certNumber: e.target.value })}
-                                                />
+
+                                            <div className="flex flex-col justify-center">
+                                                {isFetching ? (
+                                                    <div className="space-y-3 p-4 border rounded-xl bg-background/50 animate-pulse">
+                                                        <Skeleton className="h-4 w-3/4" />
+                                                        <Skeleton className="h-8 w-1/2" />
+                                                        <Skeleton className="h-4 w-2/3" />
+                                                    </div>
+                                                ) : lookupResult?.success && lookupResult.data ? (
+                                                    <div className="p-4 border border-primary/30 rounded-xl bg-primary/5 space-y-3 animate-in fade-in zoom-in-95">
+                                                        <div className="flex items-center justify-between">
+                                                            <Badge className="bg-primary text-primary-foreground">{lookupResult.data.gradeLabel}</Badge>
+                                                            <span className="text-[10px] font-mono opacity-60">#{lookupResult.certNumber}</span>
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-sm leading-tight">{lookupResult.data.cardName}</p>
+                                                            <p className="text-[10px] opacity-70 uppercase">{lookupResult.data.setName} {lookupResult.data.cardNumber && `• ${lookupResult.data.cardNumber}`}</p>
+                                                        </div>
+                                                        {lookupResult.data.images?.frontUrl && (
+                                                            <img src={lookupResult.data.images.frontUrl} className="h-16 rounded border bg-background" alt="Slab" />
+                                                        )}
+                                                    </div>
+                                                ) : lookupResult && !lookupResult.success ? (
+                                                    <div className="p-4 border border-destructive/30 rounded-xl bg-destructive/5 flex flex-col items-center text-center space-y-2">
+                                                        <AlertCircle className="h-6 w-6 text-destructive" />
+                                                        <p className="text-xs font-bold text-destructive">Lookup Failed</p>
+                                                        <p className="text-[10px] text-destructive/70">{lookupResult.error}</p>
+                                                        <Button variant="outline" size="sm" className="h-7 text-[10px] mt-1" onClick={handleFetchDetails}>Retry</Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="p-4 border border-dashed border-primary/20 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
+                                                        <Search className="h-8 w-8 mb-2" />
+                                                        <p className="text-[10px] uppercase font-bold tracking-widest">Awaiting Input</p>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
+
+                                        <div className="space-y-4">
+                                            <div
+                                                className="flex items-center gap-2 cursor-pointer group"
+                                                onClick={() => setManualEntry(!manualEntry)}
+                                            >
+                                                <div className={cn(
+                                                    "h-4 w-4 rounded border flex items-center justify-center transition-colors",
+                                                    manualEntry ? "bg-primary border-primary" : "border-muted-foreground group-hover:border-primary"
+                                                )}>
+                                                    {manualEntry && <Check className="h-3 w-3 text-primary-foreground" />}
+                                                </div>
+                                                <span className="text-xs font-medium text-muted-foreground">Edit details manually</span>
+                                            </div>
+
+                                            {manualEntry && (
+                                                <div className="grid grid-cols-2 gap-4 p-4 border rounded-xl bg-accent/5 animate-in slide-in-from-top-2">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[10px] uppercase">Grade Label</Label>
+                                                        <Input
+                                                            placeholder="e.g. PSA 10"
+                                                            value={formData.grade || ""}
+                                                            onChange={e => setFormData({ ...formData, grade: e.target.value })}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[10px] uppercase">Grade Value</Label>
+                                                        <Input
+                                                            type="number"
+                                                            placeholder="10"
+                                                            value={formData.gradeValue || ""}
+                                                            onChange={e => setFormData({ ...formData, gradeValue: e.target.value })}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
                                         <div className="p-4 border border-dashed border-primary/30 rounded-lg bg-primary/5 flex items-center gap-2">
                                             <BadgeCheck className="h-5 w-5 text-primary" />
                                             <span className="text-xs text-primary/80">Graded slabs are non-fungible. Quantity is locked to 1.</span>

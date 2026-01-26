@@ -9,6 +9,7 @@ import { PricingModule } from './modules/pricing/pricing.module';
 import { VendorModule } from './modules/vendor/vendor.module';
 import { HealthModule } from './modules/health/health.module';
 import { JustTcgModule } from './modules/justtcg/justtcg.module';
+import { GradingModule } from './modules/grading/grading.module';
 import { z } from 'zod';
 
 @Module({
@@ -34,6 +35,7 @@ import { z } from 'zod';
         VendorModule,
         HealthModule,
         JustTcgModule,
+        GradingModule,
     ],
 })
 export class AppModule { }

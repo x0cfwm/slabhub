@@ -187,7 +187,9 @@ model InventoryItem {
   // Grading fields (for graded cards)
   gradeProvider    GradeProvider?
   gradeValue       String?         // Can be "10", "9.5", "Authentic", etc.
-  certNumber       String?
+  certNumber       String?         // Legacy field
+  certificationNumber String?      // Explicitly for lookup/indexing
+  gradingMeta      Json?           // Parsed data raw for auditing/debug
   gradingCost      Decimal?        @db.Decimal(10, 2)
   slabImages       Json?           @default("{}")
   previousCertNumbers String[]     @default([])
@@ -220,6 +222,7 @@ model InventoryItem {
   @@index([stage])
   @@index([itemType])
   @@index([cardVariantId])
+  @@index([certificationNumber])
 }
 
 // ============================================================================

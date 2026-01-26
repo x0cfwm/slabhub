@@ -73,6 +73,13 @@ export class CreateInventoryItemDto {
     certNumber?: string;
 
     @IsOptional()
+    @IsString()
+    certificationNumber?: string;
+
+    @IsOptional()
+    gradingMeta?: any;
+
+    @IsOptional()
     @IsNumber()
     gradingCost?: number;
 

@@ -74,6 +74,8 @@ export interface SingleCardGraded extends InventoryBase {
     gradingCompany: GradingCompany;
     grade: number | string; // 10, 9.5, "Authentic", etc.
     certNumber: string;
+    certificationNumber?: string;
+    gradingMeta?: any;
     quantity: 1; // Always 1 for graded cards
     gradingCost?: number;
     slabImages: {

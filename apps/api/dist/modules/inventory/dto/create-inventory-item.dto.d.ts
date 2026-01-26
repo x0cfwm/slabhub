@@ -18,6 +18,8 @@ export declare class CreateInventoryItemDto {
     gradeProvider?: GradeProvider;
     gradeValue?: string;
     certNumber?: string;
+    certificationNumber?: string;
+    gradingMeta?: any;
     gradingCost?: number;
     slabImages?: {
         front?: string;
