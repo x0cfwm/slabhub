@@ -221,3 +221,102 @@ model InventoryItem {
   @@index([itemType])
   @@index([cardVariantId])
 }
+
+// ============================================================================
+// JUSTTCG DICTIONARIES
+// ============================================================================
+
+model RefGame {
+  id              String   @id @default(cuid())
+  externalId      String   @unique
+  name            String
+  slug            String?
+  sourceUpdatedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([externalId])
+}
+
+model RefSet {
+  id              String   @id @default(cuid())
+  externalId      String   @unique
+  name            String
+  code            String?
+  slug            String?
+  gameExternalId  String?
+  releaseDate     DateTime?
+  sourceUpdatedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([externalId])
+  @@index([gameExternalId])
+}
+
+model RefRarity {
+  id              String   @id @default(cuid())
+  externalId      String   @unique
+  name            String
+  code            String?
+  sourceUpdatedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([externalId])
+}
+
+model RefCondition {
+  id              String   @id @default(cuid())
+  externalId      String   @unique
+  name            String
+  abbreviation    String?
+  sourceUpdatedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([externalId])
+}
+
+model RefLanguage {
+  id              String   @id @default(cuid())
+  externalId      String   @unique
+  name            String
+  code            String?
+  sourceUpdatedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([externalId])
+}
+
+model RefPrinting {
+  id              String   @id @default(cuid())
+  externalId      String   @unique
+  name            String
+  code            String?
+  sourceUpdatedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([externalId])
+}
+
+model RefProduct {
+  id               String   @id @default(cuid())
+  externalId       String   @unique
+  name             String
+  number           String?
+  imageUrl         String?
+  setExternalId    String?
+  rarityExternalId String?
+  gameExternalId   String?
+  sourceUpdatedAt  DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([externalId])
+  @@index([setExternalId])
+  @@index([rarityExternalId])
+  @@index([gameExternalId])
+}

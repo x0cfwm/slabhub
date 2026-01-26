@@ -18,7 +18,10 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:push": "prisma db push",
-    "seed": "npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
+    "seed": "npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
+    "justtcg:sync:dictionaries": "pnpm --filter @slabhub/api run justtcg:sync:dictionaries",
+    "justtcg:sync:catalog": "pnpm --filter @slabhub/api run justtcg:sync:catalog",
+    "justtcg:sync:all": "pnpm --filter @slabhub/api run justtcg:sync:all"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

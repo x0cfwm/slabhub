@@ -634,3 +634,452 @@ Validation:
 
 
 <-- 3. FEATURE PROMPT -->
+
+You are extending an existing monorepo with:
+- NestJS + TypeScript backend (apps/api)
+- PostgreSQL
+- Prisma (prisma/schema.prisma)
+- Workspace scripts already exist
+
+TASK:
+Implement a backend service that fetches reference data (“dictionaries”) from justtcg.com API
+(using the documentation provided in the screenshot) and stores them into PostgreSQL via Prisma.
+
+Hard requirements:
+- API authentication must be via env var JUSTTCG_API_KEY and sent as header: x-api-key
+- Base URL must be configurable: JUSTTCG_BASE_URL
+- Data sync must be runnable from console as CLI commands (not HTTP endpoints)
+- Sync must be idempotent (upsert)
+- Must support pagination / cursors / filters if docs require
+- Must include logging, progress, and error handling
+- Must not break existing API modules
+
+Out of scope:
+- payments, OAuth/KYC, subscriptions
+- real pricing calls usage (we only build dictionaries sync)
+- background jobs scheduler (cron) is optional; main is CLI
+
+------------------------------------------------------------
+1) WHAT ARE “DICTIONARIES” (SCOPE)
+------------------------------------------------------------
+From justtcg API docs (see screenshot), implement syncing for these reference datasets
+(use exact endpoints/fields based on the documentation):
+
+At minimum implement:
+- games
+- sets
+- rarities
+- conditions
+- languages
+- printings/variants (if present in docs)
+- products/cards catalog basics required to build internal card profiles (if present in docs)
+- any other reference endpoints clearly present in the docs sidebar
+
+If the API exposes a “catalog” (cards/products), treat it separately from small dictionaries:
+- store minimal fields + foreign keys to dictionaries
+- do not attempt to store images/big blobs unless provided as URLs
+
+Key rule:
+Sync stores canonical external IDs from justtcg (e.g., id fields) so future updates match.
+
+------------------------------------------------------------
+2) MONOREPO & MODULE ORGANIZATION
+------------------------------------------------------------
+Create a new module in apps/api:
+
+apps/api/src/modules/justtcg
+- justtcg.module.ts
+- justtcg.client.ts          # HTTP client, auth header, retries, pagination helpers
+- justtcg.types.ts           # response types (minimal)
+- justtcg.mapper.ts          # mapping API DTO -> DB models
+- sync/
+   - dictionaries.sync.ts    # orchestrator for all dictionaries
+   - catalog.sync.ts         # optional if catalog exists
+- cli/
+   - justtcg.commands.ts     # CLI entrypoints
+
+Also create a domain module:
+apps/api/src/modules/reference-data
+- reference-data.module.ts
+- services for each dictionary upsert
+(or keep it within justtcg module, but keep clean separation)
+
+------------------------------------------------------------
+3) CLI COMMANDS (MANDATORY)
+------------------------------------------------------------
+Commands must be runnable from console, e.g.:
+
+pnpm --filter api justtcg:sync:dictionaries
+pnpm --filter api justtcg:sync:all
+pnpm --filter api justtcg:sync:catalog
+
+Implementation options:
+- Preferred: nest-commander (or a minimal custom bootstrap CLI in Nest)
+- Acceptable: ts-node script that imports Nest app context
+
+CLI must:
+- Validate env vars (JUSTTCG_API_KEY required)
+- Print progress:
+  - which dictionary is syncing
+  - count received
+  - count upserted
+  - time taken
+- Exit with non-zero code on fatal errors
+
+------------------------------------------------------------
+4) HTTP CLIENT REQUIREMENTS (MANDATORY)
+------------------------------------------------------------
+Implement JustTcgClient:
+- sends header x-api-key: process.env.JUSTTCG_API_KEY
+- supports timeouts (e.g., 10s)
+- retries on 429/5xx with exponential backoff (max 3 retries)
+- handles pagination from docs:
+  - page/limit OR cursor/nextToken
+  - implement a generic “fetchAllPages” helper for endpoints
+
+No external network libs required beyond Nest HttpModule/axios, but you may use:
+- @nestjs/axios
+- axios-retry (optional)
+
+------------------------------------------------------------
+5) DATABASE (PRISMA) REQUIREMENTS
+------------------------------------------------------------
+Add Prisma models for dictionaries and (if present) catalog.
+
+Guidelines:
+- Store external IDs in fields like externalId (unique)
+- Use upsert by externalId
+- Add indexes for lookups
+
+Example pattern for a dictionary model:
+model RefGame {
+  id          String   @id @default(cuid())
+  externalId  String   @unique
+  name        String
+  slug        String?  @db.VarChar(128)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+Use similar for sets/rarities/conditions/languages/etc.
+
+If catalog endpoints exist:
+- Create model RefCard or RefProduct with:
+  - externalId unique
+  - name, number, setExternalId or setId FK, rarityId FK, gameId FK
+  - imageUrl (string) if provided
+- Keep it minimal for Stage 1, but consistent.
+
+Migration must be generated and included.
+
+------------------------------------------------------------
+6) SYNC LOGIC (IDEMPOTENT, SAFE)
+------------------------------------------------------------
+For each dictionary:
+- Fetch all items from API (with pagination)
+- Normalize/validate fields
+- Upsert into DB in batches (e.g., 200–1000 per batch)
+- Use Prisma transaction per batch when reasonable
+
+Failure handling:
+- If one dictionary fails, overall command should fail,
+  but print which dictionary failed and why.
+- Provide a “--continueOnError” flag OPTIONAL.
+
+------------------------------------------------------------
+7) ENV & CONFIG (MANDATORY)
+------------------------------------------------------------
+Add env vars:
+- JUSTTCG_BASE_URL="https://justtcg.com" (or whatever docs show)
+- JUSTTCG_API_KEY="..."
+
+Implement ConfigModule usage:
+- Validate on boot (zod or class-validator)
+- Do not log API key
+
+------------------------------------------------------------
+8) DEV EXPERIENCE
+------------------------------------------------------------
+Provide:
+- README section: how to run dictionary sync locally
+- Example commands
+- Example .env template
+
+Add root/package scripts (or apps/api scripts):
+- justtcg:sync:dictionaries
+- justtcg:sync:catalog
+- justtcg:sync:all
+
+------------------------------------------------------------
+9) TESTING (LIGHTWEIGHT)
+------------------------------------------------------------
+At minimum:
+- Unit tests for mapping functions (optional but preferred)
+- Integration test is optional; not required
+
+------------------------------------------------------------
+10) OUTPUT
+------------------------------------------------------------
+Return:
+- File tree of new/modified files
+- Full code for new/modified files
+- Prisma schema changes + migration notes
+- Updated package.json scripts
+- README instructions
+
+IMPORTANT:
+Use the endpoints, query params, and schemas exactly as stated in the justtcg API docs screenshot.
+Where the docs show required params, implement them.
+Where the docs list response fields, map them into DB appropriately.
+
+
+
+<-- 4. FEATURE PROMPT -->
+
+
+You are extending an existing monorepo with:
+- NestJS + TypeScript backend (apps/api)
+- PostgreSQL
+- Prisma
+- Workspace scripts
+
+TASK:
+Implement a service that syncs reference data (“dictionaries”) from JustTCG API into PostgreSQL.
+Sync must be runnable from console (CLI commands), using env var JUSTTCG_API_KEY sent as header "x-api-key".
+
+IMPORTANT CONSTRAINT:
+Do NOT assume you can “read documentation from screenshots”.
+Therefore: implement dictionaries based on an explicit in-code mapping table/config that lists endpoints and fields.
+The endpoints/fields must be easy to adjust by editing a single config file.
+
+------------------------------------------------------------
+0) ENV / CONFIG (MANDATORY)
+------------------------------------------------------------
+Env vars:
+- JUSTTCG_BASE_URL (default sensible value)
+- JUSTTCG_API_KEY (required)
+
+Auth:
+- Send header: x-api-key: JUSTTCG_API_KEY
+
+Add config validation at boot (zod/class-validator). Do not log the api key.
+
+------------------------------------------------------------
+1) IN-CODE MAPPING TABLE (MANDATORY, SINGLE SOURCE OF TRUTH)
+------------------------------------------------------------
+Create a single mapping table (config) that drives:
+- which endpoints to call
+- how to map response items to Prisma models
+- which unique key to use for upsert
+- which fields to store
+
+Place it in:
+apps/api/src/modules/justtcg/justtcg.mappings.ts
+
+Mapping structure (example, adjust as needed):
+type JustTcgMapping = {
+  name: string;                 // "games"
+  endpoint: string;             // "/v1/games"
+  pagination: "none" | "page" | "cursor";
+  unique: { sourceField: string; targetField: string }; // e.g. "id" -> "externalId"
+  fields: Array<{ source: string; target: string; transform?: "string"|"number"|"json"|"date" }>;
+  model: "RefGame" | "RefSet" | ...;  // Prisma model name
+};
+
+The sync runner must iterate this mapping table and perform:
+- fetch all pages (if needed)
+- normalize fields
+- upsert into DB using the unique mapping
+
+------------------------------------------------------------
+2) TABLE: endpoint → model → unique key → fields (REQUIRED IN THIS PROMPT)
+------------------------------------------------------------
+Use the table below as the initial mapping defaults.
+These are “reasonable defaults” for typical JustTCG dictionary APIs.
+They MUST be implemented as code config and be editable in one place.
+If the API differs, adjusting this config must be enough (no rewriting business logic).
+
+TABLE (initial defaults):
+
+1) Games
+- Endpoint: /v1/games
+- Prisma model: RefGame
+- Unique key: response.id -> RefGame.externalId
+- Fields:
+  - id -> externalId
+  - name -> name
+  - slug -> slug (optional)
+  - updatedAt or updated_at -> sourceUpdatedAt (optional)
+
+2) Sets
+- Endpoint: /v1/sets
+- Prisma model: RefSet
+- Unique key: response.id -> RefSet.externalId
+- Fields:
+  - id -> externalId
+  - name -> name
+  - code -> code (optional)
+  - gameId -> gameExternalId (optional; store as string) OR map to gameId FK if available
+  - releasedAt/releaseDate -> releaseDate (optional)
+  - slug -> slug (optional)
+
+3) Rarities
+- Endpoint: /v1/rarities
+- Prisma model: RefRarity
+- Unique key: response.id -> RefRarity.externalId
+- Fields:
+  - id -> externalId
+  - name -> name
+  - code -> code (optional)
+
+4) Conditions
+- Endpoint: /v1/conditions
+- Prisma model: RefCondition
+- Unique key: response.id -> RefCondition.externalId
+- Fields:
+  - id -> externalId
+  - name -> name
+  - abbreviation -> abbreviation (optional)
+
+5) Languages
+- Endpoint: /v1/languages
+- Prisma model: RefLanguage
+- Unique key: response.id -> RefLanguage.externalId
+- Fields:
+  - id -> externalId
+  - name -> name
+  - code -> code (optional)
+
+6) Printings / Variants (if exists)
+- Endpoint: /v1/printings (or /v1/variants)
+- Prisma model: RefPrinting
+- Unique key: response.id -> RefPrinting.externalId
+- Fields:
+  - id -> externalId
+  - name -> name
+  - code -> code (optional)
+
+7) Catalog: Products/Cards (optional but supported via mapping)
+- Endpoint: /v1/products (or /v1/cards)
+- Prisma model: RefProduct (or RefCard)
+- Unique key: response.id -> RefProduct.externalId
+- Fields (minimal):
+  - id -> externalId
+  - name -> name
+  - number -> number (optional)
+  - imageUrl/image_url -> imageUrl (optional)
+  - setId -> setExternalId (optional)
+  - rarityId -> rarityExternalId (optional)
+  - gameId -> gameExternalId (optional)
+
+IMPORTANT:
+- “Optional but supported”: Catalog sync may be behind a separate CLI command.
+- For relations you can start by storing external IDs as plain strings,
+  and only later convert to FK relations. Prefer MVP speed + correctness.
+
+------------------------------------------------------------
+3) PRISMA MODELS (MANDATORY)
+------------------------------------------------------------
+Add Prisma models for dictionaries. Use externalId UNIQUE.
+Example pattern:
+
+model RefGame {
+  id          String   @id @default(cuid())
+  externalId  String   @unique
+  name        String
+  slug        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+Create similar:
+- RefSet (externalId, name, code?, slug?, gameExternalId?, releaseDate?)
+- RefRarity (externalId, name, code?)
+- RefCondition (externalId, name, abbreviation?)
+- RefLanguage (externalId, name, code?)
+- RefPrinting (externalId, name, code?) // optional
+- RefProduct/RefCard (externalId, name, number?, imageUrl?, setExternalId?, rarityExternalId?, gameExternalId?) // optional
+
+Generate migration(s).
+
+------------------------------------------------------------
+4) MODULE ORGANIZATION
+------------------------------------------------------------
+apps/api/src/modules/justtcg
+- justtcg.module.ts
+- justtcg.client.ts           # http client (auth header, retries, pagination)
+- justtcg.mappings.ts         # THE mapping table config
+- sync/justtcg.sync.service.ts# orchestrator: reads mapping, fetches, upserts
+- cli/justtcg.commands.ts     # CLI entrypoints
+- justtcg.types.ts            # response types minimal
+
+Use ConfigModule for env.
+
+------------------------------------------------------------
+5) HTTP CLIENT REQUIREMENTS
+------------------------------------------------------------
+- Use @nestjs/axios (HttpModule) or fetch/ofetch equivalent
+- Timeout 10s
+- Retry on 429 and 5xx up to 3 times with exponential backoff
+- Pagination support:
+  - page-based (page, limit)
+  - cursor-based (cursor/nextCursor/next_token)
+Implement a generic fetchAll() that takes mapping.pagination and returns all items.
+
+------------------------------------------------------------
+6) UPSERT LOGIC (MANDATORY)
+------------------------------------------------------------
+- For each mapping:
+  - fetch all items
+  - map each item using fields transforms
+  - upsert in batches (e.g., 500)
+  - unique where: { externalId: mappedExternalId }
+
+- Log:
+  - dictionary name
+  - total fetched
+  - total upserted
+  - duration
+
+- On error:
+  - fail command with non-zero exit code
+  - print which mapping failed
+
+------------------------------------------------------------
+7) CLI COMMANDS (MANDATORY)
+------------------------------------------------------------
+Implement console commands (use nest-commander preferred):
+
+- justtcg:sync:dictionaries
+  - runs all mappings EXCEPT catalog (products/cards)
+- justtcg:sync:catalog
+  - runs only catalog mapping(s) if present
+- justtcg:sync:all
+  - runs everything
+
+Also support flags:
+- --only=games,sets (optional)
+- --dryRun (optional): prints counts and sample mapped record, writes nothing
+
+Add scripts in apps/api/package.json (or root):
+- justtcg:sync:dictionaries
+- justtcg:sync:catalog
+- justtcg:sync:all
+
+------------------------------------------------------------
+8) OUTPUT
+------------------------------------------------------------
+Return:
+- file tree of new/modified files
+- full code for new/modified files
+- prisma schema changes
+- scripts
+- README instructions:
+  - env vars
+  - commands to run
+  - how to adjust mapping config (endpoints/fields) without rewriting logic
+
+DO NOT:
+- implement real external pricing usage
+- implement auth beyond env header
+- require screenshot parsing
