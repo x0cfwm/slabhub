@@ -13,7 +13,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GradingService = void 0;
 const common_1 = require("@nestjs/common");
 const grading_http_client_1 = require("./http/grading-http.client");
-const psa_parser_1 = require("./parsers/psa.parser");
 let GradingService = GradingService_1 = class GradingService {
     constructor(httpClient) {
         this.httpClient = httpClient;
@@ -31,8 +30,38 @@ let GradingService = GradingService_1 = class GradingService {
         let result;
         try {
             if (dto.grader === 'PSA') {
-                const html = await this.httpClient.fetchPsaPage(dto.certNumber);
-                result = psa_parser_1.PsaParser.parse(html, dto.certNumber);
+                const data = await this.httpClient.fetchPsaCert(dto.certNumber);
+                if (!data || !data.PSACert) {
+                    result = {
+                        grader: 'PSA',
+                        certNumber: dto.certNumber,
+                        success: false,
+                        error: 'Certificate data not found in PSA response',
+                    };
+                }
+                else {
+                    const cert = data.PSACert;
+                    result = {
+                        grader: 'PSA',
+                        certNumber: dto.certNumber,
+                        success: true,
+                        data: {
+                            gradeLabel: cert.GradeDescription || cert.CardGrade || '',
+                            gradeValue: cert.GradeValue || (cert.GradeDescription ? cert.GradeDescription.match(/(\d+)/)?.[0] : ''),
+                            cardName: cert.CardLine || `${cert.Year} ${cert.Brand} ${cert.Subject}`,
+                            setName: cert.Brand || cert.Year || '',
+                            cardNumber: cert.CardNumber || '',
+                            year: cert.Year,
+                            variant: cert.Variety,
+                            population: cert.Population ? parseInt(cert.Population.toString().replace(/,/g, '')) : undefined,
+                            images: cert.CertImages ? {
+                                frontUrl: cert.CertImages[0]?.IsFront === true ? cert.CertImages[0]?.CERT_IMAGE_URL : cert.CertImages[1]?.CERT_IMAGE_URL,
+                                backUrl: cert.CertImages[1]?.IsFront === false ? cert.CertImages[1]?.CERT_IMAGE_URL : cert.CertImages[0]?.CERT_IMAGE_URL,
+                            } : undefined,
+                            raw: cert,
+                        },
+                    };
+                }
             }
             else if (dto.grader === 'BGS') {
                 result = {

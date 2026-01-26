@@ -1,4 +1,5 @@
 import { Grader } from "../../../api/src/modules/grading/types/grading.types";
+import { MarketPriceHistory, MarketProductsResponse } from "./types";
 
 export interface GradingLookupResult {
     grader: string;
@@ -38,5 +39,28 @@ export async function lookupGrading(grader: string, certNumber: string): Promise
         throw new Error(errorData.message || `Query failed with status ${response.status}`);
     }
 
+    return response.json();
+}
+
+export async function getMarketProducts(params: { page: number; limit: number; search?: string }): Promise<MarketProductsResponse> {
+    const url = new URL(`${API_BASE_URL}/v1/market/products`);
+    url.searchParams.set('page', params.page.toString());
+    url.searchParams.set('limit', params.limit.toString());
+    if (params.search) {
+        url.searchParams.set('search', params.search);
+    }
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+        throw new Error('Failed to fetch market products');
+    }
+    return response.json();
+}
+
+export async function getProductPriceHistory(productId: string): Promise<MarketPriceHistory> {
+    const response = await fetch(`${API_BASE_URL}/v1/market/products/${productId}/prices`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch price history');
+    }
     return response.json();
 }

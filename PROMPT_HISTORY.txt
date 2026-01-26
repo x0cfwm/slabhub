@@ -1301,3 +1301,204 @@ Return:
 - new backend module files
 - prisma schema + migration
 - README notes: how parsing works, how to add BGS URL/selectors, known limitations
+
+
+<-- 6. FEATURE PROMPT -->
+
+
+You are extending an existing product with:
+- Frontend: Next.js (App Router) + TypeScript + Tailwind + shadcn/ui
+- Backend: NestJS + TypeScript + PostgreSQL + Prisma
+- Monorepo setup
+- Existing Market Pricing UI page already implemented visually
+
+GOAL:
+Bind the Market Pricing page to real backend data using RefProduct as the source of truth,
+and extend the page with pagination, unified search, and a detailed price history drawer.
+
+------------------------------------------------------------
+A) DATA BINDING (CORE REQUIREMENT)
+------------------------------------------------------------
+The Market Pricing page must be driven by backend data.
+
+Source of truth:
+- Backend entity: RefProduct (from reference data / JustTCG sync)
+
+Field mapping (STRICT):
+- UI "Card Name" → RefProduct.name
+  Example: "Monkey.D.Luffy"
+- UI "Number" (subtitle) → RefProduct.number
+  Example: "OP01-001"
+- UI "Set" → mock/static value for now (can be placeholder)
+- Raw Price → mock value (generated on backend)
+- Sealed Price → mock value (nullable)
+- Last Updated → mock timestamp
+- Source → mock enum: "Mock:eBay" | "Mock:TCGPlayer"
+
+IMPORTANT:
+- Do NOT introduce a new Product/Card model.
+- Do NOT compute pricing on frontend.
+- Frontend must consume backend API only.
+
+------------------------------------------------------------
+B) BACKEND API (MANDATORY)
+------------------------------------------------------------
+Implement or extend backend endpoints:
+
+1) Product list for Market Pricing
+GET /v1/market/products
+
+Query params:
+- page (number, default 1)
+- limit (number, default 25, max 100)
+- search (string, optional)
+
+Behavior:
+- Returns paginated list of RefProduct
+- Search must match:
+  - name ILIKE %search%
+  - OR number ILIKE %search%
+- Order by name ASC by default
+
+Response shape:
+{
+  "items": [
+    {
+      "id": "...",
+      "name": "Monkey.D.Luffy",
+      "number": "OP01-001",
+      "rawPrice": 42.53,
+      "sealedPrice": null,
+      "lastUpdated": "2026-01-26T19:53:59Z",
+      "source": "Mock:eBay"
+    }
+  ],
+  "page": 1,
+  "limit": 25,
+  "total": 312
+}
+
+Notes:
+- rawPrice / sealedPrice / lastUpdated / source may be mocked/generated server-side.
+- Keep logic centralized in backend.
+
+------------------------------------------------------------
+2) Product price history (detail drawer)
+------------------------------------------------------------
+GET /v1/market/products/:id/prices
+
+Behavior:
+- Returns last 10 price points for the product
+- Data is MOCKED but realistic
+
+Response shape:
+{
+  "productId": "...",
+  "prices": [
+    {
+      "date": "2026-01-20",
+      "title": "Monkey D. Luffy OP01-001 PSA 10",
+      "price": 44.12,
+      "source": "eBay"
+    },
+    {
+      "date": "2026-01-18",
+      "title": "OP01-001 Monkey D. Luffy Romance Dawn",
+      "price": 41.99,
+      "source": "TCGPlayer"
+    }
+  ]
+}
+
+Rules:
+- Always return max 10 entries
+- Mix eBay / TCGPlayer in mock data
+- Prices should fluctuate realistically (+/- 10–20%)
+
+------------------------------------------------------------
+C) FRONTEND: MARKET PRICING PAGE
+------------------------------------------------------------
+Bind the existing Market Pricing page to backend APIs.
+
+Features to implement:
+
+1) Pagination (MANDATORY)
+- Server-side pagination
+- Show current page, total pages
+- Controls:
+  - Prev / Next
+  - Page numbers OR compact pager
+- Changing page must re-fetch data
+
+2) Unified Search (MANDATORY)
+- Single input: “Search card profiles”
+- Search must:
+  - debounce (300–500ms)
+  - send `search` query param
+  - match by name OR number
+- Reset page to 1 on new search
+
+3) Detail Drawer (MANDATORY)
+- Clicking a row opens a Drawer/Sheet (shadcn/ui)
+- Drawer content:
+  - Card name + number
+  - Placeholder image
+  - Current raw/sealed price
+  - Source badge
+  - “Last updated”
+  - Divider
+  - “Recent Sales” section:
+      - Table or list of last 10 prices
+      - Columns:
+          - Date
+          - Title
+          - Price
+          - Source (badge: eBay / TCGPlayer)
+- Drawer fetches data from:
+  GET /v1/market/products/:id/prices
+
+UX requirements:
+- Show loading skeleton while fetching
+- Handle error state gracefully
+- Drawer must be scrollable
+- Mobile-friendly layout
+
+------------------------------------------------------------
+D) FRONTEND STATE & QUALITY
+------------------------------------------------------------
+- Keep pagination/search state in URL query params (?page=&search=)
+- Avoid unnecessary re-fetches
+- Show empty state if no results
+- No mock pricing logic in frontend
+- No hardcoded product lists
+
+------------------------------------------------------------
+E) BACKEND IMPLEMENTATION NOTES
+------------------------------------------------------------
+- Implement pagination with Prisma:
+  - skip / take
+  - total count query
+- Implement search using ILIKE
+- Mock pricing logic should live in a service:
+  MarketPricingService
+- Price history can be generated dynamically per request (no DB persistence needed for now)
+
+------------------------------------------------------------
+F) ACCEPTANCE CRITERIA
+------------------------------------------------------------
+1) Market Pricing page loads products from backend RefProduct table.
+2) Search by “Luffy” or “OP01-001” works from single input.
+3) Pagination works and reflects total count.
+4) Clicking a row opens a detail drawer.
+5) Drawer shows last 10 mocked prices with date, title, price, and source.
+6) No pricing logic exists in frontend.
+7) Page remains responsive and usable on mobile.
+
+------------------------------------------------------------
+G) OUTPUT
+------------------------------------------------------------
+Return:
+- Updated backend controllers/services
+- Updated frontend page + drawer components
+- Any new DTOs or types
+- Brief note explaining mock pricing strategy and how it will be replaced later

@@ -1,10 +1,11 @@
 import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
 export declare class GradingHttpClient {
     private readonly httpService;
+    private readonly configService;
     private readonly logger;
-    constructor(httpService: HttpService);
-    fetchPsaPage(certNumber: string): Promise<string>;
+    constructor(httpService: HttpService, configService: ConfigService);
+    fetchPsaCert(certNumber: string): Promise<any>;
     fetchBgsPage(certNumber: string): Promise<string>;
-    private fetchWithRetry;
     private handleAxiosError;
 }

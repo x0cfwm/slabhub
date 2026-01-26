@@ -148,3 +148,33 @@ export interface AppState {
     pricingSnapshots: PricingSnapshot[];
     inventoryItems: InventoryItem[];
 }
+
+export interface MarketProduct {
+    id: string;
+    name: string;
+    number: string | null;
+    imageUrl: string | null;
+    rawPrice: number;
+    sealedPrice: number | null;
+    lastUpdated: string;
+    source: string;
+}
+
+export interface MarketPriceHistoryEntry {
+    date: string;
+    title: string;
+    price: number;
+    source: string;
+}
+
+export interface MarketPriceHistory {
+    productId: string;
+    prices: MarketPriceHistoryEntry[];
+}
+
+export interface MarketProductsResponse {
+    items: MarketProduct[];
+    page: number;
+    limit: number;
+    total: number;
+}

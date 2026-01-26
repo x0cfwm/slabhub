@@ -10,6 +10,7 @@ import { VendorModule } from './modules/vendor/vendor.module';
 import { HealthModule } from './modules/health/health.module';
 import { JustTcgModule } from './modules/justtcg/justtcg.module';
 import { GradingModule } from './modules/grading/grading.module';
+import { MarketModule } from './modules/market/market.module';
 import { z } from 'zod';
 
 @Module({
@@ -21,6 +22,7 @@ import { z } from 'zod';
                     DATABASE_URL: z.string().url(),
                     JUSTTCG_BASE_URL: z.string().url().default('https://api.justtcg.com'),
                     JUSTTCG_API_KEY: z.string().min(1),
+                    PSA_API_TOKEN: z.string().optional(),
                     PORT: z.string().default('3001'),
                 });
                 return schema.parse(config);
@@ -36,6 +38,7 @@ import { z } from 'zod';
         HealthModule,
         JustTcgModule,
         GradingModule,
+        MarketModule,
     ],
 })
 export class AppModule { }
