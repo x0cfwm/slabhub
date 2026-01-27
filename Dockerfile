@@ -10,7 +10,6 @@ WORKDIR /app
 # Копируем файлы зависимостей
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/
-COPY packages ./packages
 
 # Устанавливаем зависимости
 RUN pnpm install --frozen-lockfile
