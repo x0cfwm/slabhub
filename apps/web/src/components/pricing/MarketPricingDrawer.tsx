@@ -7,7 +7,7 @@ import { getProductPriceHistory } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MarketPricingDrawerProps {
@@ -157,7 +157,19 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                             <TableRow key={idx}>
                                                 <TableCell className="text-xs py-3 px-4 font-medium whitespace-nowrap">{entry.date}</TableCell>
                                                 <TableCell className="text-xs py-3 px-4 max-w-[280px] truncate" title={entry.title}>
-                                                    {entry.title}
+                                                    {entry.link ? (
+                                                        <a
+                                                            href={entry.link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="hover:text-primary hover:underline flex items-center gap-1 inline-flex items-center"
+                                                        >
+                                                            {entry.title}
+                                                            <ExternalLink className="h-3 w-3 inline-block" />
+                                                        </a>
+                                                    ) : (
+                                                        entry.title
+                                                    )}
                                                 </TableCell>
                                                 <TableCell className="text-xs py-3 px-4 font-semibold">
                                                     ${entry.price.toFixed(2)}

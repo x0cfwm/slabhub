@@ -166,6 +166,7 @@ export interface MarketPriceHistoryEntry {
     title: string;
     price: number;
     source: string;
+    link?: string;
 }
 
 export interface MarketPriceHistory {
