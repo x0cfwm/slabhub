@@ -1,0 +1,1 @@
+{"version":3,"file":"bgs.parser.js","sourceRoot":"","sources":["../../../../src/modules/grading/parsers/bgs.parser.ts"],"names":[],"mappings":";;;AAEA,MAAa,SAAS;IAClB,MAAM,CAAC,KAAK,CAAC,IAAY,EAAE,UAAkB;QAEzC,OAAO;YACH,MAAM,EAAE,KAAK;YACb,UAAU;YACV,OAAO,EAAE,KAAK;YACd,KAAK,EAAE,gCAAgC;SAC1C,CAAC;IACN,CAAC;CACJ;AAVD,8BAUC"}

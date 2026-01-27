@@ -634,3 +634,1261 @@ Validation:
 
 
 <-- 3. FEATURE PROMPT -->
+
+You are extending an existing monorepo with:
+- NestJS + TypeScript backend (apps/api)
+- PostgreSQL
+- Prisma (prisma/schema.prisma)
+- Workspace scripts already exist
+
+TASK:
+Implement a backend service that fetches reference data (“dictionaries”) from justtcg.com API
+(using the documentation provided in the screenshot) and stores them into PostgreSQL via Prisma.
+
+Hard requirements:
+- API authentication must be via env var JUSTTCG_API_KEY and sent as header: x-api-key
+- Base URL must be configurable: JUSTTCG_BASE_URL
+- Data sync must be runnable from console as CLI commands (not HTTP endpoints)
+- Sync must be idempotent (upsert)
+- Must support pagination / cursors / filters if docs require
+- Must include logging, progress, and error handling
+- Must not break existing API modules
+
+Out of scope:
+- payments, OAuth/KYC, subscriptions
+- real pricing calls usage (we only build dictionaries sync)
+- background jobs scheduler (cron) is optional; main is CLI
+
+------------------------------------------------------------
+1) WHAT ARE “DICTIONARIES” (SCOPE)
+------------------------------------------------------------
+From justtcg API docs (see screenshot), implement syncing for these reference datasets
+(use exact endpoints/fields based on the documentation):
+
+At minimum implement:
+- games
+- sets
+- rarities
+- conditions
+- languages
+- printings/variants (if present in docs)
+- products/cards catalog basics required to build internal card profiles (if present in docs)
+- any other reference endpoints clearly present in the docs sidebar
+
+If the API exposes a “catalog” (cards/products), treat it separately from small dictionaries:
+- store minimal fields + foreign keys to dictionaries
+- do not attempt to store images/big blobs unless provided as URLs
+
+Key rule:
+Sync stores canonical external IDs from justtcg (e.g., id fields) so future updates match.
+
+------------------------------------------------------------
+2) MONOREPO & MODULE ORGANIZATION
+------------------------------------------------------------
+Create a new module in apps/api:
+
+apps/api/src/modules/justtcg
+- justtcg.module.ts
+- justtcg.client.ts          # HTTP client, auth header, retries, pagination helpers
+- justtcg.types.ts           # response types (minimal)
+- justtcg.mapper.ts          # mapping API DTO -> DB models
+- sync/
+   - dictionaries.sync.ts    # orchestrator for all dictionaries
+   - catalog.sync.ts         # optional if catalog exists
+- cli/
+   - justtcg.commands.ts     # CLI entrypoints
+
+Also create a domain module:
+apps/api/src/modules/reference-data
+- reference-data.module.ts
+- services for each dictionary upsert
+(or keep it within justtcg module, but keep clean separation)
+
+------------------------------------------------------------
+3) CLI COMMANDS (MANDATORY)
+------------------------------------------------------------
+Commands must be runnable from console, e.g.:
+
+pnpm --filter api justtcg:sync:dictionaries
+pnpm --filter api justtcg:sync:all
+pnpm --filter api justtcg:sync:catalog
+
+Implementation options:
+- Preferred: nest-commander (or a minimal custom bootstrap CLI in Nest)
+- Acceptable: ts-node script that imports Nest app context
+
+CLI must:
+- Validate env vars (JUSTTCG_API_KEY required)
+- Print progress:
+  - which dictionary is syncing
+  - count received
+  - count upserted
+  - time taken
+- Exit with non-zero code on fatal errors
+
+------------------------------------------------------------
+4) HTTP CLIENT REQUIREMENTS (MANDATORY)
+------------------------------------------------------------
+Implement JustTcgClient:
+- sends header x-api-key: process.env.JUSTTCG_API_KEY
+- supports timeouts (e.g., 10s)
+- retries on 429/5xx with exponential backoff (max 3 retries)
+- handles pagination from docs:
+  - page/limit OR cursor/nextToken
+  - implement a generic “fetchAllPages” helper for endpoints
+
+No external network libs required beyond Nest HttpModule/axios, but you may use:
+- @nestjs/axios
+- axios-retry (optional)
+
+------------------------------------------------------------
+5) DATABASE (PRISMA) REQUIREMENTS
+------------------------------------------------------------
+Add Prisma models for dictionaries and (if present) catalog.
+
+Guidelines:
+- Store external IDs in fields like externalId (unique)
+- Use upsert by externalId
+- Add indexes for lookups
+
+Example pattern for a dictionary model:
+model RefGame {
+  id          String   @id @default(cuid())
+  externalId  String   @unique
+  name        String
+  slug        String?  @db.VarChar(128)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+Use similar for sets/rarities/conditions/languages/etc.
+
+If catalog endpoints exist:
+- Create model RefCard or RefProduct with:
+  - externalId unique
+  - name, number, setExternalId or setId FK, rarityId FK, gameId FK
+  - imageUrl (string) if provided
+- Keep it minimal for Stage 1, but consistent.
+
+Migration must be generated and included.
+
+------------------------------------------------------------
+6) SYNC LOGIC (IDEMPOTENT, SAFE)
+------------------------------------------------------------
+For each dictionary:
+- Fetch all items from API (with pagination)
+- Normalize/validate fields
+- Upsert into DB in batches (e.g., 200–1000 per batch)
+- Use Prisma transaction per batch when reasonable
+
+Failure handling:
+- If one dictionary fails, overall command should fail,
+  but print which dictionary failed and why.
+- Provide a “--continueOnError” flag OPTIONAL.
+
+------------------------------------------------------------
+7) ENV & CONFIG (MANDATORY)
+------------------------------------------------------------
+Add env vars:
+- JUSTTCG_BASE_URL="https://justtcg.com" (or whatever docs show)
+- JUSTTCG_API_KEY="..."
+
+Implement ConfigModule usage:
+- Validate on boot (zod or class-validator)
+- Do not log API key
+
+------------------------------------------------------------
+8) DEV EXPERIENCE
+------------------------------------------------------------
+Provide:
+- README section: how to run dictionary sync locally
+- Example commands
+- Example .env template
+
+Add root/package scripts (or apps/api scripts):
+- justtcg:sync:dictionaries
+- justtcg:sync:catalog
+- justtcg:sync:all
+
+------------------------------------------------------------
+9) TESTING (LIGHTWEIGHT)
+------------------------------------------------------------
+At minimum:
+- Unit tests for mapping functions (optional but preferred)
+- Integration test is optional; not required
+
+------------------------------------------------------------
+10) OUTPUT
+------------------------------------------------------------
+Return:
+- File tree of new/modified files
+- Full code for new/modified files
+- Prisma schema changes + migration notes
+- Updated package.json scripts
+- README instructions
+
+IMPORTANT:
+Use the endpoints, query params, and schemas exactly as stated in the justtcg API docs screenshot.
+Where the docs show required params, implement them.
+Where the docs list response fields, map them into DB appropriately.
+
+
+
+<-- 4. FEATURE PROMPT -->
+
+
+You are extending an existing monorepo with:
+- NestJS + TypeScript backend (apps/api)
+- PostgreSQL
+- Prisma
+- Workspace scripts
+
+TASK:
+Implement a service that syncs reference data (“dictionaries”) from JustTCG API into PostgreSQL.
+Sync must be runnable from console (CLI commands), using env var JUSTTCG_API_KEY sent as header "x-api-key".
+
+IMPORTANT CONSTRAINT:
+Do NOT assume you can “read documentation from screenshots”.
+Therefore: implement dictionaries based on an explicit in-code mapping table/config that lists endpoints and fields.
+The endpoints/fields must be easy to adjust by editing a single config file.
+
+------------------------------------------------------------
+0) ENV / CONFIG (MANDATORY)
+------------------------------------------------------------
+Env vars:
+- JUSTTCG_BASE_URL (default sensible value)
+- JUSTTCG_API_KEY (required)
+
+Auth:
+- Send header: x-api-key: JUSTTCG_API_KEY
+
+Add config validation at boot (zod/class-validator). Do not log the api key.
+
+------------------------------------------------------------
+1) IN-CODE MAPPING TABLE (MANDATORY, SINGLE SOURCE OF TRUTH)
+------------------------------------------------------------
+Create a single mapping table (config) that drives:
+- which endpoints to call
+- how to map response items to Prisma models
+- which unique key to use for upsert
+- which fields to store
+
+Place it in:
+apps/api/src/modules/justtcg/justtcg.mappings.ts
+
+Mapping structure (example, adjust as needed):
+type JustTcgMapping = {
+  name: string;                 // "games"
+  endpoint: string;             // "/v1/games"
+  pagination: "none" | "page" | "cursor";
+  unique: { sourceField: string; targetField: string }; // e.g. "id" -> "externalId"
+  fields: Array<{ source: string; target: string; transform?: "string"|"number"|"json"|"date" }>;
+  model: "RefGame" | "RefSet" | ...;  // Prisma model name
+};
+
+The sync runner must iterate this mapping table and perform:
+- fetch all pages (if needed)
+- normalize fields
+- upsert into DB using the unique mapping
+
+------------------------------------------------------------
+2) TABLE: endpoint → model → unique key → fields (REQUIRED IN THIS PROMPT)
+------------------------------------------------------------
+Use the table below as the initial mapping defaults.
+These are “reasonable defaults” for typical JustTCG dictionary APIs.
+They MUST be implemented as code config and be editable in one place.
+If the API differs, adjusting this config must be enough (no rewriting business logic).
+
+TABLE (initial defaults):
+
+1) Games
+- Endpoint: /v1/games
+- Prisma model: RefGame
+- Unique key: response.id -> RefGame.externalId
+- Fields:
+  - id -> externalId
+  - name -> name
+  - slug -> slug (optional)
+  - updatedAt or updated_at -> sourceUpdatedAt (optional)
+
+2) Sets
+- Endpoint: /v1/sets
+- Prisma model: RefSet
+- Unique key: response.id -> RefSet.externalId
+- Fields:
+  - id -> externalId
+  - name -> name
+  - code -> code (optional)
+  - gameId -> gameExternalId (optional; store as string) OR map to gameId FK if available
+  - releasedAt/releaseDate -> releaseDate (optional)
+  - slug -> slug (optional)
+
+3) Rarities
+- Endpoint: /v1/rarities
+- Prisma model: RefRarity
+- Unique key: response.id -> RefRarity.externalId
+- Fields:
+  - id -> externalId
+  - name -> name
+  - code -> code (optional)
+
+4) Conditions
+- Endpoint: /v1/conditions
+- Prisma model: RefCondition
+- Unique key: response.id -> RefCondition.externalId
+- Fields:
+  - id -> externalId
+  - name -> name
+  - abbreviation -> abbreviation (optional)
+
+5) Languages
+- Endpoint: /v1/languages
+- Prisma model: RefLanguage
+- Unique key: response.id -> RefLanguage.externalId
+- Fields:
+  - id -> externalId
+  - name -> name
+  - code -> code (optional)
+
+6) Printings / Variants (if exists)
+- Endpoint: /v1/printings (or /v1/variants)
+- Prisma model: RefPrinting
+- Unique key: response.id -> RefPrinting.externalId
+- Fields:
+  - id -> externalId
+  - name -> name
+  - code -> code (optional)
+
+7) Catalog: Products/Cards (optional but supported via mapping)
+- Endpoint: /v1/products (or /v1/cards)
+- Prisma model: RefProduct (or RefCard)
+- Unique key: response.id -> RefProduct.externalId
+- Fields (minimal):
+  - id -> externalId
+  - name -> name
+  - number -> number (optional)
+  - imageUrl/image_url -> imageUrl (optional)
+  - setId -> setExternalId (optional)
+  - rarityId -> rarityExternalId (optional)
+  - gameId -> gameExternalId (optional)
+
+IMPORTANT:
+- “Optional but supported”: Catalog sync may be behind a separate CLI command.
+- For relations you can start by storing external IDs as plain strings,
+  and only later convert to FK relations. Prefer MVP speed + correctness.
+
+------------------------------------------------------------
+3) PRISMA MODELS (MANDATORY)
+------------------------------------------------------------
+Add Prisma models for dictionaries. Use externalId UNIQUE.
+Example pattern:
+
+model RefGame {
+  id          String   @id @default(cuid())
+  externalId  String   @unique
+  name        String
+  slug        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+Create similar:
+- RefSet (externalId, name, code?, slug?, gameExternalId?, releaseDate?)
+- RefRarity (externalId, name, code?)
+- RefCondition (externalId, name, abbreviation?)
+- RefLanguage (externalId, name, code?)
+- RefPrinting (externalId, name, code?) // optional
+- RefProduct/RefCard (externalId, name, number?, imageUrl?, setExternalId?, rarityExternalId?, gameExternalId?) // optional
+
+Generate migration(s).
+
+------------------------------------------------------------
+4) MODULE ORGANIZATION
+------------------------------------------------------------
+apps/api/src/modules/justtcg
+- justtcg.module.ts
+- justtcg.client.ts           # http client (auth header, retries, pagination)
+- justtcg.mappings.ts         # THE mapping table config
+- sync/justtcg.sync.service.ts# orchestrator: reads mapping, fetches, upserts
+- cli/justtcg.commands.ts     # CLI entrypoints
+- justtcg.types.ts            # response types minimal
+
+Use ConfigModule for env.
+
+------------------------------------------------------------
+5) HTTP CLIENT REQUIREMENTS
+------------------------------------------------------------
+- Use @nestjs/axios (HttpModule) or fetch/ofetch equivalent
+- Timeout 10s
+- Retry on 429 and 5xx up to 3 times with exponential backoff
+- Pagination support:
+  - page-based (page, limit)
+  - cursor-based (cursor/nextCursor/next_token)
+Implement a generic fetchAll() that takes mapping.pagination and returns all items.
+
+------------------------------------------------------------
+6) UPSERT LOGIC (MANDATORY)
+------------------------------------------------------------
+- For each mapping:
+  - fetch all items
+  - map each item using fields transforms
+  - upsert in batches (e.g., 500)
+  - unique where: { externalId: mappedExternalId }
+
+- Log:
+  - dictionary name
+  - total fetched
+  - total upserted
+  - duration
+
+- On error:
+  - fail command with non-zero exit code
+  - print which mapping failed
+
+------------------------------------------------------------
+7) CLI COMMANDS (MANDATORY)
+------------------------------------------------------------
+Implement console commands (use nest-commander preferred):
+
+- justtcg:sync:dictionaries
+  - runs all mappings EXCEPT catalog (products/cards)
+- justtcg:sync:catalog
+  - runs only catalog mapping(s) if present
+- justtcg:sync:all
+  - runs everything
+
+Also support flags:
+- --only=games,sets (optional)
+- --dryRun (optional): prints counts and sample mapped record, writes nothing
+
+Add scripts in apps/api/package.json (or root):
+- justtcg:sync:dictionaries
+- justtcg:sync:catalog
+- justtcg:sync:all
+
+------------------------------------------------------------
+8) OUTPUT
+------------------------------------------------------------
+Return:
+- file tree of new/modified files
+- full code for new/modified files
+- prisma schema changes
+- scripts
+- README instructions:
+  - env vars
+  - commands to run
+  - how to adjust mapping config (endpoints/fields) without rewriting logic
+
+DO NOT:
+- implement real external pricing usage
+- implement auth beyond env header
+- require screenshot parsing
+
+
+
+<-- 5. FEATURE PROMPT -->
+
+You are extending an existing product with:
+- Frontend: Next.js (App Router) + TS + Tailwind + shadcn/ui
+- Backend: NestJS + TS + PostgreSQL + Prisma (monorepo)
+- Inventory “Add Item” flow already exists and supports itemType=GRADED with detailed fields.
+Goal:
+Simplify the graded slab ingestion UX so users only enter:
+1) Grader (PSA or BGS)
+2) Certification number
+Then the app automatically fetches and parses the grader certificate page to populate all available fields.
+
+------------------------------------------------------------
+A) UX CHANGES (FRONTEND)
+------------------------------------------------------------
+Update the “Add Item → Graded” step UI:
+
+1) Replace existing graded slab inputs with minimal form:
+- Grader selector: PSA | BGS (required)
+- Certification # input (required, numeric)
+- Button: “Fetch details” (primary)
+- Auto-fetch on blur or after 500ms debounce is optional; explicit button is acceptable.
+
+2) After fetch success, render a “Parsed details” preview card:
+- Card title/name
+- Set/series
+- Card number (if found)
+- Grade (PSA 10, BGS 9.5 etc.)
+- Any extra fields available (year, parallel/variant, attributes)
+- Images (if present as URLs; otherwise skip)
+
+3) Provide an “Edit manually” accordion (collapsed by default):
+- Allows user override of parsed fields (name, set, grade, etc.)
+- But keep minimal by default.
+
+4) Show loading skeleton and clear error states:
+- “Cert not found”
+- “Parsing failed”
+- “Rate limited / blocked”
+- Retry button
+
+5) Quantity must be locked to 1 for graded slabs (keep current behavior).
+
+6) Ensure the final saved InventoryItem contains:
+- gradeProvider = PSA or BGS
+- certificationNumber stored
+- gradeValue / gradeLabel stored
+- parsed metadata stored as structured JSON in item “gradingMeta” (new field) or photos/meta json.
+
+Add a new optional field on InventoryItem:
+- certificationNumber (string)
+- gradingMeta (json) // parsed data raw for auditing/debug
+
+------------------------------------------------------------
+B) BACKEND SERVICE (NESTJS) — CERT PARSING
+------------------------------------------------------------
+Implement a backend module that:
+- Accepts grader + cert number
+- Fetches the public certificate page HTML
+- Parses required fields
+- Returns structured JSON to frontend
+
+Create:
+apps/api/src/modules/grading
+- grading.module.ts
+- grading.controller.ts
+- grading.service.ts
+- parsers/
+   - psa.parser.ts
+   - bgs.parser.ts
+- http/grading-http.client.ts (handles fetch + headers + retries)
+- dto/lookup.dto.ts
+- types/grading.types.ts
+
+Endpoint:
+POST /v1/grading/lookup
+Body:
+{
+  "grader": "PSA" | "BGS",
+  "certNumber": "112983707"
+}
+
+Response (example):
+{
+  "grader": "PSA",
+  "certNumber": "112983707",
+  "success": true,
+  "data": {
+    "gradeLabel": "PSA 10",
+    "gradeValue": 10,
+    "cardName": "...",
+    "setName": "...",
+    "cardNumber": "...",
+    "year": "...",
+    "variant": "...",
+    "population": null,
+    "images": { "frontUrl": "...", "backUrl": "..." },
+    "raw": { ... } // optional raw parsed map
+  }
+}
+
+Failure:
+- 404 when cert not found
+- 422 when page fetched but parsing failed
+- 429 when upstream rate limited
+- 502 when upstream blocked or HTML inaccessible
+
+Important:
+- Do NOT scrape from frontend (CORS, exposure); do it server-side only.
+- Add caching to reduce repeated hits:
+  - cache by (grader, certNumber) for 24h (in-memory is OK for MVP; Redis optional).
+- Add rate limiting per IP/user to prevent abuse (simple Nest throttler acceptable).
+
+------------------------------------------------------------
+C) PSA CERT PAGE (MANDATORY SUPPORT)
+------------------------------------------------------------
+Support PSA cert page parsing using URL format:
+https://www.psacard.com/cert/{certNumber}/psa
+
+Implementation requirements:
+- Fetch HTML with a realistic user-agent header
+- Parse using a robust HTML parser (cheerio recommended)
+- Extract:
+  - grade (numeric or label)
+  - card name / subject line
+  - set/series
+  - card number (if present)
+  - any extra attributes shown on page
+- Be resilient:
+  - selectors may change; implement parsing with fallback strategies:
+    - primary selectors
+    - regex fallback over text blocks
+
+------------------------------------------------------------
+D) BGS SUPPORT (OPTIONAL BUT PREFERRED)
+------------------------------------------------------------
+If BGS certificate lookup has a known URL pattern, implement it.
+If unknown, implement BGS as a stub that returns “NOT_IMPLEMENTED” but keep the architecture ready.
+
+For BGS stub:
+- return 501 with message “BGS parsing not yet configured”
+- frontend shows friendly message and allows manual entry fallback.
+
+(If you know the BGS cert URL format from your codebase/config, use it.)
+
+------------------------------------------------------------
+E) DATABASE CHANGES (PRISMA)
+------------------------------------------------------------
+Update Prisma InventoryItem model:
+- add certificationNumber String? (indexed)
+- add gradingMeta Json? (optional)
+- ensure gradeProvider + gradeValue already exist or add them.
+
+Migration required.
+
+When saving a graded item:
+- certificationNumber must be stored
+- gradeProvider set from selected grader
+- gradeValue / gradeLabel stored
+- gradingMeta stores parsed object
+
+------------------------------------------------------------
+F) INVENTORY CREATION FLOW (FRONTEND + BACKEND)
+------------------------------------------------------------
+Frontend flow:
+1) user selects grader + cert#
+2) calls POST /v1/grading/lookup
+3) displays parsed preview
+4) user clicks “Continue / Save”
+5) create inventory item payload includes:
+   - itemType="GRADED"
+   - gradeProvider
+   - certificationNumber
+   - gradeValue
+   - gradingMeta (parsed data)
+   - cardProfileId resolution:
+       - Attempt to match parsed info to existing CardProfile by:
+         - card number + set name
+         - fallback: name contains + set contains
+       - If no confident match:
+         - allow user to manually search/select CardProfile (required)
+       - Do NOT auto-create new CardProfile in Stage 1 unless existing system already supports it.
+
+Important:
+- If parsed data indicates a known card already in catalog, preselect it and show confidence badge.
+
+------------------------------------------------------------
+G) NON-FUNCTIONAL REQUIREMENTS
+------------------------------------------------------------
+- Do not violate robots.txt intentionally, but implement minimal MVP.
+- Add timeouts + retries.
+- Do not store full HTML; store only parsed fields.
+- Add safe logging (no PII).
+- Ensure code is modular: adding CGC later should be easy.
+
+------------------------------------------------------------
+H) ACCEPTANCE CRITERIA
+------------------------------------------------------------
+1) Graded slab form is simplified to grader + cert#.
+2) PSA example works:
+   - grader=PSA, certNumber=112983707
+   - backend fetches https://www.psacard.com/cert/112983707/psa
+   - returns parsed grade + card metadata
+3) User can save the graded item with quantity locked to 1.
+4) If parsing fails, user can still proceed via “manual entry fallback”.
+5) Result persists in DB with certificationNumber + gradingMeta.
+
+------------------------------------------------------------
+I) OUTPUT
+------------------------------------------------------------
+Return:
+- updated frontend files (new UI + API call)
+- new backend module files
+- prisma schema + migration
+- README notes: how parsing works, how to add BGS URL/selectors, known limitations
+
+
+<-- 6. FEATURE PROMPT -->
+
+
+You are extending an existing product with:
+- Frontend: Next.js (App Router) + TypeScript + Tailwind + shadcn/ui
+- Backend: NestJS + TypeScript + PostgreSQL + Prisma
+- Monorepo setup
+- Existing Market Pricing UI page already implemented visually
+
+GOAL:
+Bind the Market Pricing page to real backend data using RefProduct as the source of truth,
+and extend the page with pagination, unified search, and a detailed price history drawer.
+
+------------------------------------------------------------
+A) DATA BINDING (CORE REQUIREMENT)
+------------------------------------------------------------
+The Market Pricing page must be driven by backend data.
+
+Source of truth:
+- Backend entity: RefProduct (from reference data / JustTCG sync)
+
+Field mapping (STRICT):
+- UI "Card Name" → RefProduct.name
+  Example: "Monkey.D.Luffy"
+- UI "Number" (subtitle) → RefProduct.number
+  Example: "OP01-001"
+- UI "Set" → mock/static value for now (can be placeholder)
+- Raw Price → mock value (generated on backend)
+- Sealed Price → mock value (nullable)
+- Last Updated → mock timestamp
+- Source → mock enum: "Mock:eBay" | "Mock:TCGPlayer"
+
+IMPORTANT:
+- Do NOT introduce a new Product/Card model.
+- Do NOT compute pricing on frontend.
+- Frontend must consume backend API only.
+
+------------------------------------------------------------
+B) BACKEND API (MANDATORY)
+------------------------------------------------------------
+Implement or extend backend endpoints:
+
+1) Product list for Market Pricing
+GET /v1/market/products
+
+Query params:
+- page (number, default 1)
+- limit (number, default 25, max 100)
+- search (string, optional)
+
+Behavior:
+- Returns paginated list of RefProduct
+- Search must match:
+  - name ILIKE %search%
+  - OR number ILIKE %search%
+- Order by name ASC by default
+
+Response shape:
+{
+  "items": [
+    {
+      "id": "...",
+      "name": "Monkey.D.Luffy",
+      "number": "OP01-001",
+      "rawPrice": 42.53,
+      "sealedPrice": null,
+      "lastUpdated": "2026-01-26T19:53:59Z",
+      "source": "Mock:eBay"
+    }
+  ],
+  "page": 1,
+  "limit": 25,
+  "total": 312
+}
+
+Notes:
+- rawPrice / sealedPrice / lastUpdated / source may be mocked/generated server-side.
+- Keep logic centralized in backend.
+
+------------------------------------------------------------
+2) Product price history (detail drawer)
+------------------------------------------------------------
+GET /v1/market/products/:id/prices
+
+Behavior:
+- Returns last 10 price points for the product
+- Data is MOCKED but realistic
+
+Response shape:
+{
+  "productId": "...",
+  "prices": [
+    {
+      "date": "2026-01-20",
+      "title": "Monkey D. Luffy OP01-001 PSA 10",
+      "price": 44.12,
+      "source": "eBay"
+    },
+    {
+      "date": "2026-01-18",
+      "title": "OP01-001 Monkey D. Luffy Romance Dawn",
+      "price": 41.99,
+      "source": "TCGPlayer"
+    }
+  ]
+}
+
+Rules:
+- Always return max 10 entries
+- Mix eBay / TCGPlayer in mock data
+- Prices should fluctuate realistically (+/- 10–20%)
+
+------------------------------------------------------------
+C) FRONTEND: MARKET PRICING PAGE
+------------------------------------------------------------
+Bind the existing Market Pricing page to backend APIs.
+
+Features to implement:
+
+1) Pagination (MANDATORY)
+- Server-side pagination
+- Show current page, total pages
+- Controls:
+  - Prev / Next
+  - Page numbers OR compact pager
+- Changing page must re-fetch data
+
+2) Unified Search (MANDATORY)
+- Single input: “Search card profiles”
+- Search must:
+  - debounce (300–500ms)
+  - send `search` query param
+  - match by name OR number
+- Reset page to 1 on new search
+
+3) Detail Drawer (MANDATORY)
+- Clicking a row opens a Drawer/Sheet (shadcn/ui)
+- Drawer content:
+  - Card name + number
+  - Placeholder image
+  - Current raw/sealed price
+  - Source badge
+  - “Last updated”
+  - Divider
+  - “Recent Sales” section:
+      - Table or list of last 10 prices
+      - Columns:
+          - Date
+          - Title
+          - Price
+          - Source (badge: eBay / TCGPlayer)
+- Drawer fetches data from:
+  GET /v1/market/products/:id/prices
+
+UX requirements:
+- Show loading skeleton while fetching
+- Handle error state gracefully
+- Drawer must be scrollable
+- Mobile-friendly layout
+
+------------------------------------------------------------
+D) FRONTEND STATE & QUALITY
+------------------------------------------------------------
+- Keep pagination/search state in URL query params (?page=&search=)
+- Avoid unnecessary re-fetches
+- Show empty state if no results
+- No mock pricing logic in frontend
+- No hardcoded product lists
+
+------------------------------------------------------------
+E) BACKEND IMPLEMENTATION NOTES
+------------------------------------------------------------
+- Implement pagination with Prisma:
+  - skip / take
+  - total count query
+- Implement search using ILIKE
+- Mock pricing logic should live in a service:
+  MarketPricingService
+- Price history can be generated dynamically per request (no DB persistence needed for now)
+
+------------------------------------------------------------
+F) ACCEPTANCE CRITERIA
+------------------------------------------------------------
+1) Market Pricing page loads products from backend RefProduct table.
+2) Search by “Luffy” or “OP01-001” works from single input.
+3) Pagination works and reflects total count.
+4) Clicking a row opens a detail drawer.
+5) Drawer shows last 10 mocked prices with date, title, price, and source.
+6) No pricing logic exists in frontend.
+7) Page remains responsive and usable on mobile.
+
+------------------------------------------------------------
+G) OUTPUT
+------------------------------------------------------------
+Return:
+- Updated backend controllers/services
+- Updated frontend page + drawer components
+- Any new DTOs or types
+- Brief note explaining mock pricing strategy and how it will be replaced later
+
+
+<-- 7. FEATURE PROMPT -->
+
+
+You are extending an existing monorepo product:
+
+Frontend:
+- Next.js (App Router) + TypeScript + Tailwind + shadcn/ui
+Backend:
+- NestJS + TypeScript + PostgreSQL + Prisma
+- Existing Market Pricing page is already bound to backend RefProduct list with pagination + unified search.
+- There is a detail drawer which currently shows mocked last-10 price points from backend endpoint.
+
+NEW GOAL:
+1) Add a new field `priceChartingUrl` to RefProduct.
+2) If `priceChartingUrl` is present (non-empty) for a product, the drawer must show REAL sold listing rows
+parsed from the PriceCharting page at that URL.
+3) Extract from the parsed page at least: sale date, title, price, source (eBay or TCGPlayer).
+4) If `priceChartingUrl` is empty, keep the existing mocked behavior.
+
+IMPORTANT:
+- Parsing must be done server-side in the backend (never in the browser).
+- Frontend should not change logic beyond calling the same endpoint and rendering results.
+- Be resilient: HTML changes must not crash the app; show a friendly error and fallback to mock if allowed.
+
+------------------------------------------------------------
+A) DATABASE / PRISMA CHANGES (MANDATORY)
+------------------------------------------------------------
+Update Prisma model RefProduct:
+- add priceChartingUrl String? @db.Text
+- add index optionally if you need lookup; not required
+
+Create migration.
+
+Seed changes:
+- Set priceChartingUrl for at least 3 seeded RefProducts to real-looking URLs (use placeholders if needed).
+- Keep other products null.
+
+------------------------------------------------------------
+B) BACKEND API: PRICE HISTORY ENDPOINT (ENHANCED)
+------------------------------------------------------------
+Existing endpoint:
+GET /v1/market/products/:id/prices
+
+Update behavior:
+
+1) Fetch RefProduct by id
+2) If product.priceChartingUrl is non-empty:
+   - Attempt to fetch and parse the PriceCharting page
+   - Return parsed results (max 10 entries, most recent first if possible)
+   - Each entry must include:
+     - date (YYYY-MM-DD or ISO)
+     - title (string)
+     - price (number)
+     - source ("eBay" | "TCGPlayer" | "Unknown")
+     - link (optional, if available on page)
+
+3) If priceChartingUrl is empty OR parsing fails:
+   - Return the current mocked list (existing behavior)
+   - Additionally include meta flags:
+     - { mode: "parsed" | "mock", parseError?: string }
+
+Response shape (required):
+{
+  "productId": "...",
+  "mode": "parsed" | "mock",
+  "parseError": null | "string",
+  "prices": [
+    { "date": "2026-01-14", "title": "...", "price": 3.45, "source": "eBay" }
+  ]
+}
+
+Error handling:
+- If RefProduct not found -> 404
+- If upstream is unreachable or blocked -> do NOT 500 the whole app; return mock with parseError unless strict mode requested.
+Optional query param:
+- strict=true → return 502 on parse failure (optional)
+
+Caching:
+- Cache parsed results by productId for 6–24 hours (in-memory OK for MVP).
+- Add basic rate limiting for this endpoint to avoid hammering PriceCharting.
+
+------------------------------------------------------------
+C) BACKEND: PRICECHARTING PARSER SERVICE (MANDATORY)
+------------------------------------------------------------
+Create module/service:
+apps/api/src/modules/market/parsers/pricecharting.parser.ts
+or
+apps/api/src/modules/pricecharting/pricecharting.service.ts
+
+Requirements:
+- Fetch HTML via server-side HTTP client (axios/@nestjs/axios or fetch)
+- Set a realistic User-Agent header
+- Use cheerio for parsing
+- Implement parsing with fallback strategies:
+  - Prefer structured tables/lists for “Sold Listings”
+  - Fallback: parse rows by scanning for patterns like date + price + [eBay]/[TCGPlayer] markers
+
+Extraction targets (minimum):
+- Sold listing rows:
+  - Sale Date column
+  - Title column (anchor text)
+  - Price column (currency)
+  - Source derived from:
+    - explicit label “eBay” or “TCGPlayer” near title OR
+    - bracket suffix like “[eBay]” / “[TCGPlayer]” in the row
+
+Normalize:
+- Parse price string into number (USD)
+- Normalize date into YYYY-MM-DD (best effort)
+- Trim title
+- Source mapping:
+  - contains "ebay" -> "eBay"
+  - contains "tcgplayer" -> "TCGPlayer"
+  - else "Unknown"
+
+Limit:
+- Return only the last 10 rows.
+
+Robustness:
+- If HTML structure unexpected, throw a controlled ParseError.
+- Do not log full HTML. Log only summary.
+
+------------------------------------------------------------
+D) FRONTEND: DETAIL DRAWER (MINIMAL CHANGES)
+------------------------------------------------------------
+The drawer continues to call:
+GET /v1/market/products/:id/prices
+
+Update UI:
+- If response.mode === "parsed": show “Live data from PriceCharting” badge.
+- If mode === "mock" and parseError exists:
+  - Show a small warning: “Live parsing unavailable, showing mock data”
+- Render prices list exactly the same shape as before.
+- Add a source badge column: eBay / TCGPlayer.
+
+No parsing logic in frontend.
+
+------------------------------------------------------------
+E) ACCEPTANCE CRITERIA
+------------------------------------------------------------
+1) RefProduct has new field priceChartingUrl (migrated + seeded).
+2) For products with priceChartingUrl:
+   - /v1/market/products/:id/prices returns mode="parsed" and 1–10 entries with date/title/price/source.
+3) For products without it:
+   - endpoint returns mode="mock" and mocked entries (existing).
+4) If parsing fails for a product with URL:
+   - endpoint returns mode="mock" + parseError (unless strict=true)
+   - UI shows warning and still works.
+5) No CORS/browser scraping; all parsing is backend-only.
+6) Caching prevents repeated fetches during rapid drawer open/close.
+
+------------------------------------------------------------
+F) OUTPUT REQUIRED
+------------------------------------------------------------
+Return:
+- Prisma schema diff + migration instructions
+- Updated seed
+- New parser service code + tests (optional)
+- Updated controller/service for /v1/market/products/:id/prices
+- Any new dependencies (cheerio, etc.)
+- Small frontend UI update for mode badges/warnings
+
+<-- 8. FEATURE PROMPT -->
+
+
+
+You are extending an existing monorepo backend:
+
+- NestJS + TypeScript (apps/api)
+- PostgreSQL + Prisma (prisma/schema.prisma)
+- Existing reference-data models include RefProduct (from JustTCG sync) and related dictionaries.
+- There is already a server-side HTML parsing pattern in the codebase (cheerio-based) used for other pages.
+
+GOAL:
+Build a new backend ingestion pipeline that crawls PriceCharting One Piece catalog and creates a reference table that maps:
+- PriceCharting URL (canonical product URL)
+- PriceCharting ID (from product details block)
+- TCGPlayerID (from product details block)
+- Plus store the entire "details block" fields captured from the product page (as JSON)
+
+The crawl must start from:
+https://www.pricecharting.com/category/one-piece-cards
+
+Traversal path (MANDATORY):
+1) Category entrypoint (One Piece catalog)
+2) Set pages (e.g. https://www.pricecharting.com/console/one-piece-500-years-in-the-future)
+3) Product pages (e.g. https://www.pricecharting.com/game/one-piece-500-years-in-the-future/monkeydluffy-treasure-rare-op07-109)
+4) On each product page:
+   - Parse the "Details" block (as shown in the screenshot)
+   - Extract:
+       - TCGPlayer ID (numeric) if present
+       - PriceCharting ID (numeric) if present
+       - Card Number field (e.g. "#OP07-109") if present
+       - Genre, Release Date, Publisher, Print Run, Notes, Description, ePID (eBay) if present
+   - Save the parsed details + the product page URL into DB
+
+Example requirement:
+- The product page https://www.pricecharting.com/game/one-piece-azure-sea%27s-seven/booster-box
+  contains TCGPlayerID=665598 inside the details block.
+- This mapping must be stored so later we can resolve RefProduct.tcgPlayerId -> priceChartingUrl (and priceChartingId).
+
+IMPORTANT CONSTRAINTS:
+- Do NOT implement browser automation (no Playwright/Puppeteer). Use server-side HTTP + HTML parsing only.
+- Do NOT ask to read documentation from screenshots. Parsing logic must be selector/regex-based against the HTML.
+- Respect target site: implement rate limiting, retries, and caching to avoid hammering.
+- Must be runnable from console as CLI command(s).
+- Must be resumable (idempotent) and safe to re-run.
+- Must not require external services besides Postgres.
+
+------------------------------------------------------------
+A) DATABASE / PRISMA (MANDATORY)
+------------------------------------------------------------
+Add a new Prisma model for PriceCharting mappings:
+
+model PriceChartingProductRef {
+  id               String   @id @default(cuid())
+  productUrl        String   @unique
+  tcgPlayerId       Int?     @index
+  priceChartingId   Int?     @index
+  cardNumber        String?  @index
+  details           Json     // store entire parsed details block as a structured JSON map
+  categorySlug      String?  // "one-piece-cards"
+  setSlug           String?  // derived from set page path
+  productSlug       String?  // derived from product page path
+  scrapedAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+Also add an optional linking field to RefProduct (if it exists already):
+- RefProduct.tcgPlayerId Int? (only if not already present)
+- RefProduct.priceChartingUrl String? (optional future use; not required here)
+
+Migration required.
+
+------------------------------------------------------------
+B) CRAWLER / INGESTION ARCHITECTURE (MANDATORY)
+------------------------------------------------------------
+Create a new module:
+apps/api/src/modules/pricecharting-crawler
+- pricecharting-crawler.module.ts
+- pricecharting.client.ts        # HTTP fetch, headers, rate limit, retries
+- pricecharting.parser.ts        # parsing helpers (category/set/product)
+- pricecharting.ingest.service.ts# orchestrates crawl + persistence
+- cli/pricecharting.commands.ts  # CLI entrypoints
+- types.ts                       # typed parsed outputs
+- utils/url.ts                   # canonicalization, dedupe, slug extraction
+
+------------------------------------------------------------
+C) CLI COMMANDS (MANDATORY)
+------------------------------------------------------------
+Provide runnable console commands (nest-commander preferred):
+
+1) pricecharting:crawl:onepiece
+- Starts from https://www.pricecharting.com/category/one-piece-cards
+- Discovers set pages and product pages
+- Parses product details and upserts into PriceChartingProductRef
+- Logs progress
+
+2) Optional advanced commands:
+- pricecharting:crawl:onepiece --maxPages=N
+- pricecharting:crawl:onepiece --resumeFromUrl=...
+- pricecharting:crawl:onepiece --dryRun
+- pricecharting:crawl:onepiece --onlySetSlug=one-piece-500-years-in-the-future
+
+These flags are optional, but at minimum implement:
+- --dryRun (no DB writes)
+- --maxProducts (limit number of product pages for testing)
+
+------------------------------------------------------------
+D) HTTP CLIENT REQUIREMENTS
+------------------------------------------------------------
+Implement server-side fetching:
+- Use @nestjs/axios OR node fetch
+- Set headers:
+  - User-Agent: realistic browser UA
+  - Accept-Language: en-US,en;q=0.9
+- Timeouts: 10s
+- Retries:
+  - retry 3 times on 429/5xx with exponential backoff
+- Rate limiting:
+  - max 1 request / second (configurable)
+- Respect caching:
+  - in-memory cache per URL during a run
+  - optional local disk cache is a plus but not required
+
+Robustness:
+- If a page fails, record error and continue (unless --strict true)
+- Never crash the whole crawl on a single bad page
+
+------------------------------------------------------------
+E) PARSING REQUIREMENTS (MANDATORY)
+------------------------------------------------------------
+You MUST implement three parsers:
+
+1) parseCategoryPage(url)
+Input: category URL (/category/one-piece-cards)
+Output:
+- setPageUrls: string[] (absolute URLs)
+Strategy:
+- Extract all links that look like "/console/<slug>" OR equivalent set page link pattern.
+- Deduplicate and canonicalize.
+
+2) parseSetPage(url)
+Input: set URL (/console/<set-slug>)
+Output:
+- productPageUrls: string[] (absolute URLs)
+Strategy:
+- Extract links to product pages with pattern "/game/<set-slug>/<product-slug>"
+- Handle pagination if the set page has next pages:
+  - detect "Next" or page params
+  - crawl all pages for that set
+- Deduplicate.
+
+3) parseProductPage(url)
+Input: product URL (/game/<set-slug>/<product-slug>)
+Output: ParsedProductDetails:
+{
+  productUrl: string (canonical)
+  tcgPlayerId?: number
+  priceChartingId?: number
+  cardNumber?: string
+  details: Record<string, string | null>   // key/value from details block
+}
+Strategy (based on screenshot):
+- Find the "Details" block section on page.
+- Extract all key/value rows such as:
+  Genre, Release Date, Publisher, Card Number, Print Run, Notes,
+  ePID (eBay), TCGPlayer ID, PriceCharting ID, Description
+- Normalize keys:
+  - trim whitespace
+  - keep original labels as keys, plus compute normalized versions if needed
+- Normalize values:
+  - "none" -> null
+  - TCGPlayer ID and PriceCharting ID must be parsed into integers
+  - Card Number keep as string (e.g. "#OP07-109")
+
+Fallback:
+- If selectors fail, fallback to regex over visible text near "TCGPlayer ID:" and "PriceCharting ID:".
+
+Limitations:
+- Do not parse sold listings here (separate task). Only parse details block + store URL.
+
+------------------------------------------------------------
+F) PERSISTENCE / UPSERT LOGIC (MANDATORY)
+------------------------------------------------------------
+- For each product page:
+  - Upsert into PriceChartingProductRef where productUrl unique
+  - Update details JSON, tcgPlayerId, priceChartingId, cardNumber, scrapedAt
+- Idempotent: running crawler twice should not duplicate rows.
+
+Also implement an optional reconciliation step:
+- If RefProduct has tcgPlayerId populated, and PriceChartingProductRef has same tcgPlayerId:
+  - set RefProduct.priceChartingUrl = PriceChartingProductRef.productUrl (optional)
+This reconciliation must be behind a flag:
+--linkRefProducts=true (default false)
+
+------------------------------------------------------------
+G) ACCEPTANCE CRITERIA
+------------------------------------------------------------
+1) Running CLI command crawls:
+   entrypoint -> set pages -> product pages.
+2) For each product page, DB row is created/upserted with:
+   - productUrl
+   - tcgPlayerId (when present)
+   - priceChartingId (when present)
+   - details JSON containing the full details block key/value pairs
+3) System is rate-limited and resilient (retries, continues on errors).
+4) Command can be re-run without duplicating rows.
+
+------------------------------------------------------------
+H) OUTPUT REQUIRED
+------------------------------------------------------------
+Return:
+- Prisma schema updates + migration guidance
+- New module code (client, parsers, ingest service, CLI)
+- Workspace scripts to run:
+  pnpm --filter api pricecharting:crawl:onepiece
+- README section:
+  - env vars (if any)
+  - recommended rate limit values
+  - how to run a small test crawl (maxProducts)
+  - how to extend to other categories later
+
+
+  <-- 9. FEATURE PROMPT -->
+
+
+  <-- 10. FEATURE PROMPT -->
