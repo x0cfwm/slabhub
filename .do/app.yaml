@@ -10,8 +10,8 @@ services:
     instance_size_slug: basic-xxs # Самый дешевый тариф ($5/mo)
     source_dir: /
     
-    # Сборка бекенда
-    build_command: pnpm install --frozen-lockfile && npx prisma generate && pnpm --filter @slabhub/api run build
+    # Сборка бекенда (сначала устанавливаем pnpm глобально)
+    build_command: npm install -g pnpm@9.15.0 && pnpm install --frozen-lockfile && npx prisma generate && pnpm --filter @slabhub/api run build
     
     # Запуск бекенда (pnpm сам перейдет в нужную папку)
     run_command: pnpm --filter @slabhub/api run start:prod
@@ -39,7 +39,7 @@ jobs:
     source_dir: /
     
     # Подготовка и выполнение миграций перед деплоем кода
-    build_command: pnpm install --frozen-lockfile && npx prisma generate
+    build_command: npm install -g pnpm@9.15.0 && pnpm install --frozen-lockfile && npx prisma generate
     run_command: npx prisma migrate deploy
     
     envs:

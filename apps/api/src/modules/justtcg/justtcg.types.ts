@@ -30,4 +30,14 @@ export interface JustTcgResponse<T = any> {
         offset?: number;
         hasMore?: boolean;
     };
+    _metadata?: {
+        apiRequestLimit: number;
+        apiDailyLimit: number;
+        apiRateLimit: number;
+        apiRequestsUsed: number;
+        apiDailyRequestsUsed: number;
+        apiRequestsRemaining: number;
+        apiDailyRequestsRemaining: number;
+        apiPlan: string;
+    };
 }

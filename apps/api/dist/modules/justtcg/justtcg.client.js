@@ -20,6 +20,7 @@ let JustTcgClient = JustTcgClient_1 = class JustTcgClient {
         this.httpService = httpService;
         this.configService = configService;
         this.logger = new common_1.Logger(JustTcgClient_1.name);
+        this.keyMetadata = new Map();
         this.currentKeyIndex = 0;
         this.baseUrl = this.configService.get('JUSTTCG_BASE_URL', 'https://api.justtcg.com');
         const rawKeys = this.configService.getOrThrow('JUSTTCG_API_KEY');
@@ -27,26 +28,80 @@ let JustTcgClient = JustTcgClient_1 = class JustTcgClient {
         if (this.apiKeys.length === 0) {
             throw new Error('JUSTTCG_API_KEY must contain at least one key');
         }
+        for (const key of this.apiKeys) {
+            this.keyMetadata.set(key, {
+                apiRequestLimit: 1000,
+                apiDailyLimit: 100,
+                apiRateLimit: 10,
+                apiRequestsUsed: 0,
+                apiDailyRequestsUsed: 0,
+                apiRequestsRemaining: 10,
+                apiDailyRequestsRemaining: 100,
+                apiPlan: 'Unknown',
+                lastUsed: 0,
+                nextAvailableAt: 0,
+            });
+        }
     }
     getNextApiKey() {
-        const key = this.apiKeys[this.currentKeyIndex];
-        this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
-        return key;
+        const now = Date.now();
+        let bestKey = null;
+        let earliestWait = Infinity;
+        for (let i = 0; i < this.apiKeys.length; i++) {
+            const index = (this.currentKeyIndex + i) % this.apiKeys.length;
+            const key = this.apiKeys[index];
+            const meta = this.keyMetadata.get(key);
+            if (meta.apiDailyRequestsRemaining > 0) {
+                if (now >= meta.nextAvailableAt) {
+                    this.currentKeyIndex = (index + 1) % this.apiKeys.length;
+                    return key;
+                }
+                earliestWait = Math.min(earliestWait, meta.nextAvailableAt);
+            }
+        }
+        if (earliestWait !== Infinity) {
+            const waitMs = earliestWait - now;
+            this.logger.warn(`All available keys are rate-limited. Next key ready in ${Math.ceil(waitMs / 1000)}s`);
+            return this.apiKeys[this.currentKeyIndex];
+        }
+        throw new Error('All JustTCG API keys have exhausted their daily quota.');
+    }
+    updateMetadata(key, metadata) {
+        if (!metadata)
+            return;
+        const current = this.keyMetadata.get(key);
+        const isRateLimitWindowExhausted = metadata.apiRequestsUsed >= metadata.apiRateLimit;
+        const isDailyQuotaExhausted = metadata.apiDailyRequestsRemaining <= 0;
+        this.keyMetadata.set(key, {
+            ...current,
+            ...metadata,
+            lastUsed: Date.now(),
+            nextAvailableAt: isRateLimitWindowExhausted && !isDailyQuotaExhausted
+                ? Date.now() + 61000
+                : isDailyQuotaExhausted
+                    ? Date.now() + (24 * 60 * 60 * 1000)
+                    : 0,
+        });
+        const maskedKey = `${key.substring(0, 8)}...`;
+        this.logger.log(`Key ${maskedKey} usage: daily ${metadata.apiDailyRequestsUsed}/${metadata.apiDailyLimit}, ` +
+            `RPM window ${metadata.apiRequestsUsed}/${metadata.apiRateLimit} (${metadata.apiPlan})`);
+        if (isRateLimitWindowExhausted && !isDailyQuotaExhausted) {
+            this.logger.debug(`Key ${maskedKey} hit RPM limit (${metadata.apiRateLimit}). Will wait 60s or switch to another key.`);
+        }
+        if (isDailyQuotaExhausted) {
+            this.logger.error(`Key ${maskedKey} DAILY QUOTA EXHAUSTED! ${metadata.apiDailyRequestsUsed}/${metadata.apiDailyLimit} used.`);
+        }
+        if (metadata.apiDailyRequestsRemaining < 10 && !isDailyQuotaExhausted) {
+            this.logger.warn(`Key ${maskedKey} running low: ${metadata.apiDailyRequestsRemaining} daily requests remaining.`);
+        }
     }
     async *fetchPages(mapping) {
         let page = 1;
         let offset = 0;
         let cursor;
         let hasNextPage = true;
-        let requestCount = 0;
         while (hasNextPage) {
-            if (requestCount > 0) {
-                const rpmDelay = Math.ceil(6100 / this.apiKeys.length);
-                this.logger.log(`Rate limiting: waiting ${rpmDelay}ms before next request (using ${this.apiKeys.length} keys)...`);
-                await new Promise((resolve) => setTimeout(resolve, rpmDelay));
-            }
             const response = await this.fetchPage(mapping, page, cursor, offset);
-            requestCount++;
             yield response;
             if (mapping.pagination === 'none') {
                 hasNextPage = false;
@@ -96,30 +151,59 @@ let JustTcgClient = JustTcgClient_1 = class JustTcgClient {
         const retries = 5;
         let attempt = 0;
         while (attempt <= retries) {
+            const key = this.getNextApiKey();
+            const meta = this.keyMetadata.get(key);
+            const now = Date.now();
+            if (now < meta.nextAvailableAt) {
+                const waitMs = meta.nextAvailableAt - now;
+                this.logger.log(`Waiting ${Math.ceil(waitMs / 1000)}s for key ${key.substring(0, 8)}... to replenish...`);
+                await new Promise(resolve => setTimeout(resolve, waitMs));
+            }
             try {
                 const { data } = await (0, rxjs_1.firstValueFrom)(this.httpService.get(mapping.endpoint, {
                     baseURL: this.baseUrl,
                     params,
                     headers: {
-                        'x-api-key': this.getNextApiKey(),
+                        'x-api-key': key,
                     },
                     timeout: 10000,
                 }));
+                this.updateMetadata(key, data._metadata);
                 return data;
             }
             catch (error) {
                 attempt++;
                 const status = error.response?.status;
+                if (error.response?.data?._metadata) {
+                    this.updateMetadata(key, error.response.data._metadata);
+                }
+                if (status === 401 || status === 403) {
+                    this.logger.error(`Invalid or unauthorized API key: ${key.substring(0, 8)}...`);
+                    const idx = this.apiKeys.indexOf(key);
+                    if (idx > -1)
+                        this.apiKeys.splice(idx, 1);
+                    if (this.apiKeys.length === 0)
+                        throw new Error('No valid API keys remaining');
+                    continue;
+                }
                 const shouldRetry = attempt <= retries && (status === 429 || (status >= 500 && status <= 599));
                 if (!shouldRetry) {
                     const errorData = error.response?.data;
-                    this.logger.error(`Failed to fetch ${mapping.endpoint} after ${attempt} attempts: ${error.message}${errorData ? ' - Response: ' + JSON.stringify(errorData) : ''}`);
+                    const clearError = errorData?.message || error.message;
+                    this.logger.error(`Failed to fetch ${mapping.endpoint} (${status}): ${clearError}` +
+                        (errorData && !errorData.message ? ` - Response: ${JSON.stringify(errorData)}` : ''));
                     throw error;
                 }
-                const baseDelay = status === 429 ? 30000 : 2000;
-                const delay = Math.pow(2, attempt) * baseDelay;
-                this.logger.warn(`Retrying ${mapping.endpoint} (attempt ${attempt}) in ${delay}ms due to status ${status}...`);
-                await new Promise((resolve) => setTimeout(resolve, delay));
+                if (status === 429) {
+                    meta.nextAvailableAt = Date.now() + 61000;
+                    this.logger.debug(`Key ${key.substring(0, 8)}... hit 429. Marked for 60s cooldown. Trying next key...`);
+                    continue;
+                }
+                else {
+                    const delay = Math.pow(2, attempt) * 2000;
+                    this.logger.warn(`Retrying ${mapping.endpoint} (attempt ${attempt}) in ${delay}ms due to status ${status}...`);
+                    await new Promise((resolve) => setTimeout(resolve, delay));
+                }
             }
         }
         throw new Error(`Failed to fetch ${mapping.endpoint} after ${retries} retries`);
