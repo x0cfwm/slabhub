@@ -1,0 +1,57 @@
+# DigitalOcean App Platform Specification
+# This file defines the backend service, a migration job, and a database.
+# Note: You can also add your frontend (apps/web) here if you choose to move it from Netlify.
+
+name: slabhub
+region: fra # Frankfurt (можно изменить на нужный)
+services:
+  - name: api
+    instance_count: 1
+    instance_size_slug: basic-xxs # Самый дешевый тариф ($5/mo)
+    source_dir: /
+    
+    # Сборка бекенда
+    build_command: pnpm install --frozen-lockfile && npx prisma generate && pnpm --filter @slabhub/api run build
+    
+    # Запуск бекенда (pnpm сам перейдет в нужную папку)
+    run_command: pnpm --filter @slabhub/api run start:prod
+    
+    http_port: 3001
+    
+    # Переменные окружения
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${slabhub-db.DATABASE_URL}
+      - key: PORT
+        scope: RUN_TIME
+        value: "3001"
+      # Сюда можно добавить другие переменные из .env
+      # - key: JWT_SECRET
+      #   scope: RUN_TIME
+      #   value: your-secret
+
+jobs:
+  - name: migration-job
+    kind: PRE_DEPLOY
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    source_dir: /
+    
+    # Подготовка и выполнение миграций перед деплоем кода
+    build_command: pnpm install --frozen-lockfile && npx prisma generate
+    run_command: npx prisma migrate deploy
+    
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${slabhub-db.DATABASE_URL}
+
+databases:
+  - name: slabhub-db
+    engine: PG
+    version: "17"
+    production: false # Установите true для выделенного кластера в продакшене
+    num_nodes: 1
+    allow_remote_access: true
+    size_slug: db-s-dev-database # База для разработки (~$7/mo)
