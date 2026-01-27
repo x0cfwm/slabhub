@@ -23,16 +23,21 @@ services:
       - key: PORT
         scope: RUN_TIME
         value: "3001"
+      - key: JUSTTCG_BASE_URL
+        scope: RUN_TIME
+        value: "https://api.justtcg.com"
+      - key: JUSTTCG_API_KEY
+        scope: RUN_TIME
+        value: "tcg_88a04d470df642e99c954c46ecb7802b,tcg_f16b30a697814f7fac8443f9093d60b9,tcg_20e148e2a10945a7a544e3f47548e056,tcg_d49551a8d3d14829a7e015eb5e61646b,tcg_93a952ce08364765b2e25c7bbbd95038"
+      - key: PSA_API_TOKEN
+        scope: RUN_TIME
+        value: "fWCNL1ZHsDN-8CebFL5PgnF3L1tTk6buv1oagaXNb1iLBF_TiYAOICC4CkOaJFAxxIOILDXmedQIVTa3BaPnYHAkf-AvQ6nkwP9uuLqvSzUJgZmzCLjlQzDIX3iKyuBswnPUMUjL523DozZwXOobIJi1GTXtWisRJKbrkDaGPMZDexj51NaINEBvNfOAbGGNI3kmM5dGs1vU7GKmuuKiNlWtmH0DTBLDI-Rlf0jrL3Ibi35Cbw2MestmrA1pOLVfmS1cGBGdThnfqJYdHcB-cEDaHUtG3Q699yHcZbE_Vkp-DP5M"
       - key: NPM_CONFIG_PRODUCTION
         scope: BUILD_TIME
         value: "false"
       - key: SKIP_NODE_BUILD_SCRIPT
         scope: BUILD_TIME
         value: "true"
-      # Сюда можно добавить другие переменные из .env
-      # - key: JWT_SECRET
-      #   scope: RUN_TIME
-      #   value: your-secret
 
 jobs:
   - name: migration-job
