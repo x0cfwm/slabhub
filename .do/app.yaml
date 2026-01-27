@@ -8,13 +8,10 @@ services:
   - name: api
     instance_count: 1
     instance_size_slug: basic-xxs # Самый дешевый тариф ($5/mo)
+    
+    # Используем Dockerfile вместо buildpack
+    dockerfile_path: Dockerfile
     source_dir: /
-    
-    # Сборка бекенда (сначала устанавливаем pnpm глобально)
-    build_command: npm install -g pnpm@9.15.0 && pnpm install --frozen-lockfile && npx prisma generate && pnpm --filter @slabhub/api run build
-    
-    # Запуск бекенда (pnpm сам перейдет в нужную папку)
-    run_command: pnpm --filter @slabhub/api run start:prod
     
     http_port: 3001
     
@@ -26,6 +23,12 @@ services:
       - key: PORT
         scope: RUN_TIME
         value: "3001"
+      - key: NPM_CONFIG_PRODUCTION
+        scope: BUILD_TIME
+        value: "false"
+      - key: SKIP_NODE_BUILD_SCRIPT
+        scope: BUILD_TIME
+        value: "true"
       # Сюда можно добавить другие переменные из .env
       # - key: JWT_SECRET
       #   scope: RUN_TIME
@@ -36,10 +39,12 @@ jobs:
     kind: PRE_DEPLOY
     instance_count: 1
     instance_size_slug: basic-xxs
+    
+    # Используем тот же Dockerfile
+    dockerfile_path: Dockerfile
     source_dir: /
     
-    # Подготовка и выполнение миграций перед деплоем кода
-    build_command: npm install -g pnpm@9.15.0 && pnpm install --frozen-lockfile && npx prisma generate
+    # Переопределяем команду для выполнения миграций
     run_command: npx prisma migrate deploy
     
     envs:
