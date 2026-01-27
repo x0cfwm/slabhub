@@ -20,8 +20,18 @@ let JustTcgClient = JustTcgClient_1 = class JustTcgClient {
         this.httpService = httpService;
         this.configService = configService;
         this.logger = new common_1.Logger(JustTcgClient_1.name);
+        this.currentKeyIndex = 0;
         this.baseUrl = this.configService.get('JUSTTCG_BASE_URL', 'https://api.justtcg.com');
-        this.apiKey = this.configService.getOrThrow('JUSTTCG_API_KEY');
+        const rawKeys = this.configService.getOrThrow('JUSTTCG_API_KEY');
+        this.apiKeys = rawKeys.split(',').map((k) => k.trim()).filter(Boolean);
+        if (this.apiKeys.length === 0) {
+            throw new Error('JUSTTCG_API_KEY must contain at least one key');
+        }
+    }
+    getNextApiKey() {
+        const key = this.apiKeys[this.currentKeyIndex];
+        this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
+        return key;
     }
     async *fetchPages(mapping) {
         let page = 1;
@@ -31,8 +41,8 @@ let JustTcgClient = JustTcgClient_1 = class JustTcgClient {
         let requestCount = 0;
         while (hasNextPage) {
             if (requestCount > 0) {
-                const rpmDelay = 6100;
-                this.logger.log(`Rate limiting: waiting ${rpmDelay}ms before next request...`);
+                const rpmDelay = Math.ceil(6100 / this.apiKeys.length);
+                this.logger.log(`Rate limiting: waiting ${rpmDelay}ms before next request (using ${this.apiKeys.length} keys)...`);
                 await new Promise((resolve) => setTimeout(resolve, rpmDelay));
             }
             const response = await this.fetchPage(mapping, page, cursor, offset);
@@ -91,7 +101,7 @@ let JustTcgClient = JustTcgClient_1 = class JustTcgClient {
                     baseURL: this.baseUrl,
                     params,
                     headers: {
-                        'x-api-key': this.apiKey,
+                        'x-api-key': this.getNextApiKey(),
                     },
                     timeout: 10000,
                 }));

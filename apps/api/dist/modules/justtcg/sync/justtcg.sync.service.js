@@ -64,6 +64,7 @@ let JustTcgSyncService = JustTcgSyncService_1 = class JustTcgSyncService {
                 if (dryRun) {
                     this.logger.log(`DRY RUN: Fetched ${items.length} items for ${mapping.name}`);
                     if (totalProcessed === 0 && mappedItems.length > 0) {
+                        this.logger.log(`Mapped Item Keys: ${Object.keys(mappedItems[0]).join(', ')}`);
                         this.logger.log('Sample mapped item:', JSON.stringify(mappedItems[0], null, 2));
                     }
                 }
@@ -96,7 +97,11 @@ let JustTcgSyncService = JustTcgSyncService_1 = class JustTcgSyncService {
         const mapped = {};
         for (const fieldMapping of mapping.fields) {
             let value = fieldMapping.source === '*' ? item : item[fieldMapping.source];
+            this.logger.log(`Mapping attempt: ${fieldMapping.source} -> ${fieldMapping.target}, source value: ${value !== undefined ? typeof value : 'undefined'}`);
             if (value !== undefined && value !== null) {
+                if (fieldMapping.target === 'tcgplayerId') {
+                    this.logger.log(`Mapping tcgplayerId: source=${fieldMapping.source}, value=${value}`);
+                }
                 switch (fieldMapping.transform) {
                     case 'number':
                         value = Number(value);

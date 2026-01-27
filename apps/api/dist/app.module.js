@@ -20,6 +20,7 @@ const health_module_1 = require("./modules/health/health.module");
 const justtcg_module_1 = require("./modules/justtcg/justtcg.module");
 const grading_module_1 = require("./modules/grading/grading.module");
 const market_module_1 = require("./modules/market/market.module");
+const pricecharting_crawler_module_1 = require("./modules/pricecharting-crawler/pricecharting-crawler.module");
 const zod_1 = require("zod");
 let AppModule = class AppModule {
 };
@@ -51,6 +52,7 @@ exports.AppModule = AppModule = __decorate([
             justtcg_module_1.JustTcgModule,
             grading_module_1.GradingModule,
             market_module_1.MarketModule,
+            pricecharting_crawler_module_1.PriceChartingCrawlerModule,
         ],
     })
 ], AppModule);

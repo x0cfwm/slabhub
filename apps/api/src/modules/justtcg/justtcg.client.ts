@@ -8,14 +8,25 @@ import { JustTcgMapping, JustTcgResponse } from './justtcg.types';
 export class JustTcgClient {
     private readonly logger = new Logger(JustTcgClient.name);
     private readonly baseUrl: string;
-    private readonly apiKey: string;
+    private readonly apiKeys: string[];
+    private currentKeyIndex = 0;
 
     constructor(
         private readonly httpService: HttpService,
         private readonly configService: ConfigService,
     ) {
         this.baseUrl = this.configService.get<string>('JUSTTCG_BASE_URL', 'https://api.justtcg.com');
-        this.apiKey = this.configService.getOrThrow<string>('JUSTTCG_API_KEY');
+        const rawKeys = this.configService.getOrThrow<string>('JUSTTCG_API_KEY');
+        this.apiKeys = rawKeys.split(',').map((k) => k.trim()).filter(Boolean);
+        if (this.apiKeys.length === 0) {
+            throw new Error('JUSTTCG_API_KEY must contain at least one key');
+        }
+    }
+
+    private getNextApiKey(): string {
+        const key = this.apiKeys[this.currentKeyIndex];
+        this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
+        return key;
     }
 
     async *fetchPages<T = any>(mapping: JustTcgMapping): AsyncGenerator<JustTcgResponse<T>> {
@@ -26,10 +37,10 @@ export class JustTcgClient {
         let requestCount = 0;
 
         while (hasNextPage) {
-            // Respect the 10 requests per minute limit (approx 1 request every 6 seconds)
+            // Respect the 10 requests per minute limit per key (approx 1 request every 6 seconds per key)
             if (requestCount > 0) {
-                const rpmDelay = 6100; // 6.1s to be safe
-                this.logger.log(`Rate limiting: waiting ${rpmDelay}ms before next request...`);
+                const rpmDelay = Math.ceil(6100 / this.apiKeys.length);
+                this.logger.log(`Rate limiting: waiting ${rpmDelay}ms before next request (using ${this.apiKeys.length} keys)...`);
                 await new Promise((resolve) => setTimeout(resolve, rpmDelay));
             }
 
@@ -93,7 +104,7 @@ export class JustTcgClient {
                         baseURL: this.baseUrl,
                         params,
                         headers: {
-                            'x-api-key': this.apiKey,
+                            'x-api-key': this.getNextApiKey(),
                         },
                         timeout: 10000,
                     }),
