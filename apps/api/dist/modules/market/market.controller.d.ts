@@ -10,6 +10,7 @@ export declare class MarketPricingController {
             number: string | null;
             imageUrl: string | null;
             priceChartingUrl: string | null;
+            tcgplayerId: string | null;
             rawPrice: number;
             sealedPrice: number | null;
             lastUpdated: string;

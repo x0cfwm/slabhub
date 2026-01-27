@@ -46,6 +46,7 @@ export class MarketPricingService {
                 number: product.number,
                 imageUrl: product.imageUrl,
                 priceChartingUrl: product.priceChartingUrl,
+                tcgplayerId: product.tcgplayerId,
                 rawPrice: parseFloat(basePrice.toFixed(2)),
                 sealedPrice: hash % 3 === 0 ? parseFloat((basePrice * 4.5).toFixed(2)) : null,
                 lastUpdated: new Date().toISOString(),

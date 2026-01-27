@@ -43,10 +43,12 @@ export const JUSTTCG_MAPPINGS: JustTcgMapping[] = [
             { source: 'name', target: 'name' },
             { source: 'number', target: 'number' },
             { source: 'image_url', target: 'imageUrl' },
-            { source: 'set_id', target: 'setExternalId' },
-            { source: 'rarity_id', target: 'rarityExternalId' },
-            { source: 'game_id', target: 'gameExternalId' },
-            { source: 'updated_at', target: 'sourceUpdatedAt', transform: 'date' },
+            { source: 'tcgplayerId', target: 'tcgplayerId', transform: 'string' },
+            { source: '*', target: 'justTcgData', transform: 'raw' },
+            { source: 'set', target: 'setExternalId' },
+            { source: 'rarity', target: 'rarityExternalId' },
+            { source: 'game', target: 'gameExternalId' },
+            // image_url is missing from top-level keys in this API version
         ],
     },
 ];

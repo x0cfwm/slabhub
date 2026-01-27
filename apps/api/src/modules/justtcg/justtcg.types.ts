@@ -3,7 +3,7 @@ export type JustTcgPaginationType = 'none' | 'page' | 'cursor' | 'offset';
 export interface JustTcgFieldMapping {
     source: string;
     target: string;
-    transform?: 'string' | 'number' | 'json' | 'date';
+    transform?: 'string' | 'number' | 'json' | 'date' | 'raw';
 }
 
 export interface JustTcgMapping {

@@ -95,7 +95,7 @@ let JustTcgSyncService = JustTcgSyncService_1 = class JustTcgSyncService {
     mapFields(item, mapping) {
         const mapped = {};
         for (const fieldMapping of mapping.fields) {
-            let value = item[fieldMapping.source];
+            let value = fieldMapping.source === '*' ? item : item[fieldMapping.source];
             if (value !== undefined && value !== null) {
                 switch (fieldMapping.transform) {
                     case 'number':

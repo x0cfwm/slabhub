@@ -312,6 +312,8 @@ model RefProduct {
   number           String?
   imageUrl         String?
   priceChartingUrl String?  @db.Text
+  tcgplayerId      String?
+  justTcgData      Json?
   setExternalId    String?
   rarityExternalId String?
   gameExternalId   String?
