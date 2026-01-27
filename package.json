@@ -21,7 +21,8 @@
     "seed": "npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "justtcg:sync:dictionaries": "pnpm --filter @slabhub/api run justtcg:sync:dictionaries",
     "justtcg:sync:catalog": "pnpm --filter @slabhub/api run justtcg:sync:catalog",
-    "justtcg:sync:all": "pnpm --filter @slabhub/api run justtcg:sync:all"
+    "justtcg:sync:all": "pnpm --filter @slabhub/api run justtcg:sync:all",
+    "pricecharting:crawl:onepiece": "pnpm --filter @slabhub/api run pricecharting:crawl:onepiece"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

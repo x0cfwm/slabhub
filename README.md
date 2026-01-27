@@ -117,8 +117,29 @@ pnpm dev:web   # Web on http://localhost:3000
 | `pnpm prisma:migrate` | Run migrations (dev) |
 | `pnpm prisma:studio` | Open Prisma Studio |
 | `pnpm seed` | Seed the database |
+| `pnpm pricecharting:crawl:onepiece` | Run PriceCharting One Piece crawler |
 
-## 🔌 API Endpoints
+## 📈 PriceCharting Crawler
+
+The PriceCharting crawler is a robust ingestion pipeline for One Piece TCG cards.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `pnpm pricecharting:crawl:onepiece` | Start a full crawl of One Piece cards |
+| `... --dryRun` | Fetch and parse but do not save to database |
+| `... --maxProducts 10` | Limit the number of products for testing |
+| `... --linkRefProducts` | Link crawled URLs to existing `RefProduct` records |
+| `... --onlySetSlug <slug>` | Only crawl a specific set (e.g. `one-piece-500-years-in-the-future`) |
+
+### Configuration & Features
+
+- **Rate Limiting**: Implementation ensures max 1 request per second to respect the target site.
+- **Resilience**: Automatic retries (3 times) with exponential backoff on 429/5xx errors.
+- **Idempotency**: Products are upserted based on their canonical URL; re-running the crawler will update existing records.
+- **Data Capture**: Stores full "Details" block as JSON, along with normalized TCGPlayerID, PriceChartingID, and Card Number.
+- **Traversal**: Automatically discovers set pages from the category entrypoint and handles pagination within sets.
 
 Base URL: `http://localhost:3001`
 

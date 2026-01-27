@@ -14,7 +14,8 @@
         "console": "ts-node -r tsconfig-paths/register src/console.ts",
         "justtcg:sync:dictionaries": "npm run console -- justtcg:sync:dictionaries",
         "justtcg:sync:catalog": "npm run console -- justtcg:sync:catalog",
-        "justtcg:sync:all": "npm run console -- justtcg:sync:all"
+        "justtcg:sync:all": "npm run console -- justtcg:sync:all",
+        "pricecharting:crawl:onepiece": "npm run console -- pricecharting:crawl:onepiece"
     },
     "dependencies": {
         "@nestjs/axios": "^4.0.1",

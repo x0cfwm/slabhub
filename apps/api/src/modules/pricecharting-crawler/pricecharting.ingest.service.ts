@@ -1,0 +1,161 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { PriceChartingClient } from './pricecharting.client';
+import { PriceChartingParser } from './pricecharting.parser';
+import { PriceChartingCrawlOptions, ParsedProductDetails } from './types';
+
+@Injectable()
+export class PriceChartingIngestService {
+    private readonly logger = new Logger(PriceChartingIngestService.name);
+    private visitedUrls = new Set<string>();
+
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly client: PriceChartingClient,
+        private readonly parser: PriceChartingParser,
+    ) { }
+
+    async crawlOnePieceCards(options: PriceChartingCrawlOptions = {}) {
+        const entrypoint = 'https://www.pricecharting.com/category/one-piece-cards';
+        this.logger.log(`Starting crawl from ${entrypoint}`);
+
+        this.visitedUrls.clear();
+        let productCount = 0;
+
+        try {
+            const categoryHtml = await this.client.fetch(entrypoint);
+            const setUrls = this.parser.parseCategoryPage(categoryHtml, 'https://www.pricecharting.com');
+
+            this.logger.log(`Found ${setUrls.length} sets. Crawling sets...`);
+
+            for (const setUrl of setUrls) {
+                if (options.onlySetSlug && !setUrl.includes(options.onlySetSlug)) {
+                    continue;
+                }
+
+                this.logger.log(`Crawling set: ${setUrl}`);
+                const productUrls = await this.crawlSetPages(setUrl);
+
+                for (const productUrl of productUrls) {
+                    if (this.visitedUrls.has(productUrl)) continue;
+
+                    if (options.maxProducts && productCount >= options.maxProducts) {
+                        this.logger.log(`Reached maxProducts limit (${options.maxProducts}). Stopping.`);
+                        return;
+                    }
+
+                    try {
+                        await this.crawlAndIngestProduct(productUrl, options);
+                        this.visitedUrls.add(productUrl);
+                        productCount++;
+
+                        if (productCount % 10 === 0) {
+                            this.logger.log(`Progress: ${productCount} products ingested...`);
+                        }
+                    } catch (error) {
+                        this.logger.error(`Error ingesting product ${productUrl}: ${error.message}`);
+                        // Continue to next product
+                    }
+                }
+            }
+
+            this.logger.log(`Crawl completed. Ingested ${productCount} products.`);
+        } catch (error) {
+            this.logger.error(`Crawl failed: ${error.message}`);
+            throw error;
+        }
+    }
+
+    private async crawlSetPages(setUrl: string): Promise<string[]> {
+        const allProductUrls: string[] = [];
+        const queuedPages = [setUrl];
+        const visitedPages = new Set<string>();
+
+        while (queuedPages.length > 0) {
+            const currentUrl = queuedPages.shift()!;
+            if (visitedPages.has(currentUrl)) continue;
+            visitedPages.add(currentUrl);
+
+            try {
+                const html = await this.client.fetch(currentUrl);
+                const { productUrls, nextPages } = this.parser.parseSetPage(html, 'https://www.pricecharting.com');
+
+                allProductUrls.push(...productUrls);
+
+                for (const nextPage of nextPages) {
+                    if (!visitedPages.has(nextPage)) {
+                        queuedPages.push(nextPage);
+                    }
+                }
+            } catch (error) {
+                this.logger.error(`Error crawling set page ${currentUrl}: ${error.message}`);
+            }
+        }
+
+        return [...new Set(allProductUrls)];
+    }
+
+    private async crawlAndIngestProduct(url: string, options: PriceChartingCrawlOptions) {
+        const html = await this.client.fetch(url);
+        const parsed = this.parser.parseProductPage(html, url);
+        parsed.categorySlug = 'one-piece-cards';
+
+        if (options.dryRun) {
+            this.logger.log(`[DRY RUN] Would ingest: ${parsed.productUrl} (TCGPlayerID: ${parsed.tcgPlayerId})`);
+            return;
+        }
+
+        await this.upsertProduct(parsed);
+
+        if (options.linkRefProducts && parsed.tcgPlayerId) {
+            await this.linkToRefProduct(parsed.tcgPlayerId, parsed.productUrl);
+        }
+    }
+
+    private async upsertProduct(data: ParsedProductDetails) {
+        await this.prisma.refPriceChartingProduct.upsert({
+            where: { productUrl: data.productUrl },
+            update: {
+                tcgPlayerId: data.tcgPlayerId,
+                priceChartingId: data.priceChartingId,
+                cardNumber: data.cardNumber,
+                details: data.details as any,
+                categorySlug: data.categorySlug,
+                setSlug: data.setSlug,
+                productSlug: data.productSlug,
+                scrapedAt: new Date(),
+            },
+            create: {
+                productUrl: data.productUrl,
+                tcgPlayerId: data.tcgPlayerId,
+                priceChartingId: data.priceChartingId,
+                cardNumber: data.cardNumber,
+                details: data.details as any,
+                categorySlug: data.categorySlug,
+                setSlug: data.setSlug,
+                productSlug: data.productSlug,
+            },
+        });
+    }
+
+    private async linkToRefProduct(tcgPlayerId: number, productUrl: string) {
+        // Note: RefProduct has tcgplayerId as String? (with lowercase p) and we added tcgPlayerId as Int?
+        // We'll update RefProduct where tcgPlayerId matches or tcgplayerId matches (converting to string)
+
+        const tcgplayerIdStr = tcgPlayerId.toString();
+
+        // Try to find by Int ID first (if populated) or by String ID
+        await this.prisma.refProduct.updateMany({
+            where: {
+                OR: [
+                    { tcgPlayerId: tcgPlayerId },
+                    { tcgplayerId: tcgplayerIdStr }
+                ]
+            },
+            data: {
+                priceChartingUrl: productUrl,
+                tcgPlayerId: tcgPlayerId // Ensure the Int field is also populated
+            }
+        });
+    }
+}

@@ -11,6 +11,7 @@ import { HealthModule } from './modules/health/health.module';
 import { JustTcgModule } from './modules/justtcg/justtcg.module';
 import { GradingModule } from './modules/grading/grading.module';
 import { MarketModule } from './modules/market/market.module';
+import { PriceChartingCrawlerModule } from './modules/pricecharting-crawler/pricecharting-crawler.module';
 import { z } from 'zod';
 
 @Module({
@@ -39,6 +40,7 @@ import { z } from 'zod';
         JustTcgModule,
         GradingModule,
         MarketModule,
+        PriceChartingCrawlerModule,
     ],
 })
 export class AppModule { }

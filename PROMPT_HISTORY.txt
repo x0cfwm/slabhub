@@ -1665,3 +1665,230 @@ Return:
 - Updated controller/service for /v1/market/products/:id/prices
 - Any new dependencies (cheerio, etc.)
 - Small frontend UI update for mode badges/warnings
+
+<-- 8. FEATURE PROMPT -->
+
+
+
+You are extending an existing monorepo backend:
+
+- NestJS + TypeScript (apps/api)
+- PostgreSQL + Prisma (prisma/schema.prisma)
+- Existing reference-data models include RefProduct (from JustTCG sync) and related dictionaries.
+- There is already a server-side HTML parsing pattern in the codebase (cheerio-based) used for other pages.
+
+GOAL:
+Build a new backend ingestion pipeline that crawls PriceCharting One Piece catalog and creates a reference table that maps:
+- PriceCharting URL (canonical product URL)
+- PriceCharting ID (from product details block)
+- TCGPlayerID (from product details block)
+- Plus store the entire "details block" fields captured from the product page (as JSON)
+
+The crawl must start from:
+https://www.pricecharting.com/category/one-piece-cards
+
+Traversal path (MANDATORY):
+1) Category entrypoint (One Piece catalog)
+2) Set pages (e.g. https://www.pricecharting.com/console/one-piece-500-years-in-the-future)
+3) Product pages (e.g. https://www.pricecharting.com/game/one-piece-500-years-in-the-future/monkeydluffy-treasure-rare-op07-109)
+4) On each product page:
+   - Parse the "Details" block (as shown in the screenshot)
+   - Extract:
+       - TCGPlayer ID (numeric) if present
+       - PriceCharting ID (numeric) if present
+       - Card Number field (e.g. "#OP07-109") if present
+       - Genre, Release Date, Publisher, Print Run, Notes, Description, ePID (eBay) if present
+   - Save the parsed details + the product page URL into DB
+
+Example requirement:
+- The product page https://www.pricecharting.com/game/one-piece-azure-sea%27s-seven/booster-box
+  contains TCGPlayerID=665598 inside the details block.
+- This mapping must be stored so later we can resolve RefProduct.tcgPlayerId -> priceChartingUrl (and priceChartingId).
+
+IMPORTANT CONSTRAINTS:
+- Do NOT implement browser automation (no Playwright/Puppeteer). Use server-side HTTP + HTML parsing only.
+- Do NOT ask to read documentation from screenshots. Parsing logic must be selector/regex-based against the HTML.
+- Respect target site: implement rate limiting, retries, and caching to avoid hammering.
+- Must be runnable from console as CLI command(s).
+- Must be resumable (idempotent) and safe to re-run.
+- Must not require external services besides Postgres.
+
+------------------------------------------------------------
+A) DATABASE / PRISMA (MANDATORY)
+------------------------------------------------------------
+Add a new Prisma model for PriceCharting mappings:
+
+model PriceChartingProductRef {
+  id               String   @id @default(cuid())
+  productUrl        String   @unique
+  tcgPlayerId       Int?     @index
+  priceChartingId   Int?     @index
+  cardNumber        String?  @index
+  details           Json     // store entire parsed details block as a structured JSON map
+  categorySlug      String?  // "one-piece-cards"
+  setSlug           String?  // derived from set page path
+  productSlug       String?  // derived from product page path
+  scrapedAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+Also add an optional linking field to RefProduct (if it exists already):
+- RefProduct.tcgPlayerId Int? (only if not already present)
+- RefProduct.priceChartingUrl String? (optional future use; not required here)
+
+Migration required.
+
+------------------------------------------------------------
+B) CRAWLER / INGESTION ARCHITECTURE (MANDATORY)
+------------------------------------------------------------
+Create a new module:
+apps/api/src/modules/pricecharting-crawler
+- pricecharting-crawler.module.ts
+- pricecharting.client.ts        # HTTP fetch, headers, rate limit, retries
+- pricecharting.parser.ts        # parsing helpers (category/set/product)
+- pricecharting.ingest.service.ts# orchestrates crawl + persistence
+- cli/pricecharting.commands.ts  # CLI entrypoints
+- types.ts                       # typed parsed outputs
+- utils/url.ts                   # canonicalization, dedupe, slug extraction
+
+------------------------------------------------------------
+C) CLI COMMANDS (MANDATORY)
+------------------------------------------------------------
+Provide runnable console commands (nest-commander preferred):
+
+1) pricecharting:crawl:onepiece
+- Starts from https://www.pricecharting.com/category/one-piece-cards
+- Discovers set pages and product pages
+- Parses product details and upserts into PriceChartingProductRef
+- Logs progress
+
+2) Optional advanced commands:
+- pricecharting:crawl:onepiece --maxPages=N
+- pricecharting:crawl:onepiece --resumeFromUrl=...
+- pricecharting:crawl:onepiece --dryRun
+- pricecharting:crawl:onepiece --onlySetSlug=one-piece-500-years-in-the-future
+
+These flags are optional, but at minimum implement:
+- --dryRun (no DB writes)
+- --maxProducts (limit number of product pages for testing)
+
+------------------------------------------------------------
+D) HTTP CLIENT REQUIREMENTS
+------------------------------------------------------------
+Implement server-side fetching:
+- Use @nestjs/axios OR node fetch
+- Set headers:
+  - User-Agent: realistic browser UA
+  - Accept-Language: en-US,en;q=0.9
+- Timeouts: 10s
+- Retries:
+  - retry 3 times on 429/5xx with exponential backoff
+- Rate limiting:
+  - max 1 request / second (configurable)
+- Respect caching:
+  - in-memory cache per URL during a run
+  - optional local disk cache is a plus but not required
+
+Robustness:
+- If a page fails, record error and continue (unless --strict true)
+- Never crash the whole crawl on a single bad page
+
+------------------------------------------------------------
+E) PARSING REQUIREMENTS (MANDATORY)
+------------------------------------------------------------
+You MUST implement three parsers:
+
+1) parseCategoryPage(url)
+Input: category URL (/category/one-piece-cards)
+Output:
+- setPageUrls: string[] (absolute URLs)
+Strategy:
+- Extract all links that look like "/console/<slug>" OR equivalent set page link pattern.
+- Deduplicate and canonicalize.
+
+2) parseSetPage(url)
+Input: set URL (/console/<set-slug>)
+Output:
+- productPageUrls: string[] (absolute URLs)
+Strategy:
+- Extract links to product pages with pattern "/game/<set-slug>/<product-slug>"
+- Handle pagination if the set page has next pages:
+  - detect "Next" or page params
+  - crawl all pages for that set
+- Deduplicate.
+
+3) parseProductPage(url)
+Input: product URL (/game/<set-slug>/<product-slug>)
+Output: ParsedProductDetails:
+{
+  productUrl: string (canonical)
+  tcgPlayerId?: number
+  priceChartingId?: number
+  cardNumber?: string
+  details: Record<string, string | null>   // key/value from details block
+}
+Strategy (based on screenshot):
+- Find the "Details" block section on page.
+- Extract all key/value rows such as:
+  Genre, Release Date, Publisher, Card Number, Print Run, Notes,
+  ePID (eBay), TCGPlayer ID, PriceCharting ID, Description
+- Normalize keys:
+  - trim whitespace
+  - keep original labels as keys, plus compute normalized versions if needed
+- Normalize values:
+  - "none" -> null
+  - TCGPlayer ID and PriceCharting ID must be parsed into integers
+  - Card Number keep as string (e.g. "#OP07-109")
+
+Fallback:
+- If selectors fail, fallback to regex over visible text near "TCGPlayer ID:" and "PriceCharting ID:".
+
+Limitations:
+- Do not parse sold listings here (separate task). Only parse details block + store URL.
+
+------------------------------------------------------------
+F) PERSISTENCE / UPSERT LOGIC (MANDATORY)
+------------------------------------------------------------
+- For each product page:
+  - Upsert into PriceChartingProductRef where productUrl unique
+  - Update details JSON, tcgPlayerId, priceChartingId, cardNumber, scrapedAt
+- Idempotent: running crawler twice should not duplicate rows.
+
+Also implement an optional reconciliation step:
+- If RefProduct has tcgPlayerId populated, and PriceChartingProductRef has same tcgPlayerId:
+  - set RefProduct.priceChartingUrl = PriceChartingProductRef.productUrl (optional)
+This reconciliation must be behind a flag:
+--linkRefProducts=true (default false)
+
+------------------------------------------------------------
+G) ACCEPTANCE CRITERIA
+------------------------------------------------------------
+1) Running CLI command crawls:
+   entrypoint -> set pages -> product pages.
+2) For each product page, DB row is created/upserted with:
+   - productUrl
+   - tcgPlayerId (when present)
+   - priceChartingId (when present)
+   - details JSON containing the full details block key/value pairs
+3) System is rate-limited and resilient (retries, continues on errors).
+4) Command can be re-run without duplicating rows.
+
+------------------------------------------------------------
+H) OUTPUT REQUIRED
+------------------------------------------------------------
+Return:
+- Prisma schema updates + migration guidance
+- New module code (client, parsers, ingest service, CLI)
+- Workspace scripts to run:
+  pnpm --filter api pricecharting:crawl:onepiece
+- README section:
+  - env vars (if any)
+  - recommended rate limit values
+  - how to run a small test crawl (maxProducts)
+  - how to extend to other categories later
+
+
+  <-- 9. FEATURE PROMPT -->
+
+
+  <-- 10. FEATURE PROMPT -->

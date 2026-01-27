@@ -293,6 +293,24 @@ model RefLanguage {
   @@index([externalId])
 }
 
+model RefPriceChartingProduct {
+  id               String   @id @default(cuid())
+  productUrl       String   @unique
+  tcgPlayerId      Int?
+  priceChartingId  Int?
+  cardNumber       String?
+  details          Json     // store entire parsed details block as a structured JSON map
+  categorySlug     String?  // "one-piece-cards"
+  setSlug          String?  // derived from set page path
+  productSlug      String?  // derived from product page path
+  scrapedAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tcgPlayerId])
+  @@index([priceChartingId])
+  @@index([cardNumber])
+}
+
 model RefPrinting {
   id              String   @id @default(cuid())
   externalId      String   @unique
@@ -313,6 +331,7 @@ model RefProduct {
   imageUrl         String?
   priceChartingUrl String?  @db.Text
   tcgplayerId      String?
+  tcgPlayerId      Int?
   justTcgData      Json?
   setExternalId    String?
   rarityExternalId String?
@@ -325,4 +344,5 @@ model RefProduct {
   @@index([setExternalId])
   @@index([rarityExternalId])
   @@index([gameExternalId])
+  @@index([tcgPlayerId])
 }
