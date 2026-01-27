@@ -34,7 +34,8 @@
     "@prisma/client": "^6.2.0"
   },
   "engines": {
-    "node": ">=18"
+    "node": "20.x",
+    "npm": "10.x"
   },
   "prisma": {
     "seed": "npx ts-node prisma/seed.ts"
