@@ -108,7 +108,6 @@ function PricingContent() {
                             <TableHead>Raw Price</TableHead>
                             <TableHead>Sealed Price</TableHead>
                             <TableHead>Last Updated</TableHead>
-                            <TableHead className="text-right">Source</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -120,12 +119,11 @@ function PricingContent() {
                                     <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                                     <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                                    <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
                                 </TableRow>
                             ))
                         ) : data?.items.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                                <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
                                     No products found matching your search.
                                 </TableCell>
                             </TableRow>
@@ -161,11 +159,6 @@ function PricingContent() {
                                     </TableCell>
                                     <TableCell className="text-[10px] text-muted-foreground">
                                         {new Date(product.lastUpdated).toLocaleDateString()}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <Badge variant="secondary" className="text-[9px] font-normal uppercase">
-                                            {product.source}
-                                        </Badge>
                                     </TableCell>
                                 </TableRow>
                             ))
