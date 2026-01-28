@@ -23,7 +23,7 @@ let SyncDictionariesCommand = SyncDictionariesCommand_1 = class SyncDictionaries
     async run(passedParam, options) {
         const only = options?.only ? options.only.split(',') : undefined;
         try {
-            await this.syncService.syncDictionaries({ only, dryRun: options?.dryRun });
+            await this.syncService.syncDictionaries({ only, dryRun: options?.dryRun, fresh: options?.fresh });
         }
         catch (e) {
             this.logger.error('Sync failed');
@@ -34,6 +34,9 @@ let SyncDictionariesCommand = SyncDictionariesCommand_1 = class SyncDictionaries
         return val;
     }
     parseDryRun(val) {
+        return val;
+    }
+    parseFresh(val) {
         return val;
     }
 };
@@ -56,6 +59,15 @@ __decorate([
     __metadata("design:paramtypes", [Boolean]),
     __metadata("design:returntype", Boolean)
 ], SyncDictionariesCommand.prototype, "parseDryRun", null);
+__decorate([
+    (0, nest_commander_1.Option)({
+        flags: '-f, --fresh',
+        description: 'Restart sync from the beginning (ignore saved progress)',
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Boolean]),
+    __metadata("design:returntype", Boolean)
+], SyncDictionariesCommand.prototype, "parseFresh", null);
 exports.SyncDictionariesCommand = SyncDictionariesCommand = SyncDictionariesCommand_1 = __decorate([
     (0, nest_commander_1.Command)({ name: 'justtcg:sync:dictionaries', description: 'Sync dictionaries from JustTCG' }),
     __metadata("design:paramtypes", [justtcg_sync_service_1.JustTcgSyncService])
@@ -68,7 +80,7 @@ let SyncCatalogCommand = SyncCatalogCommand_1 = class SyncCatalogCommand extends
     }
     async run(passedParam, options) {
         try {
-            await this.syncService.syncCatalog({ dryRun: options?.dryRun });
+            await this.syncService.syncCatalog({ dryRun: options?.dryRun, fresh: options?.fresh });
         }
         catch (e) {
             this.logger.error('Sync failed');
@@ -76,6 +88,9 @@ let SyncCatalogCommand = SyncCatalogCommand_1 = class SyncCatalogCommand extends
         }
     }
     parseDryRun(val) {
+        return val;
+    }
+    parseFresh(val) {
         return val;
     }
 };
@@ -89,6 +104,15 @@ __decorate([
     __metadata("design:paramtypes", [Boolean]),
     __metadata("design:returntype", Boolean)
 ], SyncCatalogCommand.prototype, "parseDryRun", null);
+__decorate([
+    (0, nest_commander_1.Option)({
+        flags: '-f, --fresh',
+        description: 'Restart sync from the beginning (ignore saved progress)',
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Boolean]),
+    __metadata("design:returntype", Boolean)
+], SyncCatalogCommand.prototype, "parseFresh", null);
 exports.SyncCatalogCommand = SyncCatalogCommand = SyncCatalogCommand_1 = __decorate([
     (0, nest_commander_1.Command)({ name: 'justtcg:sync:catalog', description: 'Sync catalog (products) from JustTCG' }),
     __metadata("design:paramtypes", [justtcg_sync_service_1.JustTcgSyncService])
@@ -102,7 +126,7 @@ let SyncAllCommand = SyncAllCommand_1 = class SyncAllCommand extends nest_comman
     async run(passedParam, options) {
         const only = options?.only ? options.only.split(',') : undefined;
         try {
-            await this.syncService.syncAll({ only, dryRun: options?.dryRun });
+            await this.syncService.syncAll({ only, dryRun: options?.dryRun, fresh: options?.fresh });
         }
         catch (e) {
             this.logger.error('Sync failed');
@@ -113,6 +137,9 @@ let SyncAllCommand = SyncAllCommand_1 = class SyncAllCommand extends nest_comman
         return val;
     }
     parseDryRun(val) {
+        return val;
+    }
+    parseFresh(val) {
         return val;
     }
 };
@@ -135,6 +162,15 @@ __decorate([
     __metadata("design:paramtypes", [Boolean]),
     __metadata("design:returntype", Boolean)
 ], SyncAllCommand.prototype, "parseDryRun", null);
+__decorate([
+    (0, nest_commander_1.Option)({
+        flags: '-f, --fresh',
+        description: 'Restart sync from the beginning (ignore saved progress)',
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Boolean]),
+    __metadata("design:returntype", Boolean)
+], SyncAllCommand.prototype, "parseFresh", null);
 exports.SyncAllCommand = SyncAllCommand = SyncAllCommand_1 = __decorate([
     (0, nest_commander_1.Command)({ name: 'justtcg:sync:all', description: 'Sync everything from JustTCG' }),
     __metadata("design:paramtypes", [justtcg_sync_service_1.JustTcgSyncService])

@@ -57,6 +57,7 @@ let JustTcgClient = JustTcgClient_1 = class JustTcgClient {
         this.logger = new common_1.Logger(JustTcgClient_1.name);
         this.keyMetadata = new Map();
         this.currentKeyIndex = 0;
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
         this.baseUrl = this.configService.get('JUSTTCG_BASE_URL', 'https://api.justtcg.com');
         const rawKeys = this.configService.getOrThrow('JUSTTCG_API_KEY');
         this.apiKeys = rawKeys.split(',').map((k) => k.trim()).filter(Boolean);
@@ -71,7 +72,7 @@ let JustTcgClient = JustTcgClient_1 = class JustTcgClient {
             if (customerId && zone && token) {
                 const sessionId = crypto.createHash('md5').update(key).digest('hex').substring(0, 8);
                 const proxyUrl = `http://brd-customer-${customerId}-zone-${zone}-session-${sessionId}:${token}@brd.superproxy.io:22225`;
-                proxyAgent = new https_proxy_agent_1.HttpsProxyAgent(proxyUrl);
+                proxyAgent = new https_proxy_agent_1.HttpsProxyAgent(proxyUrl, { rejectUnauthorized: false });
                 this.logger.debug(`Initialized BrightData proxy for key ${key.substring(0, 8)}... (Session: ${sessionId})`);
             }
             this.keyMetadata.set(key, {
@@ -140,11 +141,17 @@ let JustTcgClient = JustTcgClient_1 = class JustTcgClient {
             this.logger.warn(`Key ${maskedKey} running low: ${metadata.apiDailyRequestsRemaining} daily requests remaining.`);
         }
     }
-    async *fetchPages(mapping) {
-        let page = 1;
-        let offset = 0;
-        let cursor;
+    async *fetchPages(mapping, options = {}) {
+        let page = options.startPage ?? 1;
+        let offset = options.startOffset ?? 0;
+        let cursor = options.startCursor;
         let hasNextPage = true;
+        if (options.startOffset || options.startPage || options.startCursor) {
+            this.logger.log(`Continuing ${mapping.name} sync from: ` +
+                (options.startPage ? `page ${options.startPage} ` : '') +
+                (options.startOffset ? `offset ${options.startOffset} ` : '') +
+                (options.startCursor ? `cursor ${options.startCursor}` : ''));
+        }
         while (hasNextPage) {
             const response = await this.fetchPage(mapping, page, cursor, offset);
             yield response;

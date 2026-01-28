@@ -346,3 +346,17 @@ model RefProduct {
   @@index([gameExternalId])
   @@index([tcgPlayerId])
 }
+
+model RefSyncProgress {
+  id              String   @id @default(cuid())
+  mappingName     String   @unique
+  offset          Int      @default(0)
+  page            Int      @default(1)
+  cursor          String?
+  totalItems      Int?
+  processedItems  Int      @default(0)
+  status          String   @default("IDLE") // IDLE, RUNNING, COMPLETED, FAILED
+  lastError       String?
+  lastSyncAt      DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

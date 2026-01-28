@@ -8,13 +8,16 @@ export declare class JustTcgSyncService {
     syncAll(options?: {
         only?: string[];
         dryRun?: boolean;
+        fresh?: boolean;
     }): Promise<void>;
     syncDictionaries(options?: {
         only?: string[];
         dryRun?: boolean;
+        fresh?: boolean;
     }): Promise<void>;
     syncCatalog(options?: {
         dryRun?: boolean;
+        fresh?: boolean;
     }): Promise<void>;
     private syncMapping;
     private upsertItems;

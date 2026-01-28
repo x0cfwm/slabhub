@@ -12,7 +12,11 @@ export declare class JustTcgClient {
     constructor(httpService: HttpService, configService: ConfigService);
     private getNextApiKey;
     private updateMetadata;
-    fetchPages<T = any>(mapping: JustTcgMapping): AsyncGenerator<JustTcgResponse<T>>;
+    fetchPages<T = any>(mapping: JustTcgMapping, options?: {
+        startPage?: number;
+        startOffset?: number;
+        startCursor?: string;
+    }): AsyncGenerator<JustTcgResponse<T>>;
     fetchAll<T = any>(mapping: JustTcgMapping): Promise<T[]>;
     private fetchPage;
 }

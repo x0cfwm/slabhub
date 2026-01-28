@@ -151,11 +151,23 @@ export class JustTcgClient {
         }
     }
 
-    async *fetchPages<T = any>(mapping: JustTcgMapping): AsyncGenerator<JustTcgResponse<T>> {
-        let page = 1;
-        let offset = 0;
-        let cursor: string | undefined;
+    async *fetchPages<T = any>(
+        mapping: JustTcgMapping,
+        options: { startPage?: number; startOffset?: number; startCursor?: string } = {},
+    ): AsyncGenerator<JustTcgResponse<T>> {
+        let page = options.startPage ?? 1;
+        let offset = options.startOffset ?? 0;
+        let cursor = options.startCursor;
         let hasNextPage = true;
+
+        if (options.startOffset || options.startPage || options.startCursor) {
+            this.logger.log(
+                `Continuing ${mapping.name} sync from: ` +
+                (options.startPage ? `page ${options.startPage} ` : '') +
+                (options.startOffset ? `offset ${options.startOffset} ` : '') +
+                (options.startCursor ? `cursor ${options.startCursor}` : ''),
+            );
+        }
 
         while (hasNextPage) {
             const response = await this.fetchPage<T>(mapping, page, cursor, offset);
@@ -231,7 +243,7 @@ export class JustTcgClient {
                         },
                         httpsAgent: meta.proxyAgent,
                         proxy: false, // Must disable axios built-in proxy when using custom agent
-                        timeout: 10000,
+                        timeout: 30000,
                     }),
                 );
 

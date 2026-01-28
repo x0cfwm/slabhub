@@ -5,6 +5,7 @@ import { JustTcgSyncService } from '../sync/justtcg.sync.service';
 interface SyncOptions {
     only?: string;
     dryRun?: boolean;
+    fresh?: boolean;
 }
 
 @Command({ name: 'justtcg:sync:dictionaries', description: 'Sync dictionaries from JustTCG' })
@@ -17,7 +18,7 @@ export class SyncDictionariesCommand extends CommandRunner {
     async run(passedParam: string[], options?: SyncOptions): Promise<void> {
         const only = options?.only ? options.only.split(',') : undefined;
         try {
-            await this.syncService.syncDictionaries({ only, dryRun: options?.dryRun });
+            await this.syncService.syncDictionaries({ only, dryRun: options?.dryRun, fresh: options?.fresh });
         } catch (e) {
             this.logger.error('Sync failed');
             process.exit(1);
@@ -39,6 +40,14 @@ export class SyncDictionariesCommand extends CommandRunner {
     parseDryRun(val: boolean): boolean {
         return val;
     }
+
+    @Option({
+        flags: '-f, --fresh',
+        description: 'Restart sync from the beginning (ignore saved progress)',
+    })
+    parseFresh(val: boolean): boolean {
+        return val;
+    }
 }
 
 @Command({ name: 'justtcg:sync:catalog', description: 'Sync catalog (products) from JustTCG' })
@@ -50,7 +59,7 @@ export class SyncCatalogCommand extends CommandRunner {
 
     async run(passedParam: string[], options?: SyncOptions): Promise<void> {
         try {
-            await this.syncService.syncCatalog({ dryRun: options?.dryRun });
+            await this.syncService.syncCatalog({ dryRun: options?.dryRun, fresh: options?.fresh });
         } catch (e) {
             this.logger.error('Sync failed');
             process.exit(1);
@@ -62,6 +71,14 @@ export class SyncCatalogCommand extends CommandRunner {
         description: 'Dry run: fetch and map but do not write to DB',
     })
     parseDryRun(val: boolean): boolean {
+        return val;
+    }
+
+    @Option({
+        flags: '-f, --fresh',
+        description: 'Restart sync from the beginning (ignore saved progress)',
+    })
+    parseFresh(val: boolean): boolean {
         return val;
     }
 }
@@ -76,7 +93,7 @@ export class SyncAllCommand extends CommandRunner {
     async run(passedParam: string[], options?: SyncOptions): Promise<void> {
         const only = options?.only ? options.only.split(',') : undefined;
         try {
-            await this.syncService.syncAll({ only, dryRun: options?.dryRun });
+            await this.syncService.syncAll({ only, dryRun: options?.dryRun, fresh: options?.fresh });
         } catch (e) {
             this.logger.error('Sync failed');
             process.exit(1);
@@ -96,6 +113,14 @@ export class SyncAllCommand extends CommandRunner {
         description: 'Dry run',
     })
     parseDryRun(val: boolean): boolean {
+        return val;
+    }
+
+    @Option({
+        flags: '-f, --fresh',
+        description: 'Restart sync from the beginning (ignore saved progress)',
+    })
+    parseFresh(val: boolean): boolean {
         return val;
     }
 }
