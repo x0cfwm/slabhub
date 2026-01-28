@@ -25,8 +25,18 @@ export interface GradingLookupResult {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+function getFullUrl(path: string) {
+    if (API_BASE_URL.startsWith('http')) {
+        return new URL(`${API_BASE_URL}${path}`);
+    }
+    // Handle relative path (for Netlify proxy)
+    const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    return new URL(`${API_BASE_URL}${path}`, base);
+}
+
 export async function lookupGrading(grader: string, certNumber: string): Promise<GradingLookupResult> {
-    const response = await fetch(`${API_BASE_URL}/v1/grading/lookup`, {
+    const url = getFullUrl('/v1/grading/lookup');
+    const response = await fetch(url.toString(), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -43,7 +53,7 @@ export async function lookupGrading(grader: string, certNumber: string): Promise
 }
 
 export async function getMarketProducts(params: { page: number; limit: number; search?: string }): Promise<MarketProductsResponse> {
-    const url = new URL(`${API_BASE_URL}/v1/market/products`);
+    const url = getFullUrl('/v1/market/products');
     url.searchParams.set('page', params.page.toString());
     url.searchParams.set('limit', params.limit.toString());
     if (params.search) {
@@ -58,7 +68,7 @@ export async function getMarketProducts(params: { page: number; limit: number; s
 }
 
 export async function getProductPriceHistory(productId: string, refresh = false): Promise<MarketPriceHistory> {
-    const url = new URL(`${API_BASE_URL}/v1/market/products/${productId}/prices`);
+    const url = getFullUrl(`/v1/market/products/${productId}/prices`);
     if (refresh) {
         url.searchParams.set('refresh', 'true');
     }
