@@ -283,39 +283,56 @@ async function main() {
             name: 'Monkey.D.Luffy (Parallel)',
             number: 'OP01-001',
             imageUrl: '/cards/op01-001.svg',
-            priceChartingUrl: 'https://www.pricecharting.com/game/pokemon-promo/pikachu-on-the-ball-001'
+            priceChartingUrl: 'https://www.pricecharting.com/game/pokemon-promo/pikachu-on-the-ball-001',
+            tcgPlayerId: 1001
         },
         {
             externalId: 'prod-2',
             name: 'Nami (Alternate Art)',
             number: 'OP01-016',
             imageUrl: '/cards/op01-016.svg',
-            priceChartingUrl: 'https://www.pricecharting.com/game/pokemon-jungle/pikachu-60'
+            priceChartingUrl: 'https://www.pricecharting.com/game/pokemon-jungle/pikachu-60',
+            tcgPlayerId: 1002
         },
         {
             externalId: 'prod-3',
             name: 'Shanks (Manga Art)',
             number: 'OP01-120',
             imageUrl: '/cards/op01-120.svg',
-            priceChartingUrl: 'https://www.pricecharting.com/game/pokemon-base-set/charizard-4'
+            priceChartingUrl: 'https://www.pricecharting.com/game/pokemon-base-set/charizard-4',
+            tcgPlayerId: 1003
         },
         {
             externalId: 'prod-4',
             name: 'Trafalgar Law',
             number: 'OP01-047',
             imageUrl: '/cards/op01-047.svg',
-            priceChartingUrl: null
+            priceChartingUrl: null,
+            tcgPlayerId: 1004
         }
     ];
 
     for (const prod of refProducts) {
+        const { priceChartingUrl, ...rest } = prod;
         await prisma.refProduct.upsert({
             where: { externalId: prod.externalId },
             update: {
-                priceChartingUrl: prod.priceChartingUrl
+                tcgPlayerId: prod.tcgPlayerId
             },
-            create: prod
+            create: rest
         });
+
+        if (priceChartingUrl) {
+            await prisma.refPriceChartingProduct.upsert({
+                where: { productUrl: priceChartingUrl },
+                update: { tcgPlayerId: prod.tcgPlayerId },
+                create: {
+                    productUrl: priceChartingUrl,
+                    tcgPlayerId: prod.tcgPlayerId,
+                    details: {}
+                }
+            });
+        }
     }
     console.log(`✅ Seeded ${refProducts.length} RefProducts`);
 

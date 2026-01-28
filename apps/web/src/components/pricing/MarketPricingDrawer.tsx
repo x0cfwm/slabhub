@@ -61,7 +61,20 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                             <SheetTitle className="text-2xl font-bold">{product.name}</SheetTitle>
                             <SheetDescription className="font-mono text-sm flex items-center gap-3">
                                 {product.number}
-                                <Badge variant="secondary" className="font-sans text-xs px-2">{product.source}</Badge>
+                                <div className="flex items-center gap-2">
+                                    <Badge variant="secondary" className="font-sans text-xs px-2">{product.source}</Badge>
+                                    {product.priceChartingUrl && (
+                                        <a
+                                            href={product.priceChartingUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-[10px] text-muted-foreground hover:text-primary hover:underline flex items-center gap-0.5"
+                                        >
+                                            View on PriceCharting
+                                            <ExternalLink className="h-2.5 w-2.5" />
+                                        </a>
+                                    )}
+                                </div>
                             </SheetDescription>
                         </div>
                         <Button
@@ -175,15 +188,34 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                                     ${entry.price.toFixed(2)}
                                                 </TableCell>
                                                 <TableCell className="text-right py-3 pr-6">
-                                                    <Badge
-                                                        variant="outline"
-                                                        className={`text-[10px] px-2 h-5 font-normal ${entry.source === 'eBay' ? 'border-blue-500/30 text-blue-500' :
-                                                            entry.source === 'TCGPlayer' ? 'border-orange-500/30 text-orange-500' :
-                                                                ''
-                                                            }`}
-                                                    >
-                                                        {entry.source}
-                                                    </Badge>
+                                                    {entry.link ? (
+                                                        <a
+                                                            href={entry.link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-block"
+                                                        >
+                                                            <Badge
+                                                                variant="outline"
+                                                                className={`text-[10px] px-2 h-5 font-normal cursor-pointer hover:bg-muted transition-colors ${entry.source === 'eBay' ? 'border-blue-500/30 text-blue-500 hover:border-blue-500' :
+                                                                    entry.source === 'TCGPlayer' ? 'border-orange-500/30 text-orange-500 hover:border-orange-500' :
+                                                                        ''
+                                                                    }`}
+                                                            >
+                                                                {entry.source}
+                                                            </Badge>
+                                                        </a>
+                                                    ) : (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className={`text-[10px] px-2 h-5 font-normal ${entry.source === 'eBay' ? 'border-blue-500/30 text-blue-500' :
+                                                                entry.source === 'TCGPlayer' ? 'border-orange-500/30 text-orange-500' :
+                                                                    ''
+                                                                }`}
+                                                        >
+                                                            {entry.source}
+                                                        </Badge>
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         ))}

@@ -153,8 +153,7 @@ export class PriceChartingIngestService {
                 ]
             },
             data: {
-                priceChartingUrl: productUrl,
-                tcgPlayerId: tcgPlayerId // Ensure the Int field is also populated
+                tcgPlayerId: tcgPlayerId // Ensure the Int field is populated for dynamic lookups
             }
         });
     }

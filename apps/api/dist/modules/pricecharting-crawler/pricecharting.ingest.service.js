@@ -138,7 +138,6 @@ let PriceChartingIngestService = PriceChartingIngestService_1 = class PriceChart
                 ]
             },
             data: {
-                priceChartingUrl: productUrl,
                 tcgPlayerId: tcgPlayerId
             }
         });

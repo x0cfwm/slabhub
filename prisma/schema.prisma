@@ -329,7 +329,6 @@ model RefProduct {
   name             String
   number           String?
   imageUrl         String?
-  priceChartingUrl String?  @db.Text
   tcgplayerId      String?
   tcgPlayerId      Int?
   justTcgData      Json?

@@ -39,6 +39,13 @@ let MarketPricingService = class MarketPricingService {
             }),
             this.prisma.refProduct.count({ where }),
         ]);
+        const tcgPlayerIds = items.map(i => i.tcgPlayerId).filter((id) => id !== null);
+        const pcProducts = await this.prisma.refPriceChartingProduct.findMany({
+            where: { tcgPlayerId: { in: tcgPlayerIds } }
+        });
+        const pcMap = new Map(pcProducts
+            .filter((p) => p.tcgPlayerId !== null)
+            .map(p => [p.tcgPlayerId, p.productUrl]));
         const mappedItems = items.map(product => {
             const hash = this.simpleHash(product.id);
             const basePrice = (hash % 100) + 10;
@@ -47,7 +54,7 @@ let MarketPricingService = class MarketPricingService {
                 name: product.name,
                 number: product.number,
                 imageUrl: product.imageUrl,
-                priceChartingUrl: product.priceChartingUrl,
+                priceChartingUrl: product.tcgPlayerId ? pcMap.get(product.tcgPlayerId) : null,
                 tcgplayerId: product.tcgplayerId,
                 rawPrice: parseFloat(basePrice.toFixed(2)),
                 sealedPrice: hash % 3 === 0 ? parseFloat((basePrice * 4.5).toFixed(2)) : null,
@@ -69,7 +76,14 @@ let MarketPricingService = class MarketPricingService {
         if (!product) {
             throw new common_1.NotFoundException('Product not found');
         }
-        if (!product.priceChartingUrl) {
+        let priceChartingUrl = null;
+        if (product.tcgPlayerId) {
+            const pcProduct = await this.prisma.refPriceChartingProduct.findFirst({
+                where: { tcgPlayerId: product.tcgPlayerId }
+            });
+            priceChartingUrl = pcProduct?.productUrl || null;
+        }
+        if (!priceChartingUrl) {
             return {
                 productId,
                 mode: 'mock',
@@ -87,7 +101,7 @@ let MarketPricingService = class MarketPricingService {
         }
         this.rateLimit.set(productId, Date.now());
         try {
-            const parsedPrices = await this.parser.parse(product.priceChartingUrl);
+            const parsedPrices = await this.parser.parse(priceChartingUrl);
             const response = {
                 productId,
                 mode: 'parsed',
@@ -103,7 +117,7 @@ let MarketPricingService = class MarketPricingService {
         catch (error) {
             if (strict) {
                 if (error.message.includes('404')) {
-                    throw new common_1.NotFoundException(`PriceCharting page not found: ${product.priceChartingUrl}`);
+                    throw new common_1.NotFoundException(`PriceCharting page not found: ${priceChartingUrl}`);
                 }
                 throw new common_1.BadGatewayException(`Failed to parse PriceCharting: ${error.message}`);
             }
@@ -124,11 +138,18 @@ let MarketPricingService = class MarketPricingService {
             date.setDate(date.getDate() - i * 2);
             const fluctuation = (((hash + i * 13) % 40) - 20) / 100;
             const price = basePrice * (1 + fluctuation);
+            const title = `${product.name} ${product.number || ''} ${(hash + i) % 3 === 0 ? 'PSA 10' : 'Near Mint'}`;
+            const source = (hash + i) % 2 === 0 ? 'eBay' : 'TCGPlayer';
+            const searchTerm = encodeURIComponent(`${product.name} ${product.number || ''}`);
+            const link = source === 'eBay'
+                ? `https://www.ebay.com/sch/i.html?_nkw=${searchTerm}+sold=1`
+                : `https://www.tcgplayer.com/search/all/product?q=${searchTerm}`;
             prices.push({
                 date: date.toISOString().split('T')[0],
-                title: `${product.name} ${product.number || ''} ${(hash + i) % 3 === 0 ? 'PSA 10' : 'Near Mint'}`,
+                title,
                 price: parseFloat(price.toFixed(2)),
-                source: (hash + i) % 2 === 0 ? 'eBay' : 'TCGPlayer',
+                source,
+                link,
             });
         }
         return prices;

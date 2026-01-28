@@ -220,7 +220,7 @@ let JustTcgClient = JustTcgClient_1 = class JustTcgClient {
                     },
                     httpsAgent: meta.proxyAgent,
                     proxy: false,
-                    timeout: 10000,
+                    timeout: 30000,
                 }));
                 this.updateMetadata(key, data._metadata);
                 return data;
