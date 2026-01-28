@@ -17,11 +17,31 @@ export class MarketPricingService {
         const { page = 1, limit = 25, search } = query;
         const skip = (page - 1) * limit;
 
-        const where: any = {};
+        // 1. Get all valid mappings from RefPriceChartingProduct to filter the catalog
+        const pcMappings = await this.prisma.refPriceChartingProduct.findMany({
+            where: { tcgPlayerId: { not: null } },
+            select: { tcgPlayerId: true, productUrl: true }
+        });
+
+        const pcMap = new Map<string, string>();
+        pcMappings.forEach(p => {
+            if (p.tcgPlayerId) pcMap.set(p.tcgPlayerId.toString(), p.productUrl);
+        });
+
+        const validTcgIds = Array.from(pcMap.keys());
+
+        const where: any = {
+            tcgplayerId: { in: validTcgIds }
+        };
+
         if (search) {
-            where.OR = [
-                { name: { contains: search, mode: 'insensitive' } },
-                { number: { contains: search, mode: 'insensitive' } },
+            where.AND = [
+                {
+                    OR: [
+                        { name: { contains: search, mode: 'insensitive' } },
+                        { number: { contains: search, mode: 'insensitive' } },
+                    ]
+                }
             ];
         }
 
@@ -35,26 +55,13 @@ export class MarketPricingService {
             this.prisma.refProduct.count({ where }),
         ]);
 
-        const tcgPlayerIds = items
-            .map(i => i.tcgplayerId ? parseInt(i.tcgplayerId) : null)
-            .filter((id): id is number => id !== null && !isNaN(id));
-
-        const pcProducts = await this.prisma.refPriceChartingProduct.findMany({
-            where: { tcgPlayerId: { in: tcgPlayerIds } }
-        });
-        const pcMap = new Map<number, string>(
-            pcProducts
-                .filter((p): p is typeof p & { tcgPlayerId: number } => p.tcgPlayerId !== null)
-                .map(p => [p.tcgPlayerId, p.productUrl])
-        );
-
         const mappedItems = items.map(product => {
             return {
                 id: product.id,
                 name: product.name,
                 number: product.number,
                 imageUrl: product.imageUrl,
-                priceChartingUrl: product.tcgplayerId ? pcMap.get(parseInt(product.tcgplayerId)) : null,
+                priceChartingUrl: product.tcgplayerId ? pcMap.get(product.tcgplayerId) : null,
                 tcgplayerId: product.tcgplayerId,
                 rawPrice: product.rawPrice ? Number(product.rawPrice) : 0,
                 sealedPrice: product.sealedPrice ? Number(product.sealedPrice) : null,

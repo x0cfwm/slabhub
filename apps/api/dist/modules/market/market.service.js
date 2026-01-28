@@ -23,11 +23,27 @@ let MarketPricingService = class MarketPricingService {
     async listProducts(query) {
         const { page = 1, limit = 25, search } = query;
         const skip = (page - 1) * limit;
-        const where = {};
+        const pcMappings = await this.prisma.refPriceChartingProduct.findMany({
+            where: { tcgPlayerId: { not: null } },
+            select: { tcgPlayerId: true, productUrl: true }
+        });
+        const pcMap = new Map();
+        pcMappings.forEach(p => {
+            if (p.tcgPlayerId)
+                pcMap.set(p.tcgPlayerId.toString(), p.productUrl);
+        });
+        const validTcgIds = Array.from(pcMap.keys());
+        const where = {
+            tcgplayerId: { in: validTcgIds }
+        };
         if (search) {
-            where.OR = [
-                { name: { contains: search, mode: 'insensitive' } },
-                { number: { contains: search, mode: 'insensitive' } },
+            where.AND = [
+                {
+                    OR: [
+                        { name: { contains: search, mode: 'insensitive' } },
+                        { number: { contains: search, mode: 'insensitive' } },
+                    ]
+                }
             ];
         }
         const [items, total] = await Promise.all([
@@ -39,22 +55,13 @@ let MarketPricingService = class MarketPricingService {
             }),
             this.prisma.refProduct.count({ where }),
         ]);
-        const tcgPlayerIds = items
-            .map(i => i.tcgplayerId ? parseInt(i.tcgplayerId) : null)
-            .filter((id) => id !== null && !isNaN(id));
-        const pcProducts = await this.prisma.refPriceChartingProduct.findMany({
-            where: { tcgPlayerId: { in: tcgPlayerIds } }
-        });
-        const pcMap = new Map(pcProducts
-            .filter((p) => p.tcgPlayerId !== null)
-            .map(p => [p.tcgPlayerId, p.productUrl]));
         const mappedItems = items.map(product => {
             return {
                 id: product.id,
                 name: product.name,
                 number: product.number,
                 imageUrl: product.imageUrl,
-                priceChartingUrl: product.tcgplayerId ? pcMap.get(parseInt(product.tcgplayerId)) : null,
+                priceChartingUrl: product.tcgplayerId ? pcMap.get(product.tcgplayerId) : null,
                 tcgplayerId: product.tcgplayerId,
                 rawPrice: product.rawPrice ? Number(product.rawPrice) : 0,
                 sealedPrice: product.sealedPrice ? Number(product.sealedPrice) : null,
