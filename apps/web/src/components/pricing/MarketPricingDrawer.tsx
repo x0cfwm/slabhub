@@ -61,7 +61,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                             <SheetTitle className="text-2xl font-bold">{product.name}</SheetTitle>
                             <SheetDescription className="font-mono text-sm flex items-center gap-3">
                                 {product.number}
-                                <div className="flex items-center gap-2">
+                                <span className="flex items-center gap-2">
                                     <Badge variant="secondary" className="font-sans text-xs px-2">{product.source}</Badge>
                                     {product.priceChartingUrl && (
                                         <a
@@ -74,7 +74,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                             <ExternalLink className="h-2.5 w-2.5" />
                                         </a>
                                     )}
-                                </div>
+                                </span>
                             </SheetDescription>
                         </div>
                         <Button
@@ -126,14 +126,14 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
 
                     <div className="space-y-3">
                         <h3 className="text-sm font-semibold flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                            <span className="flex items-center gap-2">
                                 Recent Sales
                                 {history?.mode === "parsed" && (
                                     <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20 text-[10px] h-5 py-0">
                                         Live: PriceCharting
                                     </Badge>
                                 )}
-                            </div>
+                            </span>
                             <span className="text-[10px] font-normal text-muted-foreground">Last 10 entries</span>
                         </h3>
 
