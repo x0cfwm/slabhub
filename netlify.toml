@@ -1,6 +1,6 @@
 [build]
   command = "pnpm --filter @slabhub/web run build"
-  publish = "out"
+  publish = "apps/web/out"
 
 [[redirects]]
   from = "/*"
