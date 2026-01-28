@@ -336,6 +336,10 @@ model RefProduct {
   rarityExternalId String?
   gameExternalId   String?
   sourceUpdatedAt  DateTime?
+  rawPrice         Decimal? @db.Decimal(10, 2)
+  sealedPrice      Decimal? @db.Decimal(10, 2)
+  priceSource      String?
+  priceUpdatedAt   DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

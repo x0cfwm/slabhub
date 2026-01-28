@@ -20,17 +20,20 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
     const [history, setHistory] = useState<MarketPriceHistory | null>(null);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchHistory = (isRefresh = false) => {
         if (!product) return;
 
         if (isRefresh) setRefreshing(true);
         else setLoading(true);
+        setError(null);
 
         getProductPriceHistory(product.id, isRefresh)
             .then(setHistory)
             .catch((err) => {
                 console.error("Failed to fetch history", err);
+                setError(err.message || "Failed to fetch live pricing data");
             })
             .finally(() => {
                 setLoading(false);
@@ -107,7 +110,9 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                     <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 bg-card rounded-xl border shadow-sm">
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Raw Price</p>
-                            <p className="text-2xl font-bold text-primary">${product.rawPrice.toFixed(2)}</p>
+                            <p className="text-2xl font-bold text-primary">
+                                ${(history?.updatedRawPrice ?? product.rawPrice).toFixed(2)}
+                            </p>
                         </div>
                         <div className="p-4 bg-card rounded-xl border shadow-sm">
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Sealed Price</p>
@@ -137,10 +142,15 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                             <span className="text-[10px] font-normal text-muted-foreground">Last 10 entries</span>
                         </h3>
 
-                        {history?.mode === "mock" && history.parseError && (
-                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 text-[10px] text-amber-500 flex items-center gap-2">
-                                <span className="font-bold uppercase tracking-wider">Note:</span>
-                                <span>Live parsing failed, showing mock history</span>
+                        {error && (
+                            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-xs text-destructive flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-bold uppercase tracking-wider">Error:</span>
+                                    <span>{error}</span>
+                                </div>
+                                <p className="text-[10px] opacity-70">
+                                    This might be due to a missing PriceCharting link or a temporary scraping issue.
+                                </p>
                             </div>
                         )}
 

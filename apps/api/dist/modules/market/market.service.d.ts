@@ -25,6 +25,4 @@ export declare class MarketPricingService {
         total: number;
     }>;
     getProductPriceHistory(productId: string, strict?: boolean, refresh?: boolean): Promise<any>;
-    private generateMockPrices;
-    private simpleHash;
 }

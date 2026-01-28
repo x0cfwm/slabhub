@@ -46,10 +46,6 @@ export class MarketPricingService {
         );
 
         const mappedItems = items.map(product => {
-            // Mock prices based on ID to be consistent-ish
-            const hash = this.simpleHash(product.id);
-            const basePrice = (hash % 100) + 10;
-
             return {
                 id: product.id,
                 name: product.name,
@@ -57,10 +53,10 @@ export class MarketPricingService {
                 imageUrl: product.imageUrl,
                 priceChartingUrl: product.tcgPlayerId ? pcMap.get(product.tcgPlayerId) : null,
                 tcgplayerId: product.tcgplayerId,
-                rawPrice: parseFloat(basePrice.toFixed(2)),
-                sealedPrice: hash % 3 === 0 ? parseFloat((basePrice * 4.5).toFixed(2)) : null,
-                lastUpdated: new Date().toISOString(),
-                source: hash % 2 === 0 ? 'Mock:eBay' : 'Mock:TCGPlayer',
+                rawPrice: product.rawPrice ? Number(product.rawPrice) : 0,
+                sealedPrice: product.sealedPrice ? Number(product.sealedPrice) : null,
+                lastUpdated: product.priceUpdatedAt ? product.priceUpdatedAt.toISOString() : product.updatedAt.toISOString(),
+                source: product.priceSource || 'RefProduct',
             };
         });
 
@@ -90,14 +86,9 @@ export class MarketPricingService {
             priceChartingUrl = pcProduct?.productUrl || null;
         }
 
-        // If no URL, return mock
+        // If no URL, we can't fetch live data
         if (!priceChartingUrl) {
-            return {
-                productId,
-                mode: 'mock' as const,
-                parseError: null,
-                prices: this.generateMockPrices(product),
-            };
+            throw new NotFoundException('PriceCharting URL not found for this product. Link it first.');
         }
 
         // Check cache
@@ -116,11 +107,30 @@ export class MarketPricingService {
         try {
             const parsedPrices = await this.parser.parse(priceChartingUrl);
 
+            // Calculate current price from recent history (average of last 5 sales for stability)
+            const recentSales = parsedPrices.slice(0, 5);
+            const avgPrice = recentSales.length > 0
+                ? recentSales.reduce((acc, p) => acc + p.price, 0) / recentSales.length
+                : 0;
+
+            // Update product in DB with new price
+            if (avgPrice > 0) {
+                await this.prisma.refProduct.update({
+                    where: { id: productId },
+                    data: {
+                        rawPrice: avgPrice,
+                        priceSource: recentSales[0]?.source || 'PriceCharting',
+                        priceUpdatedAt: new Date(),
+                    }
+                });
+            }
+
             const response = {
                 productId,
                 mode: 'parsed' as const,
                 parseError: null,
                 prices: parsedPrices,
+                updatedRawPrice: avgPrice > 0 ? avgPrice : null,
             };
 
             // Cache for 12 hours
@@ -138,52 +148,8 @@ export class MarketPricingService {
                 throw new BadGatewayException(`Failed to parse PriceCharting: ${error.message}`);
             }
 
-            return {
-                productId,
-                mode: 'mock' as const,
-                parseError: error.message,
-                prices: this.generateMockPrices(product),
-            };
+            throw new BadGatewayException(`Failed to fetch pricing: ${error.message}`);
         }
     }
 
-    private generateMockPrices(product: any) {
-        const hash = this.simpleHash(product.id);
-        const basePrice = (hash % 100) + 10;
-        const prices = [];
-
-        for (let i = 0; i < 10; i++) {
-            const date = new Date();
-            date.setDate(date.getDate() - i * 2);
-
-            const fluctuation = (((hash + i * 13) % 40) - 20) / 100;
-            const price = basePrice * (1 + fluctuation);
-            const title = `${product.name} ${product.number || ''} ${(hash + i) % 3 === 0 ? 'PSA 10' : 'Near Mint'}`;
-
-            const source = (hash + i) % 2 === 0 ? 'eBay' : 'TCGPlayer';
-            const searchTerm = encodeURIComponent(`${product.name} ${product.number || ''}`);
-            const link = source === 'eBay'
-                ? `https://www.ebay.com/sch/i.html?_nkw=${searchTerm}+sold=1`
-                : `https://www.tcgplayer.com/search/all/product?q=${searchTerm}`;
-
-            prices.push({
-                date: date.toISOString().split('T')[0],
-                title,
-                price: parseFloat(price.toFixed(2)),
-                source,
-                link,
-            });
-        }
-        return prices;
-    }
-
-    private simpleHash(str: string): number {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // Convert to 32bit integer
-        }
-        return Math.abs(hash);
-    }
 }
