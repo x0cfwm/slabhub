@@ -174,6 +174,7 @@ export interface MarketPriceHistory {
     mode: "parsed" | "mock";
     parseError: string | null;
     prices: MarketPriceHistoryEntry[];
+    updatedRawPrice?: number | null;
 }
 
 export interface MarketProductsResponse {

@@ -150,7 +150,9 @@ function PricingContent() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <span className="font-bold text-sm">${product.rawPrice.toFixed(2)}</span>
+                                        <span className="font-bold text-sm">
+                                            {product.rawPrice && product.rawPrice > 0 ? `$${product.rawPrice.toFixed(2)}` : "-"}
+                                        </span>
                                     </TableCell>
                                     <TableCell>
                                         <span className="text-sm">
