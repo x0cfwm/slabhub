@@ -24,6 +24,9 @@ import { z } from 'zod';
                     JUSTTCG_BASE_URL: z.string().url().default('https://api.justtcg.com'),
                     JUSTTCG_API_KEY: z.string().min(1),
                     PSA_API_TOKEN: z.string().optional(),
+                    BRIGHTDATA_CUSTOMER_ID: z.string().optional(),
+                    BRIGHTDATA_ZONE: z.string().optional(),
+                    BRIGHTDATA_TOKEN: z.string().optional(),
                     PORT: z.string().default('3001'),
                 });
                 return schema.parse(config);

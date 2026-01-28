@@ -36,6 +36,9 @@ exports.AppModule = AppModule = __decorate([
                         JUSTTCG_BASE_URL: zod_1.z.string().url().default('https://api.justtcg.com'),
                         JUSTTCG_API_KEY: zod_1.z.string().min(1),
                         PSA_API_TOKEN: zod_1.z.string().optional(),
+                        BRIGHTDATA_CUSTOMER_ID: zod_1.z.string().optional(),
+                        BRIGHTDATA_ZONE: zod_1.z.string().optional(),
+                        BRIGHTDATA_TOKEN: zod_1.z.string().optional(),
                         PORT: zod_1.z.string().default('3001'),
                     });
                     return schema.parse(config);

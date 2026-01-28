@@ -3,6 +3,8 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { JustTcgMapping, JustTcgResponse } from './justtcg.types';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import * as crypto from 'crypto';
 
 interface KeyMetadata {
     apiRequestLimit: number;
@@ -15,6 +17,7 @@ interface KeyMetadata {
     apiPlan: string;
     lastUsed: number;
     nextAvailableAt: number;
+    proxyAgent?: HttpsProxyAgent<string>;
 }
 
 @Injectable()
@@ -29,6 +32,9 @@ export class JustTcgClient {
         private readonly httpService: HttpService,
         private readonly configService: ConfigService,
     ) {
+        // Disable TLS verification to handle residential proxy SSL interception
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
         this.baseUrl = this.configService.get<string>('JUSTTCG_BASE_URL', 'https://api.justtcg.com');
         const rawKeys = this.configService.getOrThrow<string>('JUSTTCG_API_KEY');
         this.apiKeys = rawKeys.split(',').map((k) => k.trim()).filter(Boolean);
@@ -36,8 +42,22 @@ export class JustTcgClient {
             throw new Error('JUSTTCG_API_KEY must contain at least one key');
         }
 
+        const customerId = this.configService.get<string>('BRIGHTDATA_CUSTOMER_ID');
+        const zone = this.configService.get<string>('BRIGHTDATA_ZONE');
+        const token = this.configService.get<string>('BRIGHTDATA_TOKEN');
+
         // Initialize metadata with optimistic values
         for (const key of this.apiKeys) {
+            let proxyAgent: HttpsProxyAgent<string> | undefined;
+
+            if (customerId && zone && token) {
+                // Use a deterministic session ID based on the API key so each key gets its own sticky IP
+                const sessionId = crypto.createHash('md5').update(key).digest('hex').substring(0, 8);
+                const proxyUrl = `http://brd-customer-${customerId}-zone-${zone}-session-${sessionId}:${token}@brd.superproxy.io:22225`;
+                proxyAgent = new HttpsProxyAgent(proxyUrl, { rejectUnauthorized: false });
+                this.logger.debug(`Initialized BrightData proxy for key ${key.substring(0, 8)}... (Session: ${sessionId})`);
+            }
+
             this.keyMetadata.set(key, {
                 apiRequestLimit: 1000,
                 apiDailyLimit: 100,
@@ -49,13 +69,13 @@ export class JustTcgClient {
                 apiPlan: 'Unknown',
                 lastUsed: 0,
                 nextAvailableAt: 0,
+                proxyAgent,
             });
         }
     }
 
     private getNextApiKey(): string {
         const now = Date.now();
-        let bestKey: string | null = null;
         let earliestWait = Infinity;
 
         // Try to pick the next key in round-robin fashion that has quota
@@ -209,6 +229,8 @@ export class JustTcgClient {
                         headers: {
                             'x-api-key': key,
                         },
+                        httpsAgent: meta.proxyAgent,
+                        proxy: false, // Must disable axios built-in proxy when using custom agent
                         timeout: 10000,
                     }),
                 );
