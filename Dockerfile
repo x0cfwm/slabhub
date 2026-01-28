@@ -1,6 +1,9 @@
 # Используем Node.js 20 LTS
 FROM node:20-slim
 
+# Устанавливаем системные зависимости для Prisma (openssl)
+RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+
 # Устанавливаем pnpm глобально
 RUN npm install -g pnpm@9.15.0
 
