@@ -38,6 +38,9 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -45,12 +48,25 @@ var PriceChartingParser_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PriceChartingParser = void 0;
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
 const axios_1 = __importDefault(require("axios"));
 const cheerio = __importStar(require("cheerio"));
+const https_proxy_agent_1 = require("https-proxy-agent");
 let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
-    constructor() {
+    constructor(configService) {
+        this.configService = configService;
         this.logger = new common_1.Logger(PriceChartingParser_1.name);
         this.userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+        const customerId = this.configService.get('BRIGHTDATA_CUSTOMER_ID');
+        const zone = this.configService.get('BRIGHTDATA_ZONE');
+        const token = this.configService.get('BRIGHTDATA_TOKEN');
+        if (customerId && zone && token) {
+            const sessionId = Math.random().toString(36).substring(2, 10);
+            const proxyUrl = `http://brd-customer-${customerId}-zone-${zone}-session-${sessionId}:${token}@brd.superproxy.io:22225`;
+            this.proxyAgent = new https_proxy_agent_1.HttpsProxyAgent(proxyUrl, { rejectUnauthorized: false });
+            this.logger.debug(`Initialized BrightData proxy for PriceCharting parsing (Session: ${sessionId})`);
+        }
     }
     async parse(url) {
         try {
@@ -61,7 +77,9 @@ let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
                     'Accept-Language': 'en-US,en;q=0.9',
                 },
-                timeout: 10000,
+                httpsAgent: this.proxyAgent,
+                proxy: false,
+                timeout: 30000,
             });
             const $ = cheerio.load(response.data);
             const entries = [];
@@ -159,6 +177,7 @@ let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
 };
 exports.PriceChartingParser = PriceChartingParser;
 exports.PriceChartingParser = PriceChartingParser = PriceChartingParser_1 = __decorate([
-    (0, common_1.Injectable)()
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [config_1.ConfigService])
 ], PriceChartingParser);
 //# sourceMappingURL=pricecharting.parser.js.map

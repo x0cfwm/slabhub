@@ -15,11 +15,22 @@ const common_1 = require("@nestjs/common");
 const axios_1 = require("@nestjs/axios");
 const config_1 = require("@nestjs/config");
 const rxjs_1 = require("rxjs");
+const https_proxy_agent_1 = require("https-proxy-agent");
 let GradingHttpClient = GradingHttpClient_1 = class GradingHttpClient {
     constructor(httpService, configService) {
         this.httpService = httpService;
         this.configService = configService;
         this.logger = new common_1.Logger(GradingHttpClient_1.name);
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+        const customerId = this.configService.get('BRIGHTDATA_CUSTOMER_ID');
+        const zone = this.configService.get('BRIGHTDATA_ZONE');
+        const token = this.configService.get('BRIGHTDATA_TOKEN');
+        if (customerId && zone && token) {
+            const sessionId = Math.random().toString(36).substring(2, 10);
+            const proxyUrl = `http://brd-customer-${customerId}-zone-${zone}-session-${sessionId}:${token}@brd.superproxy.io:22225`;
+            this.proxyAgent = new https_proxy_agent_1.HttpsProxyAgent(proxyUrl, { rejectUnauthorized: false });
+            this.logger.debug(`Initialized BrightData proxy for Grading HTTP client (Session: ${sessionId})`);
+        }
     }
     async fetchPsaCert(certNumber) {
         const token = this.configService.get('PSA_API_TOKEN');
@@ -30,7 +41,9 @@ let GradingHttpClient = GradingHttpClient_1 = class GradingHttpClient {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
                 },
-                timeout: 10000,
+                httpsAgent: this.proxyAgent,
+                proxy: false,
+                timeout: 30000,
             }));
             return response.data;
         }

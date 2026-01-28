@@ -1,3 +1,4 @@
+import { ConfigService } from '@nestjs/config';
 export interface PriceChartingEntry {
     date: string;
     title: string;
@@ -6,8 +7,11 @@ export interface PriceChartingEntry {
     link?: string;
 }
 export declare class PriceChartingParser {
+    private readonly configService;
     private readonly logger;
     private readonly userAgent;
+    private readonly proxyAgent?;
+    constructor(configService: ConfigService);
     parse(url: string): Promise<PriceChartingEntry[]>;
     private processRows;
     private parsePrice;

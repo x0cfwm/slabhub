@@ -13,14 +13,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PriceChartingClient = void 0;
 const common_1 = require("@nestjs/common");
 const axios_1 = require("@nestjs/axios");
+const config_1 = require("@nestjs/config");
 const rxjs_1 = require("rxjs");
 const axios_2 = require("axios");
+const https_proxy_agent_1 = require("https-proxy-agent");
 let PriceChartingClient = PriceChartingClient_1 = class PriceChartingClient {
-    constructor(httpService) {
+    constructor(httpService, configService) {
         this.httpService = httpService;
+        this.configService = configService;
         this.logger = new common_1.Logger(PriceChartingClient_1.name);
         this.lastRequestTime = 0;
         this.minRequestInterval = 1000;
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+        const customerId = this.configService.get('BRIGHTDATA_CUSTOMER_ID');
+        const zone = this.configService.get('BRIGHTDATA_ZONE');
+        const token = this.configService.get('BRIGHTDATA_TOKEN');
+        if (customerId && zone && token) {
+            const sessionId = Math.random().toString(36).substring(2, 10);
+            const proxyUrl = `http://brd-customer-${customerId}-zone-${zone}-session-${sessionId}:${token}@brd.superproxy.io:22225`;
+            this.proxyAgent = new https_proxy_agent_1.HttpsProxyAgent(proxyUrl, { rejectUnauthorized: false });
+            this.logger.debug(`Initialized BrightData proxy for PriceCharting crawling (Session: ${sessionId})`);
+        }
     }
     async fetch(url, retries = 3) {
         await this.rateLimit();
@@ -32,7 +45,9 @@ let PriceChartingClient = PriceChartingClient_1 = class PriceChartingClient {
                     'Accept-Language': 'en-US,en;q=0.9',
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
                 },
-                timeout: 10000,
+                httpsAgent: this.proxyAgent,
+                proxy: false,
+                timeout: 30000,
             }));
             this.lastRequestTime = Date.now();
             return response.data;
@@ -67,6 +82,7 @@ let PriceChartingClient = PriceChartingClient_1 = class PriceChartingClient {
 exports.PriceChartingClient = PriceChartingClient;
 exports.PriceChartingClient = PriceChartingClient = PriceChartingClient_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [axios_1.HttpService])
+    __metadata("design:paramtypes", [axios_1.HttpService,
+        config_1.ConfigService])
 ], PriceChartingClient);
 //# sourceMappingURL=pricecharting.client.js.map

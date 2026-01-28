@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 export interface PriceChartingEntry {
     date: string;
@@ -15,6 +17,23 @@ export class PriceChartingParser {
     private readonly logger = new Logger(PriceChartingParser.name);
     private readonly userAgent =
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    private readonly proxyAgent?: HttpsProxyAgent<string>;
+
+    constructor(private readonly configService: ConfigService) {
+        // Disable TLS verification to handle residential proxy SSL interception
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+        const customerId = this.configService.get<string>('BRIGHTDATA_CUSTOMER_ID');
+        const zone = this.configService.get<string>('BRIGHTDATA_ZONE');
+        const token = this.configService.get<string>('BRIGHTDATA_TOKEN');
+
+        if (customerId && zone && token) {
+            const sessionId = Math.random().toString(36).substring(2, 10);
+            const proxyUrl = `http://brd-customer-${customerId}-zone-${zone}-session-${sessionId}:${token}@brd.superproxy.io:22225`;
+            this.proxyAgent = new HttpsProxyAgent(proxyUrl, { rejectUnauthorized: false });
+            this.logger.debug(`Initialized BrightData proxy for PriceCharting parsing (Session: ${sessionId})`);
+        }
+    }
 
     async parse(url: string): Promise<PriceChartingEntry[]> {
         try {
@@ -25,7 +44,9 @@ export class PriceChartingParser {
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
                     'Accept-Language': 'en-US,en;q=0.9',
                 },
-                timeout: 10000,
+                httpsAgent: this.proxyAgent,
+                proxy: false,
+                timeout: 30000, // Increased timeout for proxy
             });
 
             const $ = cheerio.load(response.data);
