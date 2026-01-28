@@ -35,7 +35,10 @@ export class MarketPricingService {
             this.prisma.refProduct.count({ where }),
         ]);
 
-        const tcgPlayerIds = items.map(i => i.tcgPlayerId).filter((id): id is number => id !== null);
+        const tcgPlayerIds = items
+            .map(i => i.tcgplayerId ? parseInt(i.tcgplayerId) : null)
+            .filter((id): id is number => id !== null && !isNaN(id));
+
         const pcProducts = await this.prisma.refPriceChartingProduct.findMany({
             where: { tcgPlayerId: { in: tcgPlayerIds } }
         });
@@ -51,7 +54,7 @@ export class MarketPricingService {
                 name: product.name,
                 number: product.number,
                 imageUrl: product.imageUrl,
-                priceChartingUrl: product.tcgPlayerId ? pcMap.get(product.tcgPlayerId) : null,
+                priceChartingUrl: product.tcgplayerId ? pcMap.get(parseInt(product.tcgplayerId)) : null,
                 tcgplayerId: product.tcgplayerId,
                 rawPrice: product.rawPrice ? Number(product.rawPrice) : 0,
                 sealedPrice: product.sealedPrice ? Number(product.sealedPrice) : null,
@@ -79,11 +82,14 @@ export class MarketPricingService {
 
         // Look up PriceCharting URL from RefPriceChartingProduct
         let priceChartingUrl: string | null = null;
-        if (product.tcgPlayerId) {
-            const pcProduct = await this.prisma.refPriceChartingProduct.findFirst({
-                where: { tcgPlayerId: product.tcgPlayerId }
-            });
-            priceChartingUrl = pcProduct?.productUrl || null;
+        if (product.tcgplayerId) {
+            const tcgId = parseInt(product.tcgplayerId);
+            if (!isNaN(tcgId)) {
+                const pcProduct = await this.prisma.refPriceChartingProduct.findFirst({
+                    where: { tcgPlayerId: tcgId }
+                });
+                priceChartingUrl = pcProduct?.productUrl || null;
+            }
         }
 
         // If no URL, we can't fetch live data

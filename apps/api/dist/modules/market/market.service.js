@@ -39,7 +39,9 @@ let MarketPricingService = class MarketPricingService {
             }),
             this.prisma.refProduct.count({ where }),
         ]);
-        const tcgPlayerIds = items.map(i => i.tcgPlayerId).filter((id) => id !== null);
+        const tcgPlayerIds = items
+            .map(i => i.tcgplayerId ? parseInt(i.tcgplayerId) : null)
+            .filter((id) => id !== null && !isNaN(id));
         const pcProducts = await this.prisma.refPriceChartingProduct.findMany({
             where: { tcgPlayerId: { in: tcgPlayerIds } }
         });
@@ -52,7 +54,7 @@ let MarketPricingService = class MarketPricingService {
                 name: product.name,
                 number: product.number,
                 imageUrl: product.imageUrl,
-                priceChartingUrl: product.tcgPlayerId ? pcMap.get(product.tcgPlayerId) : null,
+                priceChartingUrl: product.tcgplayerId ? pcMap.get(parseInt(product.tcgplayerId)) : null,
                 tcgplayerId: product.tcgplayerId,
                 rawPrice: product.rawPrice ? Number(product.rawPrice) : 0,
                 sealedPrice: product.sealedPrice ? Number(product.sealedPrice) : null,
@@ -75,11 +77,14 @@ let MarketPricingService = class MarketPricingService {
             throw new common_1.NotFoundException('Product not found');
         }
         let priceChartingUrl = null;
-        if (product.tcgPlayerId) {
-            const pcProduct = await this.prisma.refPriceChartingProduct.findFirst({
-                where: { tcgPlayerId: product.tcgPlayerId }
-            });
-            priceChartingUrl = pcProduct?.productUrl || null;
+        if (product.tcgplayerId) {
+            const tcgId = parseInt(product.tcgplayerId);
+            if (!isNaN(tcgId)) {
+                const pcProduct = await this.prisma.refPriceChartingProduct.findFirst({
+                    where: { tcgPlayerId: tcgId }
+                });
+                priceChartingUrl = pcProduct?.productUrl || null;
+            }
         }
         if (!priceChartingUrl) {
             throw new common_1.NotFoundException('PriceCharting URL not found for this product. Link it first.');

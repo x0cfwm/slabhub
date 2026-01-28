@@ -284,7 +284,7 @@ async function main() {
             number: 'OP01-001',
             imageUrl: '/cards/op01-001.svg',
             priceChartingUrl: 'https://www.pricecharting.com/game/pokemon-promo/pikachu-on-the-ball-001',
-            tcgPlayerId: 1001
+            tcgplayerId: '1001'
         },
         {
             externalId: 'prod-2',
@@ -292,7 +292,7 @@ async function main() {
             number: 'OP01-016',
             imageUrl: '/cards/op01-016.svg',
             priceChartingUrl: 'https://www.pricecharting.com/game/pokemon-jungle/pikachu-60',
-            tcgPlayerId: 1002
+            tcgplayerId: '1002'
         },
         {
             externalId: 'prod-3',
@@ -300,7 +300,7 @@ async function main() {
             number: 'OP01-120',
             imageUrl: '/cards/op01-120.svg',
             priceChartingUrl: 'https://www.pricecharting.com/game/pokemon-base-set/charizard-4',
-            tcgPlayerId: 1003
+            tcgplayerId: '1003'
         },
         {
             externalId: 'prod-4',
@@ -308,7 +308,7 @@ async function main() {
             number: 'OP01-047',
             imageUrl: '/cards/op01-047.svg',
             priceChartingUrl: null,
-            tcgPlayerId: 1004
+            tcgplayerId: '1004'
         }
     ];
 
@@ -317,18 +317,19 @@ async function main() {
         await prisma.refProduct.upsert({
             where: { externalId: prod.externalId },
             update: {
-                tcgPlayerId: prod.tcgPlayerId
+                tcgplayerId: prod.tcgplayerId
             },
             create: rest
         });
 
-        if (priceChartingUrl) {
+        if (priceChartingUrl && prod.tcgplayerId) {
+            const tcgId = parseInt(prod.tcgplayerId);
             await prisma.refPriceChartingProduct.upsert({
                 where: { productUrl: priceChartingUrl },
-                update: { tcgPlayerId: prod.tcgPlayerId },
+                update: { tcgPlayerId: tcgId },
                 create: {
                     productUrl: priceChartingUrl,
-                    tcgPlayerId: prod.tcgPlayerId,
+                    tcgPlayerId: tcgId,
                     details: {}
                 }
             });

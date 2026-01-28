@@ -139,21 +139,19 @@ export class PriceChartingIngestService {
     }
 
     private async linkToRefProduct(tcgPlayerId: number, productUrl: string) {
-        // Note: RefProduct has tcgplayerId as String? (with lowercase p) and we added tcgPlayerId as Int?
-        // We'll update RefProduct where tcgPlayerId matches or tcgplayerId matches (converting to string)
+        // RefProduct has tcgplayerId as String? (lowercase p)
+        // RefPriceChartingProduct has tcgPlayerId as Int? (PascalCase P)
 
         const tcgplayerIdStr = tcgPlayerId.toString();
 
-        // Try to find by Int ID first (if populated) or by String ID
         await this.prisma.refProduct.updateMany({
             where: {
-                OR: [
-                    { tcgPlayerId: tcgPlayerId },
-                    { tcgplayerId: tcgplayerIdStr }
-                ]
+                tcgplayerId: tcgplayerIdStr
             },
             data: {
-                tcgPlayerId: tcgPlayerId // Ensure the Int field is populated for dynamic lookups
+                // No need to update priceChartingUrl anymore as it's pulled on the fly
+                // We just ensure the link exists if it was somehow different
+                tcgplayerId: tcgplayerIdStr
             }
         });
     }

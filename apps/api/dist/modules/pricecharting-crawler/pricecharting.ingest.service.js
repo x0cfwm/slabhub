@@ -132,13 +132,10 @@ let PriceChartingIngestService = PriceChartingIngestService_1 = class PriceChart
         const tcgplayerIdStr = tcgPlayerId.toString();
         await this.prisma.refProduct.updateMany({
             where: {
-                OR: [
-                    { tcgPlayerId: tcgPlayerId },
-                    { tcgplayerId: tcgplayerIdStr }
-                ]
+                tcgplayerId: tcgplayerIdStr
             },
             data: {
-                tcgPlayerId: tcgPlayerId
+                tcgplayerId: tcgplayerIdStr
             }
         });
     }
