@@ -21,21 +21,22 @@ let MarketPricingService = class MarketPricingService {
         this.rateLimit = new Map();
     }
     async listProducts(query) {
-        const { page = 1, limit = 25, search } = query;
+        const { page = 1, limit = 25, search, onlyLinked = false } = query;
         const skip = (page - 1) * limit;
         const pcMappings = await this.prisma.refPriceChartingProduct.findMany({
             where: { tcgPlayerId: { not: null } },
             select: { tcgPlayerId: true, productUrl: true }
         });
         const pcMap = new Map();
-        pcMappings.forEach(p => {
+        pcMappings.forEach((p) => {
             if (p.tcgPlayerId)
                 pcMap.set(p.tcgPlayerId.toString(), p.productUrl);
         });
-        const validTcgIds = Array.from(pcMap.keys());
-        const where = {
-            tcgplayerId: { in: validTcgIds }
-        };
+        const where = {};
+        if (onlyLinked) {
+            const validTcgIds = Array.from(pcMap.keys());
+            where.tcgplayerId = { in: validTcgIds };
+        }
         if (search) {
             where.AND = [
                 {

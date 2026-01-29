@@ -18,6 +18,8 @@ import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { MarketPricingDrawer } from "@/components/pricing/MarketPricingDrawer";
 
 const LIMIT = 25;
@@ -28,6 +30,8 @@ function PricingContent() {
 
     const page = parseInt(searchParams.get("page") || "1");
     const search = searchParams.get("search") || "";
+    // Default to true if not explicitly set to "false"
+    const onlyLinked = searchParams.get("onlyLinked") !== "false";
 
     const [data, setData] = useState<{ items: MarketProduct[], total: number } | null>(null);
     const [loading, setLoading] = useState(true);
@@ -35,10 +39,10 @@ function PricingContent() {
     const [selectedProduct, setSelectedProduct] = useState<MarketProduct | null>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
 
-    const fetchData = useCallback(async (p: number, s: string) => {
+    const fetchData = useCallback(async (p: number, s: string, ol: boolean) => {
         setLoading(true);
         try {
-            const res = await getMarketProducts({ page: p, limit: LIMIT, search: s });
+            const res = await getMarketProducts({ page: p, limit: LIMIT, search: s, onlyLinked: ol });
             setData(res);
         } catch (err) {
             toast.error("Failed to fetch market data");
@@ -48,8 +52,8 @@ function PricingContent() {
     }, []);
 
     useEffect(() => {
-        fetchData(page, search);
-    }, [page, search, fetchData]);
+        fetchData(page, search, onlyLinked);
+    }, [page, search, onlyLinked, fetchData]);
 
     // Handle search debounce
     useEffect(() => {
@@ -64,6 +68,13 @@ function PricingContent() {
         }, 500);
         return () => clearTimeout(timer);
     }, [localSearch, search, router, searchParams]);
+
+    const handleOnlyLinkedChange = (checked: boolean) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("onlyLinked", checked ? "true" : "false");
+        params.set("page", "1"); // Reset to page 1 on filter change
+        router.push(`?${params.toString()}`);
+    };
 
     const handlePageChange = (newPage: number) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -87,8 +98,8 @@ function PricingContent() {
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 max-w-sm">
-                <div className="relative flex-1">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Search card profiles..."
@@ -96,6 +107,14 @@ function PricingContent() {
                         value={localSearch}
                         onChange={e => setLocalSearch(e.target.value)}
                     />
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Switch
+                        id="only-linked"
+                        checked={onlyLinked}
+                        onCheckedChange={handleOnlyLinkedChange}
+                    />
+                    <Label htmlFor="only-linked">Only with prices</Label>
                 </div>
             </div>
 

@@ -39,4 +39,9 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], GetMarketProductsDto.prototype, "search", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Boolean),
+    __metadata("design:type", Boolean)
+], GetMarketProductsDto.prototype, "onlyLinked", void 0);
 //# sourceMappingURL=market-products.dto.js.map

@@ -14,25 +14,26 @@ export class MarketPricingService {
     ) { }
 
     async listProducts(query: GetMarketProductsDto) {
-        const { page = 1, limit = 25, search } = query;
+        const { page = 1, limit = 25, search, onlyLinked = false } = query;
         const skip = (page - 1) * limit;
 
-        // 1. Get all valid mappings from RefPriceChartingProduct to filter the catalog
+        // 1. Get mappings from RefPriceChartingProduct
         const pcMappings = await this.prisma.refPriceChartingProduct.findMany({
             where: { tcgPlayerId: { not: null } },
             select: { tcgPlayerId: true, productUrl: true }
         });
 
         const pcMap = new Map<string, string>();
-        pcMappings.forEach(p => {
+        pcMappings.forEach((p: { tcgPlayerId: number | null; productUrl: string }) => {
             if (p.tcgPlayerId) pcMap.set(p.tcgPlayerId.toString(), p.productUrl);
         });
 
-        const validTcgIds = Array.from(pcMap.keys());
+        const where: any = {};
 
-        const where: any = {
-            tcgplayerId: { in: validTcgIds }
-        };
+        if (onlyLinked) {
+            const validTcgIds = Array.from(pcMap.keys());
+            where.tcgplayerId = { in: validTcgIds };
+        }
 
         if (search) {
             where.AND = [

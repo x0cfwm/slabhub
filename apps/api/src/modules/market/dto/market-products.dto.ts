@@ -18,4 +18,8 @@ export class GetMarketProductsDto {
     @IsOptional()
     @IsString()
     search?: string;
+
+    @IsOptional()
+    @Type(() => Boolean)
+    onlyLinked?: boolean;
 }

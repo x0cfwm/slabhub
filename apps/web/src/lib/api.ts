@@ -52,12 +52,15 @@ export async function lookupGrading(grader: string, certNumber: string): Promise
     return response.json();
 }
 
-export async function getMarketProducts(params: { page: number; limit: number; search?: string }): Promise<MarketProductsResponse> {
+export async function getMarketProducts(params: { page: number; limit: number; search?: string; onlyLinked?: boolean }): Promise<MarketProductsResponse> {
     const url = getFullUrl('/v1/market/products');
     url.searchParams.set('page', params.page.toString());
     url.searchParams.set('limit', params.limit.toString());
     if (params.search) {
         url.searchParams.set('search', params.search);
+    }
+    if (params.onlyLinked) {
+        url.searchParams.set('onlyLinked', 'true');
     }
 
     const response = await fetch(url.toString());
