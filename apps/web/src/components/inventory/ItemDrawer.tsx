@@ -75,8 +75,8 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="sm:max-w-md overflow-y-auto bg-card/95 backdrop-blur-xl border-l-primary/10">
-                <SheetHeader>
+            <SheetContent className="sm:max-w-md overflow-y-auto bg-card/95 backdrop-blur-xl border-l-primary/10 p-10">
+                <SheetHeader className="px-0">
                     <SheetTitle className="font-bold text-xl tracking-tight">{displayName || "Asset Details"}</SheetTitle>
                     <SheetDescription className="font-mono text-[10px] uppercase opacity-70">
                         {profile?.set} — {typeLabel}
@@ -147,7 +147,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                     </div>
                 </div>
 
-                <SheetFooter className="mt-8 flex flex-col gap-3">
+                <SheetFooter className="mt-8 flex flex-col gap-3 px-0">
                     <Button className="w-full h-12 text-md font-bold shadow-[0_0_20px_rgba(var(--primary),0.3)]" onClick={handleSave} disabled={loading}>
                         <Save className="mr-2 h-5 w-5" />
                         Save Asset Changes

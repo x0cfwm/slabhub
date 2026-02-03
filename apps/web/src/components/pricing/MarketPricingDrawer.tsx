@@ -57,7 +57,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent className="sm:max-w-2xl overflow-y-auto w-full sm:p-10">
+            <SheetContent className="sm:max-w-2xl overflow-y-auto w-full p-6 sm:p-10">
                 <SheetHeader className="mb-8">
                     <div className="flex justify-between items-start">
                         <div>
