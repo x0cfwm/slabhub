@@ -23,7 +23,7 @@ exports.GradingModule = GradingModule = __decorate([
             axios_1.HttpModule,
             throttler_1.ThrottlerModule.forRoot([{
                     ttl: 60000,
-                    limit: 10,
+                    limit: 100,
                 }]),
         ],
         controllers: [grading_controller_1.GradingController],

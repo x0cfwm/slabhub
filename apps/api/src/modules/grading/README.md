@@ -8,7 +8,7 @@ This module provides automatic fetching and parsing of graded slab certificates 
 3. **HTTP Client**: `GradingHttpClient` fetches the HTML from the grader's public website with realistic headers and retries.
 4. **Parser**: `PsaParser` or `BgsParser` uses `cheerio` to extract metadata (grade, card name, set, etc.).
 5. **Caching**: Results are cached in-memory for 24 hours to reduce upstream hits.
-6. **Rate Limiting**: Throttling is applied (10 requests per minute) to prevent abuse.
+6. **Rate Limiting**: Throttling is applied (100 requests per minute) to prevent abuse.
 
 ## How to add BGS URL/Selectors
 Currently, BGS is implemented as a stub. To enable it:
