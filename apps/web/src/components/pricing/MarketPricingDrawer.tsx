@@ -93,20 +93,6 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                 </SheetHeader>
 
                 <div className="space-y-6">
-                    <div className="flex justify-center bg-muted/30 p-4 rounded-xl border border-dashed">
-                        {product.imageUrl ? (
-                            <img
-                                src={product.imageUrl}
-                                alt={product.name}
-                                className="w-48 h-auto rounded-lg shadow-xl border bg-card"
-                            />
-                        ) : (
-                            <div className="w-48 aspect-[2.5/3.5] bg-muted rounded-lg flex items-center justify-center text-muted-foreground text-xs text-center p-4">
-                                No Image Available
-                            </div>
-                        )}
-                    </div>
-
                     <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 bg-card rounded-xl border shadow-sm relative overflow-hidden">
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Raw Price</p>
