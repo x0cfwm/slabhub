@@ -154,6 +154,7 @@ export interface MarketProduct {
     name: string;
     number: string | null;
     imageUrl: string | null;
+    set: string;
     priceChartingUrl?: string | null;
     rawPrice: number;
     sealedPrice: number | null;

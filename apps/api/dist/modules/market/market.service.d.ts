@@ -13,6 +13,7 @@ export declare class MarketPricingService {
             name: string;
             number: string | null;
             imageUrl: string | null;
+            set: string;
             priceChartingUrl: string | null | undefined;
             tcgplayerId: string | null;
             rawPrice: number;

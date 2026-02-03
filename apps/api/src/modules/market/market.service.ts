@@ -28,6 +28,13 @@ export class MarketPricingService {
             if (p.tcgPlayerId) pcMap.set(p.tcgPlayerId.toString(), p.productUrl);
         });
 
+        // 2. Get all sets for name mapping
+        const sets = await this.prisma.refSet.findMany({
+            select: { externalId: true, name: true }
+        });
+        const setMap = new Map<string, string>();
+        sets.forEach(s => setMap.set(s.externalId, s.name));
+
         const where: any = {};
 
         if (onlyLinked) {
@@ -62,6 +69,7 @@ export class MarketPricingService {
                 name: product.name,
                 number: product.number,
                 imageUrl: product.imageUrl,
+                set: product.setExternalId ? (setMap.get(product.setExternalId) || 'Unknown Set') : 'Unknown Set',
                 priceChartingUrl: product.tcgplayerId ? pcMap.get(product.tcgplayerId) : null,
                 tcgplayerId: product.tcgplayerId,
                 rawPrice: product.rawPrice ? Number(product.rawPrice) : 0,

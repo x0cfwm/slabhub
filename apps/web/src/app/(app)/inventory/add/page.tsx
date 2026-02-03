@@ -13,7 +13,8 @@ import {
     SealedIntegrity,
     Game,
     VariantType,
-    Language
+    Language,
+    MarketProduct
 } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ import { toast } from "sonner";
 import { Search, ChevronRight, ChevronLeft, Check, Package as PackageIcon, FileText, BadgeCheck, Box } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { lookupGrading, GradingLookupResult } from "@/lib/api";
+import { lookupGrading, GradingLookupResult, getMarketProducts } from "@/lib/api";
 import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -42,7 +43,7 @@ export default function AddItemPage() {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [category, setCategory] = useState<InventoryCategory | null>(null);
-    const [cards, setCards] = useState<CardProfile[]>([]);
+    const [cards, setCards] = useState<MarketProduct[]>([]);
     const [search, setSearch] = useState("");
     const [isFetching, setIsFetching] = useState(false);
     const [lookupResult, setLookupResult] = useState<GradingLookupResult | null>(null);
@@ -64,9 +65,24 @@ export default function AddItemPage() {
     });
 
     useEffect(() => {
-        if (search.length > 0) {
-            mockApi.listCardProfiles(search).then(setCards);
-        }
+        const fetchCards = async () => {
+            if (search.length >= 2) {
+                try {
+                    const response = await getMarketProducts({ page: 1, limit: 10, search });
+                    setCards(response.items);
+                } catch (error) {
+                    console.error("Failed to search cards", error);
+                }
+            } else {
+                setCards([]);
+                if (search.length === 0) {
+                    setFormData((prev: any) => ({ ...prev, baseCardId: undefined, cardVariantId: undefined }));
+                }
+            }
+        };
+
+        const timer = setTimeout(fetchCards, 300);
+        return () => clearTimeout(timer);
     }, [search]);
 
     const handleFetchDetails = async () => {
@@ -253,10 +269,10 @@ export default function AddItemPage() {
                                                     formData.baseCardId === card.id ? "border-primary bg-primary/10" : "bg-accent/20"
                                                 )}
                                             >
-                                                <img src={card.imageUrl} className="h-10 rounded-md shadow-lg" alt="" />
+                                                <img src={card.imageUrl || undefined} className="h-10 rounded-md shadow-lg" alt="" />
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-bold text-xs truncate">{card.name}</p>
-                                                    <p className="text-[10px] text-muted-foreground uppercase">{card.set} • {card.cardNumber}</p>
+                                                    <p className="text-[10px] text-muted-foreground uppercase">{card.set} • {card.number}</p>
                                                 </div>
                                                 {formData.baseCardId === card.id && <Check className="h-4 w-4 text-primary" />}
                                             </div>
@@ -264,12 +280,12 @@ export default function AddItemPage() {
                                     </div>
                                 </div>
 
-                                {formData.baseCardId && (
+                                {formData.baseCardId && selectedCard && (
                                     <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 space-y-6 animate-in fade-in slide-in-from-top-4">
                                         <div className="flex items-center gap-4">
                                             <div className="relative h-24 w-16 shrink-0 rounded-lg overflow-hidden border-2 border-primary/20 shadow-2xl">
                                                 <img
-                                                    src={selectedCard?.imageUrl}
+                                                    src={selectedCard?.imageUrl || undefined}
                                                     className={cn(
                                                         "h-full w-full object-cover transition-all duration-500",
                                                         formData.variantType === "ALTERNATE_ART" && "hue-rotate-15 scale-110",
@@ -283,7 +299,7 @@ export default function AddItemPage() {
                                             </div>
                                             <div className="flex-1 space-y-1">
                                                 <p className="text-lg font-bold tracking-tight">{selectedCard?.name}</p>
-                                                <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">{selectedCard?.set} • {selectedCard?.cardNumber}</p>
+                                                <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">{selectedCard?.set} • {selectedCard?.number || 'N/A'}</p>
                                                 <div className="flex gap-2">
                                                     <Badge variant="outline" className="text-[8px] h-4 uppercase">{formData.variantType}</Badge>
                                                     <Badge variant="outline" className="text-[8px] h-4 uppercase">{formData.language}</Badge>
