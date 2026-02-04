@@ -46,9 +46,9 @@ exports.JUSTTCG_MAPPINGS = [
             { source: 'image_url', target: 'imageUrl' },
             { source: 'tcgplayerId', target: 'tcgplayerId', transform: 'string' },
             { source: '*', target: 'justTcgData', transform: 'raw' },
-            { source: 'set', target: 'setExternalId' },
+            { source: 'set', target: 'setExternalId', transform: 'string' },
             { source: 'rarity', target: 'rarityExternalId' },
-            { source: 'game', target: 'gameExternalId' },
+            { source: 'game', target: 'gameExternalId', transform: 'string' },
         ],
     },
 ];

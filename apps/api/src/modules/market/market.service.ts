@@ -30,10 +30,14 @@ export class MarketPricingService {
 
         // 2. Get all sets for name mapping
         const sets = await this.prisma.refSet.findMany({
-            select: { externalId: true, name: true }
+            select: { externalId: true, name: true, code: true }
         });
         const setMap = new Map<string, string>();
-        sets.forEach(s => setMap.set(s.externalId, s.name));
+        const setCodeMap = new Map<string, string>();
+        sets.forEach(s => {
+            setMap.set(s.externalId, s.name);
+            if (s.code) setCodeMap.set(s.code.toUpperCase(), s.name);
+        });
 
         const where: any = {};
 
@@ -64,12 +68,30 @@ export class MarketPricingService {
         ]);
 
         const mappedItems = items.map(product => {
+            // Try to resolve set name:
+            // 1. By setExternalId (ID match)
+            // 2. By setExternalId (Code match - sometimes IDs are codes)
+            // 3. Fallback: Parse code from number (e.g. EB01 from EB01-017)
+            let setName = 'Unknown Set';
+            if (product.setExternalId) {
+                setName = setMap.get(product.setExternalId) ||
+                    setCodeMap.get(product.setExternalId.toUpperCase()) ||
+                    'Unknown Set';
+            }
+
+            if (setName === 'Unknown Set' && product.number) {
+                const codeFromNumber = product.number.split('-')[0]?.toUpperCase();
+                if (codeFromNumber) {
+                    setName = setCodeMap.get(codeFromNumber) || 'Unknown Set';
+                }
+            }
+
             return {
                 id: product.id,
                 name: product.name,
                 number: product.number,
                 imageUrl: product.imageUrl,
-                set: product.setExternalId ? (setMap.get(product.setExternalId) || 'Unknown Set') : 'Unknown Set',
+                set: setName,
                 priceChartingUrl: product.tcgplayerId ? pcMap.get(product.tcgplayerId) : null,
                 tcgplayerId: product.tcgplayerId,
                 rawPrice: product.rawPrice ? Number(product.rawPrice) : 0,
