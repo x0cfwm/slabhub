@@ -21,7 +21,7 @@ let MarketPricingService = class MarketPricingService {
         this.rateLimit = new Map();
     }
     async listProducts(query) {
-        const { page = 1, limit = 25, search, onlyLinked = false } = query;
+        const { page = 1, limit = 25, search, onlyLinked = false, setExternalId } = query;
         const skip = (page - 1) * limit;
         const pcMappings = await this.prisma.refPriceChartingProduct.findMany({
             where: { tcgPlayerId: { not: null } },
@@ -46,6 +46,9 @@ let MarketPricingService = class MarketPricingService {
         if (onlyLinked) {
             const validTcgIds = Array.from(pcMap.keys());
             where.tcgplayerId = { in: validTcgIds };
+        }
+        if (setExternalId) {
+            where.setExternalId = setExternalId;
         }
         if (search) {
             where.AND = [
@@ -167,6 +170,16 @@ let MarketPricingService = class MarketPricingService {
             }
             throw new common_1.BadGatewayException(`Failed to fetch pricing: ${error.message}`);
         }
+    }
+    async listSets() {
+        return this.prisma.refSet.findMany({
+            orderBy: { name: 'asc' },
+            select: {
+                externalId: true,
+                name: true,
+                code: true,
+            },
+        });
     }
 };
 exports.MarketPricingService = MarketPricingService;

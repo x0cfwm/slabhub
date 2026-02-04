@@ -184,3 +184,9 @@ export interface MarketProductsResponse {
     limit: number;
     total: number;
 }
+
+export interface MarketSet {
+    externalId: string;
+    name: string;
+    code?: string | null;
+}

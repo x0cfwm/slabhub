@@ -3,4 +3,5 @@ export declare class GetMarketProductsDto {
     limit?: number;
     search?: string;
     onlyLinked?: boolean;
+    setExternalId?: string;
 }

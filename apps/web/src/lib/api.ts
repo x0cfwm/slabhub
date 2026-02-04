@@ -1,5 +1,5 @@
 import { Grader } from "../../../api/src/modules/grading/types/grading.types";
-import { MarketPriceHistory, MarketProductsResponse } from "./types";
+import { MarketPriceHistory, MarketProductsResponse, MarketSet } from "./types";
 
 export interface GradingLookupResult {
     grader: string;
@@ -52,7 +52,7 @@ export async function lookupGrading(grader: string, certNumber: string): Promise
     return response.json();
 }
 
-export async function getMarketProducts(params: { page: number; limit: number; search?: string; onlyLinked?: boolean }): Promise<MarketProductsResponse> {
+export async function getMarketProducts(params: { page: number; limit: number; search?: string; onlyLinked?: boolean; setExternalId?: string }): Promise<MarketProductsResponse> {
     const url = getFullUrl('/v1/market/products');
     url.searchParams.set('page', params.page.toString());
     url.searchParams.set('limit', params.limit.toString());
@@ -62,10 +62,22 @@ export async function getMarketProducts(params: { page: number; limit: number; s
     if (params.onlyLinked) {
         url.searchParams.set('onlyLinked', 'true');
     }
+    if (params.setExternalId) {
+        url.searchParams.set('setExternalId', params.setExternalId);
+    }
 
     const response = await fetch(url.toString());
     if (!response.ok) {
         throw new Error('Failed to fetch market products');
+    }
+    return response.json();
+}
+
+export async function getMarketSets(): Promise<MarketSet[]> {
+    const url = getFullUrl('/v1/market/sets');
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+        throw new Error('Failed to fetch market sets');
     }
     return response.json();
 }

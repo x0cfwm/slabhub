@@ -14,7 +14,7 @@ export class MarketPricingService {
     ) { }
 
     async listProducts(query: GetMarketProductsDto) {
-        const { page = 1, limit = 25, search, onlyLinked = false } = query;
+        const { page = 1, limit = 25, search, onlyLinked = false, setExternalId } = query;
         const skip = (page - 1) * limit;
 
         // 1. Get mappings from RefPriceChartingProduct
@@ -44,6 +44,10 @@ export class MarketPricingService {
         if (onlyLinked) {
             const validTcgIds = Array.from(pcMap.keys());
             where.tcgplayerId = { in: validTcgIds };
+        }
+
+        if (setExternalId) {
+            where.setExternalId = setExternalId;
         }
 
         if (search) {
@@ -194,6 +198,17 @@ export class MarketPricingService {
 
             throw new BadGatewayException(`Failed to fetch pricing: ${error.message}`);
         }
+    }
+
+    async listSets() {
+        return this.prisma.refSet.findMany({
+            orderBy: { name: 'asc' },
+            select: {
+                externalId: true,
+                name: true,
+                code: true,
+            },
+        });
     }
 
 }

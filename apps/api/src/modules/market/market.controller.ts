@@ -11,6 +11,11 @@ export class MarketPricingController {
         return this.marketService.listProducts(query);
     }
 
+    @Get('sets')
+    async getSets() {
+        return this.marketService.listSets();
+    }
+
     @Get('products/:id/prices')
     async getProductPrices(
         @Param('id') id: string,

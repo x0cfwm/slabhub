@@ -22,4 +22,8 @@ export class GetMarketProductsDto {
     @IsOptional()
     @Type(() => Boolean)
     onlyLinked?: boolean;
+
+    @IsOptional()
+    @IsString()
+    setExternalId?: string;
 }

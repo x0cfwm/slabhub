@@ -2,8 +2,15 @@
 
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getMarketProducts } from "@/lib/api";
-import { MarketProduct } from "@/lib/types";
+import { getMarketProducts, getMarketSets } from "@/lib/api";
+import { MarketProduct, MarketSet } from "@/lib/types";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import {
     Table,
     TableBody,
@@ -30,19 +37,27 @@ function PricingContent() {
 
     const page = parseInt(searchParams.get("page") || "1");
     const search = searchParams.get("search") || "";
-    // Default to true if not explicitly set to "false"
     const onlyLinked = searchParams.get("onlyLinked") !== "false";
+    const setExternalId = searchParams.get("setExternalId") || "all";
 
     const [data, setData] = useState<{ items: MarketProduct[], total: number } | null>(null);
+    const [sets, setSets] = useState<MarketSet[]>([]);
     const [loading, setLoading] = useState(true);
+    const [mounted, setMounted] = useState(false);
     const [localSearch, setLocalSearch] = useState(search);
     const [selectedProduct, setSelectedProduct] = useState<MarketProduct | null>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
 
-    const fetchData = useCallback(async (p: number, s: string, ol: boolean) => {
+    const fetchData = useCallback(async (p: number, s: string, ol: boolean, setExId: string) => {
         setLoading(true);
         try {
-            const res = await getMarketProducts({ page: p, limit: LIMIT, search: s, onlyLinked: ol });
+            const res = await getMarketProducts({
+                page: p,
+                limit: LIMIT,
+                search: s,
+                onlyLinked: ol,
+                setExternalId: setExId === "all" ? undefined : setExId
+            });
             setData(res);
         } catch (err) {
             toast.error("Failed to fetch market data");
@@ -52,8 +67,13 @@ function PricingContent() {
     }, []);
 
     useEffect(() => {
-        fetchData(page, search, onlyLinked);
-    }, [page, search, onlyLinked, fetchData]);
+        setMounted(true);
+        getMarketSets().then(setSets).catch(err => console.error("Failed to fetch sets", err));
+    }, []);
+
+    useEffect(() => {
+        fetchData(page, search, onlyLinked, setExternalId);
+    }, [page, search, onlyLinked, setExternalId, fetchData]);
 
     // Handle search debounce
     useEffect(() => {
@@ -72,6 +92,14 @@ function PricingContent() {
     const handleOnlyLinkedChange = (checked: boolean) => {
         const params = new URLSearchParams(searchParams.toString());
         params.set("onlyLinked", checked ? "true" : "false");
+        params.set("page", "1"); // Reset to page 1 on filter change
+        router.push(`?${params.toString()}`);
+    };
+
+    const handleSetChange = (value: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (value === "all") params.delete("setExternalId");
+        else params.set("setExternalId", value);
         params.set("page", "1"); // Reset to page 1 on filter change
         router.push(`?${params.toString()}`);
     };
@@ -98,8 +126,8 @@ function PricingContent() {
                 </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="relative flex-1 max-w-sm">
+            <div className="flex flex-wrap items-center gap-4">
+                <div className="relative w-full md:flex-1 md:max-w-sm leading-none">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Search card profiles..."
@@ -108,14 +136,35 @@ function PricingContent() {
                         onChange={e => setLocalSearch(e.target.value)}
                     />
                 </div>
-                <div className="flex items-center space-x-2">
-                    <Switch
-                        id="only-linked"
-                        checked={onlyLinked}
-                        onCheckedChange={handleOnlyLinkedChange}
-                    />
-                    <Label htmlFor="only-linked">Only with prices</Label>
-                </div>
+                {mounted ? (
+                    <>
+                        <div className="w-full sm:w-auto sm:min-w-[240px] sm:max-w-[400px]">
+                            <Select value={setExternalId} onValueChange={handleSetChange}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="All Sets" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Sets</SelectItem>
+                                    {sets.map((s) => (
+                                        <SelectItem key={s.externalId} value={s.externalId}>
+                                            {s.name} {s.code ? `(${s.code})` : ""}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex items-center space-x-2 bg-muted/30 px-3 py-1.5 rounded-lg border shrink-0">
+                            <Switch
+                                id="only-linked"
+                                checked={onlyLinked}
+                                onCheckedChange={handleOnlyLinkedChange}
+                            />
+                            <Label htmlFor="only-linked" className="whitespace-nowrap text-sm cursor-pointer select-none">Only with prices</Label>
+                        </div>
+                    </>
+                ) : (
+                    <div className="h-9 w-[240px] bg-muted/20 animate-pulse rounded-md border" />
+                )}
             </div>
 
             <div className="border rounded-xl bg-card overflow-hidden shadow-sm">
