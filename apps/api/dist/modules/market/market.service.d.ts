@@ -27,8 +27,8 @@ export declare class MarketPricingService {
     }>;
     getProductPriceHistory(productId: string, strict?: boolean, refresh?: boolean): Promise<any>;
     listSets(): Promise<{
-        externalId: string;
         name: string;
+        externalId: string;
         code: string | null;
     }[]>;
 }

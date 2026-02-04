@@ -15,9 +15,12 @@ export interface AuthenticatedRequest extends Request {
     sellerHandle?: string;
 }
 
+import { AuthService } from './auth.service';
+import * as crypto from 'crypto';
+
 /**
  * Minimal auth middleware for Stage 1.
- * Extracts seller info from headers or defaults to demo seller.
+ * Extracts seller info from sessions, headers or defaults to demo seller.
  * Structure is ready for future JWT/OAuth integration.
  */
 @Injectable()
@@ -27,21 +30,37 @@ export class AuthMiddleware implements NestMiddleware {
     async use(req: AuthenticatedRequest, res: Response, next: NextFunction) {
         const handleFromHeader = req.headers['x-user-handle'] as string | undefined;
         const idFromHeader = req.headers['x-user-id'] as string | undefined;
+        const sessionToken = req.cookies[process.env.SESSION_COOKIE_NAME || 'slabhub_session'];
 
         let seller = null;
 
-        // Try to find seller by ID first, then by handle
-        if (idFromHeader) {
-            seller = await this.prisma.sellerProfile.findUnique({
-                where: { id: idFromHeader },
+        // 1. Try session first
+        if (sessionToken) {
+            const sessionTokenHash = crypto.createHash('sha256').update(sessionToken).digest('hex');
+            const session = await this.prisma.session.findUnique({
+                where: { sessionTokenHash },
+                include: { user: { include: { sellerProfile: true } } },
             });
-        } else if (handleFromHeader) {
-            seller = await this.prisma.sellerProfile.findUnique({
-                where: { handle: handleFromHeader },
-            });
+
+            if (session && !session.revokedAt && session.expiresAt > new Date()) {
+                seller = session.user.sellerProfile;
+            }
         }
 
-        // Default to demo seller if no auth provided
+        // 2. Try headers (legacy/dev)
+        if (!seller) {
+            if (idFromHeader) {
+                seller = await this.prisma.sellerProfile.findUnique({
+                    where: { id: idFromHeader },
+                });
+            } else if (handleFromHeader) {
+                seller = await this.prisma.sellerProfile.findUnique({
+                    where: { handle: handleFromHeader },
+                });
+            }
+        }
+
+        // 3. Default to demo seller if no auth provided
         if (!seller) {
             seller = await this.prisma.sellerProfile.findUnique({
                 where: { handle: DEFAULT_SELLER_HANDLE },

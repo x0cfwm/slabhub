@@ -85,9 +85,56 @@ enum Language {
 // MODELS
 // ============================================================================
 
+/// User account
+model User {
+  id              String          @id @default(cuid())
+  email           String          @unique
+  emailVerifiedAt DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  sessions        Session[]
+  sellerProfile   SellerProfile?
+}
+
+/// OTP codes for email verification
+model OtpChallenge {
+  id            String    @id @default(cuid())
+  email         String
+  codeHash      String
+  salt          String?
+  expiresAt     DateTime
+  consumedAt    DateTime?
+  attempts      Int       @default(0)
+  lastAttemptAt DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+/// Session record for secure authentication
+model Session {
+  id                String    @id @default(cuid())
+  userId            String
+  sessionTokenHash  String    @unique
+  createdAt         DateTime  @default(now())
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  userAgent         String?
+  ip                String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
 /// Seller profile - one per user for MVP
 model SellerProfile {
   id               String          @id @default(cuid())
+  userId           String?         @unique // Link to User
   handle           String          @unique
   shopName         String
   isActive         Boolean         @default(true)
@@ -103,8 +150,10 @@ model SellerProfile {
 
   // Relations
   inventoryItems   InventoryItem[]
+  user             User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([handle])
+  @@index([userId])
 }
 
 /// Global card catalog - One Piece TCG cards

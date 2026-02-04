@@ -22,8 +22,8 @@ export declare class MarketPricingController {
         total: number;
     }>;
     getSets(): Promise<{
-        externalId: string;
         name: string;
+        externalId: string;
         code: string | null;
     }[]>;
     getProductPrices(id: string, strict?: string, refresh?: string): Promise<any>;

@@ -11,16 +11,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { AlertTriangle, CreditCard, MapPin, RefreshCw, Save, Truck } from "lucide-react";
+import { AlertTriangle, CreditCard, LogOut, MapPin, RefreshCw, Save, Truck } from "lucide-react";
+
+import { useAuth } from "@/components/auth-provider";
 
 export default function SettingsPage() {
+    const { user, logout: authLogout } = useAuth();
     const [profile, setProfile] = useState<SellerProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        mockApi.getCurrentUser().then(setProfile).finally(() => setLoading(false));
-    }, []);
+        if (user) {
+            // Use user.profile as initial state, but it might be missing some fields from SellerProfile
+            // For now, let's keep it simple or fetch the full profile if needed
+            // But since getMe returns profile, we can use it.
+            if (user.profile) {
+                // @ts-ignore
+                setProfile(user.profile);
+            }
+            setLoading(false);
+        }
+    }, [user]);
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -44,6 +56,10 @@ export default function SettingsPage() {
         } catch (err) {
             toast.error("Reset failed");
         }
+    };
+
+    const handleLogout = async () => {
+        await authLogout();
     };
 
     if (loading) return <div>Loading settings...</div>;
@@ -193,18 +209,36 @@ export default function SettingsPage() {
 
                 <Card className="border-destructive/20 bg-destructive/5">
                     <CardHeader>
-                        <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                        <CardDescription>Reset all application data to its initial state.</CardDescription>
+                        <CardTitle className="text-destructive uppercase text-xs tracking-widest font-bold">Account</CardTitle>
+                        <CardDescription>Manage your session and access.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Button
                             type="button"
                             variant="destructive"
-                            onClick={handleReset}
+                            onClick={handleLogout}
                             className="bg-destructive/10 text-destructive hover:bg-destructive hover:text-white border border-destructive/20"
                         >
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Log Out from SlabHub
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-destructive/20 bg-destructive/5 opacity-50">
+                    <CardHeader>
+                        <CardTitle className="text-destructive uppercase text-xs tracking-widest font-bold">Danger Zone</CardTitle>
+                        <CardDescription>Reset all application data to its initial state.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleReset}
+                            className="text-destructive hover:bg-destructive hover:text-white border-destructive/20 shadow-none"
+                        >
                             <RefreshCw className="mr-2 h-4 w-4" />
-                            Reset All Data
+                            Reset All Data (Local Only)
                         </Button>
                     </CardContent>
                 </Card>

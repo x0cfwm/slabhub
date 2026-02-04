@@ -20,7 +20,6 @@ export default function AppLayout({
                 </main>
             </div>
             <BottomNav />
-            <Toaster />
         </div>
     );
 }

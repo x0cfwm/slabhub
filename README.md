@@ -367,6 +367,34 @@ curl http://localhost:3001/v1/vendor/nami-treasures
 - **Frontend**: Next.js, React, TailwindCSS, Shadcn/UI
 - **Infrastructure**: Docker, pnpm workspaces
 
+## 🔐 Auth flow (Email OTP)
+
+SlabHub uses a session-based authentication with email OTP (magic codes).
+
+### How it works:
+1.  **Request OTP**: User enters email on `/signup`.
+2.  **Generate & Store**: Backend generates a 6-digit code, hashes it, and stores it in the `OtpChallenge` table.
+3.  **Send**: In development, the OTP is printed to the server console.
+4.  **Verify**: User enters the code on `/otp`.
+5.  **Session**: Backend verifies the code, upserts the user, and creates a session record. A secure `HttpOnly` cookie is set in the browser.
+6.  **Current User**: The `GET /v1/me` endpoint returns the current user based on the session cookie.
+
+### Local Testing:
+1.  Ensure you have the following in your `.env`:
+    ```env
+    SESSION_COOKIE_NAME=slabhub_session
+    OTP_TTL_MINUTES=10
+    OTP_SECRET=dev-secret
+    ```
+2.  Start the API and Web app.
+3.  Navigate to `http://localhost:3000/signup`.
+4.  Enter any email.
+5.  Check the API terminal output for the OTP code.
+6.  Enter the code on the OTP page.
+7.  You should be redirected to the dashboard.
+
+Note: Facebook and Google login buttons are currently stubs for UI demonstration.
+
 ## 📜 License
 
 MIT
