@@ -1,4 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
+import { SentryModule } from '@sentry/nestjs/setup';
+import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -16,6 +19,7 @@ import { z } from 'zod';
 
 @Module({
     imports: [
+        SentryModule.forRoot(),
         ConfigModule.forRoot({
             isGlobal: true,
             validate: (config) => {
@@ -44,6 +48,12 @@ import { z } from 'zod';
         GradingModule,
         MarketModule,
         PriceChartingCrawlerModule,
+    ],
+    providers: [
+        {
+            provide: APP_FILTER,
+            useClass: SentryGlobalFilter,
+        },
     ],
 })
 export class AppModule { }

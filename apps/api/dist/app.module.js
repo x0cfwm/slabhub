@@ -8,6 +8,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
+const core_1 = require("@nestjs/core");
+const setup_1 = require("@sentry/nestjs/setup");
+const setup_2 = require("@sentry/nestjs/setup");
 const config_1 = require("@nestjs/config");
 const prisma_module_1 = require("./modules/prisma/prisma.module");
 const auth_module_1 = require("./modules/auth/auth.module");
@@ -28,6 +31,7 @@ exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            setup_1.SentryModule.forRoot(),
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
                 validate: (config) => {
@@ -56,6 +60,12 @@ exports.AppModule = AppModule = __decorate([
             grading_module_1.GradingModule,
             market_module_1.MarketModule,
             pricecharting_crawler_module_1.PriceChartingCrawlerModule,
+        ],
+        providers: [
+            {
+                provide: core_1.APP_FILTER,
+                useClass: setup_2.SentryGlobalFilter,
+            },
         ],
     })
 ], AppModule);

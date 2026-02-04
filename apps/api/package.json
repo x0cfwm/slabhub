@@ -25,6 +25,7 @@
         "@nestjs/platform-express": "^11.0.0",
         "@nestjs/throttler": "^6.5.0",
         "@prisma/client": "^6.2.0",
+        "@sentry/nestjs": "^10.38.0",
         "axios": "^1.13.2",
         "cheerio": "^1.2.0",
         "class-transformer": "^0.5.1",

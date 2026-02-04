@@ -37,8 +37,8 @@ export declare class AuthService {
     } & {
         id: string;
         email: string;
-        emailVerifiedAt: Date | null;
         createdAt: Date;
+        emailVerifiedAt: Date | null;
         updatedAt: Date;
     }) | null>;
     logout(token: string): Promise<{
