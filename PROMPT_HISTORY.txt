@@ -1891,4 +1891,282 @@ Return:
   <-- 9. FEATURE PROMPT -->
 
 
+You are extending an existing monorepo product:
+
+Frontend:
+- Next.js (App Router) + TypeScript + Tailwind + shadcn/ui
+Backend:
+- NestJS + TypeScript + PostgreSQL + Prisma
+- Monorepo workspace already set up
+- Existing app currently uses a “demo user” approach; replace with real auth.
+
+GOAL:
+Implement full user registration + authentication + session management with best practices for this stack.
+Two auth methods in UI:
+1) Email OTP (magic code) — MUST IMPLEMENT end-to-end
+2) Facebook OAuth — UI button only, NOT implemented yet (stub)
+
+UX requirement:
+Email sign-up / sign-in screen must visually match the provided screenshot:
+- centered card
+- email input
+- “Create Account” primary button
+- Divider “Or”
+- Buttons: “Continue with Apple” (can be hidden) and “Continue with Google” (can be hidden)
+- Instead of Apple button: show “Continue with Facebook” button (stub)
+- Footer terms text
+
+OTP UI requirement:
+Use shadcn/ui Input OTP component example:
+https://ui.shadcn.com/create?item=input-otp-example
+- After entering email, user receives OTP, then enters OTP on a second step/page.
+- Same flow for login and registration (unified “continue with email”).
+
+NON-GOALS:
+- Do NOT implement Facebook OAuth yet (no callback route, no token exchange).
+- Do NOT implement password auth.
+
+------------------------------------------------------------
+A) AUTH MODEL (BACKEND) — BEST PRACTICES
+------------------------------------------------------------
+Use session-based auth with secure HTTP-only cookies (recommended for Next.js + NestJS).
+Do NOT use localStorage for tokens.
+
+Implement:
+- User accounts (email unique)
+- OTP requests (one-time codes)
+- Verification + session creation
+- Session invalidation (logout)
+- “Current user” endpoint
+
+Security requirements:
+- OTP codes are never stored in plaintext.
+- Store only hashed OTP + expiry + attempt counters.
+- OTP TTL: 10 minutes (configurable).
+- Rate limiting: per IP and per email.
+- Limit OTP attempts (e.g., 5 tries) then invalidate.
+- Prevent user enumeration: responses must be identical whether email exists or not (“If the email is valid, we sent a code.”).
+- Session cookie: HttpOnly, Secure in prod, SameSite=Lax, signed if needed.
+- Rotate session on login; allow multiple sessions per user (optional), or single session (acceptable).
+- Provide CSRF protection approach for state-changing endpoints (SameSite cookies + CSRF token optional; explain choice).
+
+------------------------------------------------------------
+B) DATABASE (PRISMA) — MANDATORY TABLES
+------------------------------------------------------------
+Add Prisma models:
+
+User:
+- id (cuid/uuid)
+- email (unique, lowercase)
+- emailVerifiedAt (nullable)
+- createdAt, updatedAt
+
+OtpChallenge (or EmailOtp):
+- id
+- email
+- codeHash
+- salt (optional)
+- expiresAt
+- consumedAt (nullable)
+- attempts (int default 0)
+- lastAttemptAt (nullable)
+- createdAt
+Indexes:
+- email
+- expiresAt
+
+Session:
+- id (random)
+- userId (FK)
+- sessionTokenHash (hash of token stored in cookie)
+- createdAt
+- expiresAt
+- revokedAt (nullable)
+- userAgent (nullable)
+- ip (nullable)
+Indexes:
+- userId
+- expiresAt
+
+Notes:
+- Store cookie token in browser, store only hash in DB.
+- Session TTL: e.g., 30 days; sliding expiration optional.
+
+Migration required.
+
+------------------------------------------------------------
+C) BACKEND MODULES / STRUCTURE (MANDATORY)
+------------------------------------------------------------
+Create NestJS modules:
+
+/apps/api/src/modules/auth
+  auth.module.ts
+  auth.controller.ts
+  auth.service.ts
+  dto/
+    request-otp.dto.ts
+    verify-otp.dto.ts
+  guards/
+    session.guard.ts
+  strategies/
+    session.strategy.ts (optional)
+  utils/
+    otp.ts (generate, hash, compare)
+    cookies.ts (set/clear cookie)
+  mail/
+    mailer.service.ts (stub for now)
+    mailer.console.service.ts (dev: logs OTP to console)
+
+Also implement:
+- UsersModule (or integrate in AuthModule)
+- SessionsModule (or integrate)
+
+CORS:
+- Enable credentials
+- Allow web origin in dev
+- Set cookie domain/path appropriately
+
+------------------------------------------------------------
+D) BACKEND ENDPOINTS (MANDATORY)
+------------------------------------------------------------
+1) Request OTP
+POST /v1/auth/email/request-otp
+Body: { email: string }
+
+Behavior:
+- Normalize email (trim, lowercase)
+- Rate-limit
+- Create an OTP challenge (hashed code + expiry)
+- Send OTP:
+  - DEV: log code to console (mandatory) so flow is testable without real email
+  - PROD-ready interface: MailerService that can later send real emails
+
+Return (always):
+{ ok: true }
+
+2) Verify OTP (creates/refreshes session)
+POST /v1/auth/email/verify-otp
+Body: { email: string, otp: string }
+
+Behavior:
+- Validate OTP challenge exists, not expired, not consumed
+- Increment attempts; lock out on too many attempts
+- If OTP correct:
+  - Upsert user by email
+  - Mark emailVerifiedAt if first time
+  - Create session record
+  - Set session cookie on response (HttpOnly)
+Return:
+{ ok: true, user: { id, email } }
+
+3) Get current user
+GET /v1/me
+Auth: session cookie required
+Return: { id, email, createdAt }
+
+4) Logout
+POST /v1/auth/logout
+Auth: session cookie required
+Behavior:
+- Revoke session
+- Clear cookie
+Return: { ok: true }
+
+5) (Optional) List sessions / revoke session
+Not required for MVP.
+
+------------------------------------------------------------
+E) FRONTEND FLOW (MANDATORY)
+------------------------------------------------------------
+Create pages:
+
+/app/(auth)/signup (or /app/auth)
+- Email input form matching screenshot UI
+- Primary button text: “Create Account”
+- Under “Or”: show Facebook button (stub only, disabled or toast “Coming soon”)
+
+On submit:
+- POST /v1/auth/email/request-otp
+- Route to /app/(auth)/otp?email=...
+
+/app/(auth)/otp
+- Use shadcn Input OTP component (6 digits)
+- Show masked email and “Change email”
+- “Resend code” link:
+  - POST /v1/auth/email/request-otp
+  - rate limit UI cooldown (e.g., 30s)
+- Verify on complete:
+  - POST /v1/auth/email/verify-otp
+  - On success redirect to /dashboard (or where appropriate)
+- Handle errors:
+  - invalid code
+  - expired code
+  - too many attempts
+
+Sign-in uses same screens:
+- The landing link “Already have an account? Sign in” points to same email flow, but button text changes to “Continue” or “Sign in”.
+- Backend must not reveal whether user existed before.
+
+Session handling:
+- Use fetch with credentials: "include"
+- After login, all authenticated pages should use /v1/me to display user
+- Add route protection:
+  - if not logged in -> redirect to /auth
+  - if logged in and visiting /auth -> redirect to /dashboard
+
+------------------------------------------------------------
+F) INTEGRATION WITH EXISTING APP DATA (IMPORTANT)
+------------------------------------------------------------
+Any existing “seller profile” or inventory data currently bound to demo user must now be scoped by authenticated user.
+At minimum:
+- Use session userId to identify the user for /v1/me
+- Future: seller profile becomes user-owned (do not implement refactor fully unless already in scope)
+
+For now, ensure auth works without breaking existing non-auth flows.
+If any endpoints previously assumed demo user, update them to read session user where possible.
+
+------------------------------------------------------------
+G) DEV EXPERIENCE (MANDATORY)
+------------------------------------------------------------
+- Provide `.env.example` entries:
+  - SESSION_COOKIE_NAME
+  - SESSION_TTL_DAYS
+  - OTP_TTL_MINUTES
+  - APP_URL / WEB_ORIGIN
+- In dev, OTP codes must be printed to server console so QA can login.
+- Provide README section: “Auth flow (Email OTP)”.
+
+------------------------------------------------------------
+H) QUALITY / SECURITY CHECKLIST (MANDATORY)
+------------------------------------------------------------
+- Email normalization (lowercase)
+- Constant-time compare for OTP
+- OTP hashing (e.g., HMAC-SHA256 with server secret + salt)
+- Session token random (>=32 bytes)
+- Store session token hash in DB
+- Secure cookies in prod
+- SameSite settings documented
+- Rate limiting for OTP request + verify
+- No user enumeration
+
+------------------------------------------------------------
+I) OUTPUT
+------------------------------------------------------------
+Return:
+- Prisma schema + migration notes
+- NestJS modules/controllers/services + guards
+- Frontend pages/components updated/added
+- Updated API client utilities (fetch with credentials)
+- README instructions for local testing
+- Any new dependencies
+
+DO NOT:
+- Implement Facebook OAuth (only UI stub button)
+- Implement password auth
+- Store tokens in localStorage
+
+
+
   <-- 10. FEATURE PROMPT -->
+
+  <-- 11. FEATURE PROMPT -->
