@@ -364,7 +364,7 @@ curl http://localhost:3001/v1/vendor/nami-treasures
 
 - **Backend**: NestJS, TypeScript, Prisma
 - **Database**: PostgreSQL
-- **Frontend**: Next.js, React, TailwindCSS
+- **Frontend**: Next.js, React, TailwindCSS, Shadcn/UI
 - **Infrastructure**: Docker, pnpm workspaces
 
 ## 📜 License

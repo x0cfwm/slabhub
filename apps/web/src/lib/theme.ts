@@ -1,6 +1,6 @@
 "use client";
 
-export type Theme = "light" | "cyberpunk";
+export type Theme = "light" | "cyberpunk" | "dark";
 
 const THEME_STORAGE_KEY = "slabhub-theme";
 
@@ -15,16 +15,19 @@ export function setStoredTheme(theme: Theme) {
 
     // Apply theme class to html element
     const root = window.document.documentElement;
-    root.classList.remove("theme-light", "theme-cyberpunk");
+    root.classList.remove("theme-light", "theme-cyberpunk", "theme-dark", "dark");
     root.classList.add(`theme-${theme}`);
-
-    // Also update next-themes if it's used, but here we are doing it manually
-    // next-themes usually uses data-theme or class.
+    if (theme === "dark") {
+        root.classList.add("dark");
+    }
 }
 
 export function applyTheme(theme: Theme) {
     if (typeof window === "undefined") return;
     const root = window.document.documentElement;
-    root.classList.remove("theme-light", "theme-cyberpunk");
+    root.classList.remove("theme-light", "theme-cyberpunk", "theme-dark", "dark");
     root.classList.add(`theme-${theme}`);
+    if (theme === "dark") {
+        root.classList.add("dark");
+    }
 }
