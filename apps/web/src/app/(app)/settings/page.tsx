@@ -72,7 +72,7 @@ export default function SettingsPage() {
             </div>
 
             <form onSubmit={handleSave} className="space-y-6">
-                <Card className="overflow-hidden border-primary/20 bg-background/50 backdrop-blur-xl">
+                <Card className="overflow-hidden border-primary/20 bg-card shadow-sm">
                     <CardHeader className="border-b border-primary/10">
                         <div className="flex items-center justify-between">
                             <div>
@@ -99,6 +99,7 @@ export default function SettingsPage() {
                                     value={profile?.shopName}
                                     onChange={e => setProfile(p => p ? { ...p, shopName: e.target.value } : null)}
                                     placeholder="e.g. Nami's Treasures"
+                                    className="bg-background"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -106,7 +107,7 @@ export default function SettingsPage() {
                                 <div className="relative">
                                     <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">@</span>
                                     <Input
-                                        className="pl-7"
+                                        className="pl-7 bg-background"
                                         value={profile?.handle}
                                         onChange={e => setProfile(p => p ? { ...p, handle: e.target.value } : null)}
                                         placeholder="nami-treasures"
@@ -125,6 +126,7 @@ export default function SettingsPage() {
                                     value={profile?.locationCountry}
                                     onChange={e => setProfile(p => p ? { ...p, locationCountry: e.target.value } : null)}
                                     placeholder="Singapore"
+                                    className="bg-background"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -136,6 +138,7 @@ export default function SettingsPage() {
                                     value={profile?.locationCity}
                                     onChange={e => setProfile(p => p ? { ...p, locationCity: e.target.value } : null)}
                                     placeholder="Singapore City"
+                                    className="bg-background"
                                 />
                             </div>
                         </div>
@@ -153,6 +156,7 @@ export default function SettingsPage() {
                                     setProfile(p => p ? { ...p, paymentsAccepted: payments } : null);
                                 }}
                                 placeholder="PayNow, Cash, PayPal, etc. (comma separated)"
+                                className="bg-background"
                             />
                         </div>
 
@@ -189,7 +193,7 @@ export default function SettingsPage() {
                             <Label>Wishlist / Want to Buy</Label>
                             <Textarea
                                 placeholder="What cards are you looking for?"
-                                className="min-h-[100px] bg-background/50"
+                                className="min-h-[100px] bg-background"
                                 value={profile?.wishlistText}
                                 onChange={e => setProfile(p => p ? { ...p, wishlistText: e.target.value } : null)}
                             />

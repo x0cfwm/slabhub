@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter, Fraunces } from "next/font/google";
+import { Geist, Geist_Mono, Inter, Fraunces, Lora } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,12 +13,17 @@ const geistMono = Geist_Mono({
 });
 
 const inter = Inter({
-  variable: "--font-sans",
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
 const fraunces = Fraunces({
-  variable: "--font-serif",
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+});
+
+const lora = Lora({
+  variable: "--font-lora",
   subsets: ["latin"],
 });
 
@@ -52,7 +57,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${fraunces.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${fraunces.variable} ${lora.variable} antialiased`}
       >
         <AuthProvider>
           {children}
