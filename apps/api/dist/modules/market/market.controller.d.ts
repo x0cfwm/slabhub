@@ -10,10 +10,10 @@ export declare class MarketPricingController {
             number: string | null;
             imageUrl: string | null;
             set: string;
+            productType: string | null;
             priceChartingUrl: string;
             tcgplayerId: string | undefined;
             rawPrice: number;
-            sealedPrice: number | null;
             grade9Price: number | null;
             grade10Price: number | null;
             lastUpdated: string;

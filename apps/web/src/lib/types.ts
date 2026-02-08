@@ -118,7 +118,6 @@ export interface CardProfile {
 export interface PricingSnapshot {
     cardProfileId: string;
     rawPrice: number;
-    sealedPrice: number | null;
     updatedAt: string;
     source: "Mock:eBay" | "Mock:TCGPlayer";
 }
@@ -155,9 +154,9 @@ export interface MarketProduct {
     number: string | null;
     imageUrl: string | null;
     set: string;
+    productType?: string | null;
     priceChartingUrl?: string | null;
     rawPrice: number;
-    sealedPrice: number | null;
     grade9Price?: number | null;
     grade10Price?: number | null;
     lastUpdated: string;

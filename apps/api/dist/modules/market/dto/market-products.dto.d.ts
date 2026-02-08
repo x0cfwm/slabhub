@@ -3,4 +3,5 @@ export declare class GetMarketProductsDto {
     limit?: number;
     search?: string;
     setExternalId?: string;
+    productType?: string;
 }

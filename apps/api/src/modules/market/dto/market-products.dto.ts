@@ -23,4 +23,8 @@ export class GetMarketProductsDto {
     @IsOptional()
     @IsString()
     setExternalId?: string;
+
+    @IsOptional()
+    @IsString()
+    productType?: string;
 }

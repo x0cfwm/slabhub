@@ -93,7 +93,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                 </SheetHeader>
 
                 <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div>
                         <div className="p-4 bg-card rounded-xl border shadow-sm relative overflow-hidden transition-all hover:border-primary/50">
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Raw Price</p>
                             {(loading || refreshing) ? (
@@ -101,16 +101,6 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                             ) : (
                                 <p className="text-2xl font-bold text-primary">
                                     ${(history?.updatedRawPrice ?? product.rawPrice).toFixed(2)}
-                                </p>
-                            )}
-                        </div>
-                        <div className="p-4 bg-card rounded-xl border shadow-sm relative overflow-hidden transition-all hover:border-primary/50">
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Sealed Price</p>
-                            {(loading || refreshing) ? (
-                                <Skeleton className="h-8 w-24 mb-1" />
-                            ) : (
-                                <p className="text-2xl font-bold">
-                                    {product.sealedPrice ? `$${product.sealedPrice.toFixed(2)}` : "-"}
                                 </p>
                             )}
                         </div>
@@ -127,7 +117,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                         </div>
                     ) : history?.summary && (history.summary.grade9 || history.summary.grade95 || history.summary.psa10) ? (
                         <div className="space-y-3">
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Graded Estimates (PriceCharting)</h3>
+                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Graded Estimates</h3>
                             <div className="grid grid-cols-3 gap-3">
                                 {history.summary.grade9 && (
                                     <div className="p-3 bg-muted/20 rounded-xl border border-border/50 flex flex-col justify-center transition-colors hover:bg-muted/30">

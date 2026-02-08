@@ -38,6 +38,7 @@ function PricingContent() {
     const page = parseInt(searchParams.get("page") || "1");
     const search = searchParams.get("search") || "";
     const setExternalId = searchParams.get("setExternalId") || "all";
+    const productType = searchParams.get("productType") || "all";
 
     const [data, setData] = useState<{ items: MarketProduct[], total: number } | null>(null);
     const [sets, setSets] = useState<MarketSet[]>([]);
@@ -47,14 +48,15 @@ function PricingContent() {
     const [selectedProduct, setSelectedProduct] = useState<MarketProduct | null>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
 
-    const fetchData = useCallback(async (p: number, s: string, setExId: string) => {
+    const fetchData = useCallback(async (p: number, s: string, setExId: string, pt: string) => {
         setLoading(true);
         try {
             const res = await getMarketProducts({
                 page: p,
                 limit: LIMIT,
                 search: s,
-                setExternalId: setExId === "all" ? undefined : setExId
+                setExternalId: setExId === "all" ? undefined : setExId,
+                productType: pt === "all" ? undefined : pt
             });
             setData(res);
         } catch (err) {
@@ -70,8 +72,8 @@ function PricingContent() {
     }, []);
 
     useEffect(() => {
-        fetchData(page, search, setExternalId);
-    }, [page, search, setExternalId, fetchData]);
+        fetchData(page, search, setExternalId, productType);
+    }, [page, search, setExternalId, productType, fetchData]);
 
     // Handle search debounce
     useEffect(() => {
@@ -92,7 +94,15 @@ function PricingContent() {
         const params = new URLSearchParams(searchParams.toString());
         if (value === "all") params.delete("setExternalId");
         else params.set("setExternalId", value);
-        params.set("page", "1"); // Reset to page 1 on filter change
+        params.set("page", "1");
+        router.push(`?${params.toString()}`);
+    };
+
+    const handleTypeChange = (value: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (value === "all") params.delete("productType");
+        else params.set("productType", value);
+        params.set("page", "1");
         router.push(`?${params.toString()}`);
     };
 
@@ -130,7 +140,7 @@ function PricingContent() {
                 </div>
                 {mounted ? (
                     <>
-                        <div className="w-full sm:w-auto sm:min-w-[240px] sm:max-w-[400px]">
+                        <div className="w-full sm:w-auto sm:min-w-[200px]">
                             <Select value={setExternalId} onValueChange={handleSetChange}>
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="All Sets" />
@@ -145,9 +155,26 @@ function PricingContent() {
                                 </SelectContent>
                             </Select>
                         </div>
+                        <div className="w-full sm:w-auto sm:min-w-[160px]">
+                            <Select value={productType} onValueChange={handleTypeChange}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="All Types" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Types</SelectItem>
+                                    <SelectItem value="SINGLE_CARD">Single Card</SelectItem>
+                                    <SelectItem value="SEALED_PACK">Sealed Pack</SelectItem>
+                                    <SelectItem value="SEALED_BOX">Sealed Box</SelectItem>
+                                    <SelectItem value="SEALED_OTHER">Sealed Other</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </>
                 ) : (
-                    <div className="h-9 w-[240px] bg-muted/20 animate-pulse rounded-md border" />
+                    <div className="flex gap-4">
+                        <div className="h-9 w-[200px] bg-muted/20 animate-pulse rounded-md border" />
+                        <div className="h-9 w-[160px] bg-muted/20 animate-pulse rounded-md border" />
+                    </div>
                 )}
             </div>
 
@@ -158,7 +185,6 @@ function PricingContent() {
                             <TableHead className="w-[80px]">Card</TableHead>
                             <TableHead>Card Name</TableHead>
                             <TableHead>Raw Price</TableHead>
-                            <TableHead>Sealed Price</TableHead>
                             <TableHead>Last Updated</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -168,7 +194,6 @@ function PricingContent() {
                                 <TableRow key={i}>
                                     <TableCell><Skeleton className="h-12 w-8 rounded" /></TableCell>
                                     <TableCell><Skeleton className="h-4 w-32 mb-1" /><Skeleton className="h-3 w-16" /></TableCell>
-                                    <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                                     <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                                 </TableRow>
@@ -197,18 +222,20 @@ function PricingContent() {
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex flex-col">
-                                            <span className="font-semibold text-sm group-hover:text-primary transition-colors">{product.name}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-semibold text-sm group-hover:text-primary transition-colors">{product.name}</span>
+                                                {product.productType && (
+                                                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 uppercase font-bold text-muted-foreground border-muted-foreground/20">
+                                                        {product.productType.replace('SEALED_', '')}
+                                                    </Badge>
+                                                )}
+                                            </div>
                                             <span className="text-[10px] text-muted-foreground font-mono">{product.number}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell>
                                         <span className="font-bold text-sm">
                                             {product.rawPrice && product.rawPrice > 0 ? `$${product.rawPrice.toFixed(2)}` : "-"}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className="text-sm">
-                                            {product.sealedPrice ? `$${product.sealedPrice.toFixed(2)}` : "-"}
                                         </span>
                                     </TableCell>
                                     <TableCell className="text-[10px] text-muted-foreground">

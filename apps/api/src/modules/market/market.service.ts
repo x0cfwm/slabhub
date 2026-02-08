@@ -16,13 +16,17 @@ export class MarketPricingService {
     ) { }
 
     async listProducts(query: GetMarketProductsDto) {
-        const { page = 1, limit = 25, search, setExternalId } = query;
+        const { page = 1, limit = 25, search, setExternalId, productType } = query;
         const skip = (page - 1) * limit;
 
         const where: any = {};
 
         if (setExternalId) {
             where.setId = setExternalId;
+        }
+
+        if (productType) {
+            where.productType = productType;
         }
 
         if (search) {
@@ -50,10 +54,10 @@ export class MarketPricingService {
                 number: product.cardNumber,
                 imageUrl: product.imageUrl,
                 set: product.set?.name || 'Unknown Set',
+                productType: product.productType,
                 priceChartingUrl: product.productUrl,
                 tcgplayerId: product.tcgPlayerId?.toString(),
                 rawPrice: product.rawPrice ? Number(product.rawPrice) : 0,
-                sealedPrice: product.sealedPrice ? Number(product.sealedPrice) : null,
                 grade9Price: product.grade9Price ? Number(product.grade9Price) : null,
                 grade10Price: product.grade10Price ? Number(product.grade10Price) : null,
                 lastUpdated: product.priceUpdatedAt ? product.priceUpdatedAt.toISOString() : product.updatedAt.toISOString(),
