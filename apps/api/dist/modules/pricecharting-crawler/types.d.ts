@@ -13,6 +13,13 @@ export interface ParsedProductDetails {
     imageUrl?: string;
     localImagePath?: string;
     productType?: PriceChartingProductType;
+    rawPrice?: number;
+    sealedPrice?: number;
+    grade7Price?: number;
+    grade8Price?: number;
+    grade9Price?: number;
+    grade95Price?: number;
+    grade10Price?: number;
 }
 export interface PriceChartingCrawlOptions {
     maxProducts?: number;

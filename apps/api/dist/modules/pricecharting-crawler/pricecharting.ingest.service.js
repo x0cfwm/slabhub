@@ -188,6 +188,15 @@ let PriceChartingIngestService = PriceChartingIngestService_1 = class PriceChart
                 localImagePath: data.localImagePath,
                 imageUrl: data.imageUrl,
                 productType: data.productType,
+                rawPrice: data.rawPrice,
+                sealedPrice: data.sealedPrice,
+                grade7Price: data.grade7Price,
+                grade8Price: data.grade8Price,
+                grade9Price: data.grade9Price,
+                grade95Price: data.grade95Price,
+                grade10Price: data.grade10Price,
+                priceSource: 'PriceCharting',
+                priceUpdatedAt: new Date(),
                 scrapedAt: new Date(),
             },
             create: {
@@ -204,17 +213,39 @@ let PriceChartingIngestService = PriceChartingIngestService_1 = class PriceChart
                 localImagePath: data.localImagePath,
                 imageUrl: data.imageUrl,
                 productType: data.productType,
+                rawPrice: data.rawPrice,
+                sealedPrice: data.sealedPrice,
+                grade7Price: data.grade7Price,
+                grade8Price: data.grade8Price,
+                grade9Price: data.grade9Price,
+                grade95Price: data.grade95Price,
+                grade10Price: data.grade10Price,
+                priceSource: 'PriceCharting',
+                priceUpdatedAt: new Date(),
             },
         });
     }
     async linkToRefProduct(tcgPlayerId, productUrl) {
+        const pcProduct = await this.prisma.refPriceChartingProduct.findUnique({
+            where: { productUrl }
+        });
+        if (!pcProduct)
+            return;
         const tcgplayerIdStr = tcgPlayerId.toString();
         await this.prisma.refProduct.updateMany({
             where: {
                 tcgplayerId: tcgplayerIdStr
             },
             data: {
-                tcgplayerId: tcgplayerIdStr
+                rawPrice: pcProduct.rawPrice,
+                sealedPrice: pcProduct.sealedPrice,
+                grade7Price: pcProduct.grade7Price,
+                grade8Price: pcProduct.grade8Price,
+                grade9Price: pcProduct.grade9Price,
+                grade95Price: pcProduct.grade95Price,
+                grade10Price: pcProduct.grade10Price,
+                priceSource: 'PriceCharting',
+                priceUpdatedAt: pcProduct.priceUpdatedAt,
             }
         });
     }

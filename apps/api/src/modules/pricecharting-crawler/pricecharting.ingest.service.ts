@@ -172,6 +172,15 @@ export class PriceChartingIngestService {
                 localImagePath: data.localImagePath,
                 imageUrl: data.imageUrl,
                 productType: data.productType,
+                rawPrice: data.rawPrice,
+                sealedPrice: data.sealedPrice,
+                grade7Price: data.grade7Price,
+                grade8Price: data.grade8Price,
+                grade9Price: data.grade9Price,
+                grade95Price: data.grade95Price,
+                grade10Price: data.grade10Price,
+                priceSource: 'PriceCharting',
+                priceUpdatedAt: new Date(),
                 scrapedAt: new Date(),
             },
             create: {
@@ -188,13 +197,26 @@ export class PriceChartingIngestService {
                 localImagePath: data.localImagePath,
                 imageUrl: data.imageUrl,
                 productType: data.productType,
+                rawPrice: data.rawPrice,
+                sealedPrice: data.sealedPrice,
+                grade7Price: data.grade7Price,
+                grade8Price: data.grade8Price,
+                grade9Price: data.grade9Price,
+                grade95Price: data.grade95Price,
+                grade10Price: data.grade10Price,
+                priceSource: 'PriceCharting',
+                priceUpdatedAt: new Date(),
             },
         });
     }
 
     private async linkToRefProduct(tcgPlayerId: number, productUrl: string) {
-        // RefProduct has tcgplayerId as String? (lowercase p)
-        // RefPriceChartingProduct has tcgPlayerId as Int? (PascalCase P)
+        // Find the newly ingested data to get the prices
+        const pcProduct = await this.prisma.refPriceChartingProduct.findUnique({
+            where: { productUrl }
+        });
+
+        if (!pcProduct) return;
 
         const tcgplayerIdStr = tcgPlayerId.toString();
 
@@ -203,9 +225,15 @@ export class PriceChartingIngestService {
                 tcgplayerId: tcgplayerIdStr
             },
             data: {
-                // No need to update priceChartingUrl anymore as it's pulled on the fly
-                // We just ensure the link exists if it was somehow different
-                tcgplayerId: tcgplayerIdStr
+                rawPrice: pcProduct.rawPrice,
+                sealedPrice: pcProduct.sealedPrice,
+                grade7Price: pcProduct.grade7Price,
+                grade8Price: pcProduct.grade8Price,
+                grade9Price: pcProduct.grade9Price,
+                grade95Price: pcProduct.grade95Price,
+                grade10Price: pcProduct.grade10Price,
+                priceSource: 'PriceCharting',
+                priceUpdatedAt: pcProduct.priceUpdatedAt,
             }
         });
     }

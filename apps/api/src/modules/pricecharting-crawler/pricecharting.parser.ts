@@ -110,7 +110,85 @@ export class PriceChartingParser {
             title: h1Text,
             imageUrl: imageUrl ? (imageUrl.startsWith('http') ? imageUrl : `https://www.pricecharting.com${imageUrl}`) : undefined,
             productType,
+            ...this.parsePricesFromTable($),
         };
+    }
+
+    private parsePricesFromTable($: cheerio.CheerioAPI): Partial<ParsedProductDetails> {
+        const prices: Partial<ParsedProductDetails> = {};
+        const priceTable = $('#price_data, .price_details');
+
+        if (priceTable.length === 0) {
+            this.logger.warn('Price table not found on page');
+            return prices;
+        }
+
+        // 1. Try to parse as a horizontal table (Headers in thead, values in tbody)
+        const headers: string[] = [];
+        priceTable.find('thead th').each((_, el) => {
+            headers.push($(el).text().trim());
+        });
+
+        if (headers.length > 0) {
+            priceTable.find('tbody tr').first().find('td').each((i, el) => {
+                const label = headers[i];
+                if (!label) return;
+
+                // Take ONLY the main price span, skip the "change" span
+                const priceText = $(el).find('span.price.js-price').first().text().trim() ||
+                    $(el).find('.js-price').first().text().trim() ||
+                    $(el).contents().first().text().trim();
+
+                const price = this.parsePrice(priceText);
+                if (price !== undefined) {
+                    this.assignPriceByLabel(prices, label, price);
+                }
+            });
+        }
+
+        // 2. Fallback or additional check for row-based table (Label in first td/th, value in second)
+        if (Object.keys(prices).length === 0) {
+            priceTable.find('tr').each((_, el) => {
+                const label = $(el).find('td, th').first().text().trim();
+                const priceText = $(el).find('span.price.js-price').first().text().trim() ||
+                    $(el).find('.price.js-price').first().text().trim() ||
+                    $(el).find('td.price').first().text().trim();
+
+                const price = this.parsePrice(priceText);
+                if (price !== undefined) {
+                    this.assignPriceByLabel(prices, label, price);
+                }
+            });
+        }
+
+        this.logger.debug(`Extracted prices to object: ${JSON.stringify(prices)}`);
+        return prices;
+    }
+
+    private assignPriceByLabel(prices: Partial<ParsedProductDetails>, label: string, price: number) {
+        if (label.includes('Ungraded')) {
+            prices.rawPrice = price;
+        } else if (label.includes('Grade 7')) {
+            prices.grade7Price = price;
+        } else if (label.includes('Grade 8')) {
+            prices.grade8Price = price;
+        } else if (label.includes('Grade 9.5')) {
+            prices.grade95Price = price;
+        } else if (label.includes('Grade 9')) { // Match after 9.5 to avoid partial matches
+            prices.grade9Price = price;
+        } else if (label.includes('PSA 10') || label.includes('Grade 10')) {
+            prices.grade10Price = price;
+        } else if (label.includes('New') || label.includes('Sealed')) {
+            prices.sealedPrice = price;
+        }
+    }
+
+    private parsePrice(text: string): number | undefined {
+        if (!text || text.trim() === '-' || text.trim() === '') return undefined;
+        // Handle cases like "$1,234.56"
+        const cleaned = text.replace(/[$,]/g, '').trim();
+        const price = parseFloat(cleaned);
+        return isNaN(price) ? undefined : price;
     }
 
     private classifyProduct(title: string): PriceChartingProductType {
