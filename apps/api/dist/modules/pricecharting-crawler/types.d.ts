@@ -9,6 +9,7 @@ export interface ParsedProductDetails {
     setSlug?: string;
     setName?: string;
     productSlug?: string;
+    title?: string;
     imageUrl?: string;
     localImagePath?: string;
     productType?: PriceChartingProductType;

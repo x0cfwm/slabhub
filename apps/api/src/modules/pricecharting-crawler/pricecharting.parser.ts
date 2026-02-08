@@ -107,6 +107,7 @@ export class PriceChartingParser {
             setSlug: extractSlug(url, 'game'),
             setName: setName || undefined,
             productSlug: url.split('/').filter(Boolean).pop(),
+            title: h1Text,
             imageUrl: imageUrl ? (imageUrl.startsWith('http') ? imageUrl : `https://www.pricecharting.com${imageUrl}`) : undefined,
             productType,
         };

@@ -353,6 +353,7 @@ model RefPriceChartingProduct {
   setSlug          String?  // derived from set page path
   setId            String?
   set              RefPriceChartingSet? @relation(fields: [setId], references: [id])
+  title            String?
   productSlug      String?  // derived from product page path
   localImagePath   String?
   imageUrl         String?
