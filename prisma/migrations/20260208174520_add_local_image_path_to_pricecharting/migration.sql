@@ -5,13 +5,13 @@
 
 */
 -- DropIndex
-DROP INDEX "RefProduct_tcgPlayerId_idx";
+DROP INDEX IF EXISTS "RefProduct_tcgPlayerId_idx";
 
 -- AlterTable
 ALTER TABLE "RefPriceChartingProduct" ADD COLUMN     "localImagePath" TEXT;
 
 -- AlterTable
-ALTER TABLE "RefProduct" DROP COLUMN "tcgPlayerId",
+ALTER TABLE "RefProduct" DROP COLUMN IF EXISTS "tcgPlayerId",
 ADD COLUMN     "grade10Price" DECIMAL(10,2),
 ADD COLUMN     "grade7Price" DECIMAL(10,2),
 ADD COLUMN     "grade8Price" DECIMAL(10,2),
