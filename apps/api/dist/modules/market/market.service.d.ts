@@ -18,6 +18,8 @@ export declare class MarketPricingService {
             tcgplayerId: string | null;
             rawPrice: number;
             sealedPrice: number | null;
+            grade9Price: number | null;
+            grade10Price: number | null;
             lastUpdated: string;
             source: string;
         }[];

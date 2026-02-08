@@ -12,6 +12,20 @@ export interface PriceChartingEntry {
     link?: string;
 }
 
+export interface PriceChartingSummary {
+    ungraded?: number;
+    grade7?: number;
+    grade8?: number;
+    grade9?: number;
+    grade95?: number;
+    psa10?: number;
+}
+
+export interface PriceChartingResponse {
+    summary: PriceChartingSummary;
+    sales: PriceChartingEntry[];
+}
+
 @Injectable()
 export class PriceChartingParser {
     private readonly logger = new Logger(PriceChartingParser.name);
@@ -35,7 +49,7 @@ export class PriceChartingParser {
         }
     }
 
-    async parse(url: string): Promise<PriceChartingEntry[]> {
+    async parse(url: string): Promise<PriceChartingResponse> {
         try {
             this.logger.log(`Fetching PriceCharting data from: ${url}`);
             const response = await axios.get(url, {
@@ -50,9 +64,19 @@ export class PriceChartingParser {
             });
 
             const $ = cheerio.load(response.data);
-            const entries: PriceChartingEntry[] = [];
+            const sales: PriceChartingEntry[] = [];
 
-            // Primary selector based on browser inspection
+            // 1. Extract Summary Prices
+            const summary: PriceChartingSummary = {
+                ungraded: this.parsePrice($('#used_price span.price').text()),
+                grade7: this.parsePrice($('#complete_price span.price').text()),
+                grade8: this.parsePrice($('#new_price span.price').text()),
+                grade9: this.parsePrice($('#graded_price span.price').text()),
+                grade95: this.parsePrice($('#box_only_price span.price').text()),
+                psa10: this.parsePrice($('#manual_only_price span.price').text()),
+            };
+
+            // 2. Extract Sales
             let table = $('#completed_sales_table');
             if (table.length === 0) {
                 table = $('.js-completed-sales-table');
@@ -80,17 +104,17 @@ export class PriceChartingParser {
                 });
                 if (anyRows.length > 0) {
                     this.logger.log(`Found ${anyRows.length} rows using pattern fallback`);
-                    this.processRows($, anyRows, entries);
+                    this.processRows($, anyRows, sales);
                 }
             } else {
-                this.processRows($, rows, entries);
+                this.processRows($, rows, sales);
             }
 
-            if (entries.length === 0) {
+            if (sales.length === 0 && !summary.ungraded) {
                 throw new Error('No entries could be parsed from the page structure.');
             }
 
-            return entries;
+            return { summary, sales };
         } catch (error) {
             this.logger.error(`Failed to parse PriceCharting URL ${url}: ${error.message}`);
             throw error;
@@ -99,7 +123,7 @@ export class PriceChartingParser {
 
     private processRows($: cheerio.CheerioAPI, rows: cheerio.Cheerio<any>, entries: PriceChartingEntry[]) {
         rows.each((i: number, el: any) => {
-            if (entries.length >= 10) return false;
+            if (entries.length >= 20) return false; // Increased to 20 sales
 
             const dateTd = $(el).find('td.date');
             const titleTd = $(el).find('td.title');
@@ -120,6 +144,8 @@ export class PriceChartingParser {
             if (!dateStr || !titleText || !priceStr) return;
 
             const price = this.parsePrice(priceStr);
+            if (price === undefined) return;
+
             const date = this.normalizeDate(dateStr);
             const source = this.inferSource(fullTitleCellText);
 
@@ -133,10 +159,12 @@ export class PriceChartingParser {
         });
     }
 
-    private parsePrice(priceStr: string): number {
+    private parsePrice(priceStr: string): number | undefined {
+        if (!priceStr) return undefined;
         // Remove currency symbols and commas
         const cleaned = priceStr.replace(/[^\d.]/g, '');
-        return parseFloat(cleaned) || 0;
+        const val = parseFloat(cleaned);
+        return isNaN(val) ? undefined : val;
     }
 
     private normalizeDate(dateStr: string): string {

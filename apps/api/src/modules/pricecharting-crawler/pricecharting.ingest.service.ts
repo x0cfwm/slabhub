@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PriceChartingClient } from './pricecharting.client';
 import { PriceChartingParser } from './pricecharting.parser';
 import { PriceChartingCrawlOptions, ParsedProductDetails } from './types';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class PriceChartingIngestService {
@@ -100,6 +102,14 @@ export class PriceChartingIngestService {
         const parsed = this.parser.parseProductPage(html, url);
         parsed.categorySlug = 'one-piece-cards';
 
+        if (parsed.imageUrl) {
+            try {
+                parsed.localImagePath = await this.downloadImage(parsed.imageUrl, parsed.productSlug || 'unknown');
+            } catch (error) {
+                this.logger.error(`Failed to download image for ${url}: ${error.message}`);
+            }
+        }
+
         if (options.dryRun) {
             this.logger.log(`[DRY RUN] Would ingest: ${parsed.productUrl} (TCGPlayerID: ${parsed.tcgPlayerId})`);
             return;
@@ -112,7 +122,41 @@ export class PriceChartingIngestService {
         }
     }
 
+    private async downloadImage(url: string, slug: string): Promise<string | undefined> {
+        const buffer = await this.client.fetchBinary(url);
+        const uploadDir = path.join(process.cwd(), 'uploads', 'pricecharting');
+
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        const extension = url.split('.').pop()?.split('?')[0] || 'jpg';
+        const fileName = `${slug}.${extension}`;
+        const filePath = path.join(uploadDir, fileName);
+
+        fs.writeFileSync(filePath, buffer);
+
+        // Return relative path for storage
+        return `/uploads/pricecharting/${fileName}`;
+    }
+
     private async upsertProduct(data: ParsedProductDetails) {
+        let setId: string | undefined;
+
+        if (data.setName) {
+            const set = await this.prisma.refPriceChartingSet.upsert({
+                where: { name: data.setName },
+                update: {
+                    slug: data.setSlug,
+                },
+                create: {
+                    name: data.setName,
+                    slug: data.setSlug,
+                },
+            });
+            setId = set.id;
+        }
+
         await this.prisma.refPriceChartingProduct.upsert({
             where: { productUrl: data.productUrl },
             update: {
@@ -122,7 +166,10 @@ export class PriceChartingIngestService {
                 details: data.details as any,
                 categorySlug: data.categorySlug,
                 setSlug: data.setSlug,
+                setId: setId,
                 productSlug: data.productSlug,
+                localImagePath: data.localImagePath,
+                imageUrl: data.imageUrl,
                 scrapedAt: new Date(),
             },
             create: {
@@ -133,7 +180,10 @@ export class PriceChartingIngestService {
                 details: data.details as any,
                 categorySlug: data.categorySlug,
                 setSlug: data.setSlug,
+                setId: setId,
                 productSlug: data.productSlug,
+                localImagePath: data.localImagePath,
+                imageUrl: data.imageUrl,
             },
         });
     }

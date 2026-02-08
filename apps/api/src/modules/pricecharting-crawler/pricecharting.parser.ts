@@ -88,6 +88,12 @@ export class PriceChartingParser {
         const priceChartingIdStr = details['PriceCharting ID'];
         const cardNumber = details['Card Number'];
 
+        // Extract Image
+        const imageUrl = $('div.cover img').attr('src');
+
+        // Extract Set Name
+        const setName = $('.breadcrumbs a:last-of-type').text().trim();
+
         return {
             productUrl: url,
             tcgPlayerId: tcgPlayerIdStr ? parseInt(tcgPlayerIdStr, 10) : undefined,
@@ -95,7 +101,9 @@ export class PriceChartingParser {
             cardNumber: cardNumber || undefined,
             details,
             setSlug: extractSlug(url, 'game'),
+            setName: setName || undefined,
             productSlug: url.split('/').filter(Boolean).pop(),
+            imageUrl: imageUrl ? (imageUrl.startsWith('http') ? imageUrl : `https://www.pricecharting.com${imageUrl}`) : undefined,
         };
     }
 }

@@ -92,6 +92,8 @@ let MarketPricingService = class MarketPricingService {
                 tcgplayerId: product.tcgplayerId,
                 rawPrice: product.rawPrice ? Number(product.rawPrice) : 0,
                 sealedPrice: product.sealedPrice ? Number(product.sealedPrice) : null,
+                grade9Price: product.grade9Price ? Number(product.grade9Price) : null,
+                grade10Price: product.grade10Price ? Number(product.grade10Price) : null,
                 lastUpdated: product.priceUpdatedAt ? product.priceUpdatedAt.toISOString() : product.updatedAt.toISOString(),
                 source: product.priceSource || 'RefProduct',
             };
@@ -133,27 +135,32 @@ let MarketPricingService = class MarketPricingService {
         }
         this.rateLimit.set(productId, Date.now());
         try {
-            const parsedPrices = await this.parser.parse(priceChartingUrl);
-            const recentSales = parsedPrices.slice(0, 5);
-            const avgPrice = recentSales.length > 0
-                ? recentSales.reduce((acc, p) => acc + p.price, 0) / recentSales.length
-                : 0;
-            if (avgPrice > 0) {
-                await this.prisma.refProduct.update({
-                    where: { id: productId },
-                    data: {
-                        rawPrice: avgPrice,
-                        priceSource: recentSales[0]?.source || 'PriceCharting',
-                        priceUpdatedAt: new Date(),
-                    }
-                });
+            const { summary, sales } = await this.parser.parse(priceChartingUrl);
+            const recentSales = sales.slice(0, 5);
+            let avgPrice = summary.ungraded;
+            if (!avgPrice && recentSales.length > 0) {
+                avgPrice = recentSales.reduce((acc, p) => acc + p.price, 0) / recentSales.length;
             }
+            await this.prisma.refProduct.update({
+                where: { id: productId },
+                data: {
+                    rawPrice: avgPrice,
+                    grade7Price: summary.grade7,
+                    grade8Price: summary.grade8,
+                    grade9Price: summary.grade9,
+                    grade95Price: summary.grade95,
+                    grade10Price: summary.psa10,
+                    priceSource: recentSales[0]?.source || 'PriceCharting',
+                    priceUpdatedAt: new Date(),
+                }
+            });
             const response = {
                 productId,
                 mode: 'parsed',
                 parseError: null,
-                prices: parsedPrices,
-                updatedRawPrice: avgPrice > 0 ? avgPrice : null,
+                prices: sales,
+                summary: summary,
+                updatedRawPrice: avgPrice && avgPrice > 0 ? avgPrice : null,
             };
             this.cache.set(productId, {
                 data: response,

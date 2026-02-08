@@ -12,6 +12,7 @@ export declare class PriceChartingIngestService {
     crawlOnePieceCards(options?: PriceChartingCrawlOptions): Promise<void>;
     private crawlSetPages;
     private crawlAndIngestProduct;
+    private downloadImage;
     private upsertProduct;
     private linkToRefProduct;
 }

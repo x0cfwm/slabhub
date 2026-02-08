@@ -82,7 +82,15 @@ let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
                 timeout: 30000,
             });
             const $ = cheerio.load(response.data);
-            const entries = [];
+            const sales = [];
+            const summary = {
+                ungraded: this.parsePrice($('#used_price span.price').text()),
+                grade7: this.parsePrice($('#complete_price span.price').text()),
+                grade8: this.parsePrice($('#new_price span.price').text()),
+                grade9: this.parsePrice($('#graded_price span.price').text()),
+                grade95: this.parsePrice($('#box_only_price span.price').text()),
+                psa10: this.parsePrice($('#manual_only_price span.price').text()),
+            };
             let table = $('#completed_sales_table');
             if (table.length === 0) {
                 table = $('.js-completed-sales-table');
@@ -105,16 +113,16 @@ let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
                 });
                 if (anyRows.length > 0) {
                     this.logger.log(`Found ${anyRows.length} rows using pattern fallback`);
-                    this.processRows($, anyRows, entries);
+                    this.processRows($, anyRows, sales);
                 }
             }
             else {
-                this.processRows($, rows, entries);
+                this.processRows($, rows, sales);
             }
-            if (entries.length === 0) {
+            if (sales.length === 0 && !summary.ungraded) {
                 throw new Error('No entries could be parsed from the page structure.');
             }
-            return entries;
+            return { summary, sales };
         }
         catch (error) {
             this.logger.error(`Failed to parse PriceCharting URL ${url}: ${error.message}`);
@@ -123,7 +131,7 @@ let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
     }
     processRows($, rows, entries) {
         rows.each((i, el) => {
-            if (entries.length >= 10)
+            if (entries.length >= 20)
                 return false;
             const dateTd = $(el).find('td.date');
             const titleTd = $(el).find('td.title');
@@ -140,6 +148,8 @@ let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
             if (!dateStr || !titleText || !priceStr)
                 return;
             const price = this.parsePrice(priceStr);
+            if (price === undefined)
+                return;
             const date = this.normalizeDate(dateStr);
             const source = this.inferSource(fullTitleCellText);
             entries.push({
@@ -152,8 +162,11 @@ let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
         });
     }
     parsePrice(priceStr) {
+        if (!priceStr)
+            return undefined;
         const cleaned = priceStr.replace(/[^\d.]/g, '');
-        return parseFloat(cleaned) || 0;
+        const val = parseFloat(cleaned);
+        return isNaN(val) ? undefined : val;
     }
     normalizeDate(dateStr) {
         try {

@@ -63,6 +63,33 @@ let PriceChartingClient = PriceChartingClient_1 = class PriceChartingClient {
             throw error;
         }
     }
+    async fetchBinary(url, retries = 3) {
+        await this.rateLimit();
+        try {
+            this.logger.debug(`Fetching binary content from ${url}`);
+            const response = await (0, rxjs_1.firstValueFrom)(this.httpService.get(url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                },
+                httpsAgent: this.proxyAgent,
+                proxy: false,
+                timeout: 30000,
+                responseType: 'arraybuffer',
+            }));
+            this.lastRequestTime = Date.now();
+            return Buffer.from(response.data);
+        }
+        catch (error) {
+            if (retries > 0 && this.shouldRetry(error)) {
+                const delay = Math.pow(2, 4 - retries) * 1000;
+                this.logger.warn(`Retry fetching binary ${url} in ${delay}ms... (${retries} retries left)`);
+                await new Promise((resolve) => setTimeout(resolve, delay));
+                return this.fetchBinary(url, retries - 1);
+            }
+            this.logger.error(`Failed to fetch binary ${url}: ${error.message}`);
+            throw error;
+        }
+    }
     async rateLimit() {
         const now = Date.now();
         const elapsed = now - this.lastRequestTime;

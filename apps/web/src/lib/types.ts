@@ -158,6 +158,8 @@ export interface MarketProduct {
     priceChartingUrl?: string | null;
     rawPrice: number;
     sealedPrice: number | null;
+    grade9Price?: number | null;
+    grade10Price?: number | null;
     lastUpdated: string;
     source: string;
 }
@@ -175,6 +177,14 @@ export interface MarketPriceHistory {
     mode: "parsed" | "mock";
     parseError: string | null;
     prices: MarketPriceHistoryEntry[];
+    summary?: {
+        ungraded?: number;
+        grade7?: number;
+        grade8?: number;
+        grade9?: number;
+        grade95?: number;
+        psa10?: number;
+    };
     updatedRawPrice?: number | null;
 }
 

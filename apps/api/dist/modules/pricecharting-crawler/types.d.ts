@@ -6,7 +6,10 @@ export interface ParsedProductDetails {
     details: Record<string, string | null>;
     categorySlug?: string;
     setSlug?: string;
+    setName?: string;
     productSlug?: string;
+    imageUrl?: string;
+    localImagePath?: string;
 }
 export interface PriceChartingCrawlOptions {
     maxProducts?: number;

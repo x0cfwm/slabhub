@@ -94,7 +94,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
 
                 <div className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 bg-card rounded-xl border shadow-sm relative overflow-hidden">
+                        <div className="p-4 bg-card rounded-xl border shadow-sm relative overflow-hidden transition-all hover:border-primary/50">
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Raw Price</p>
                             {(loading || refreshing) ? (
                                 <Skeleton className="h-8 w-24 mb-1" />
@@ -104,7 +104,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                 </p>
                             )}
                         </div>
-                        <div className="p-4 bg-card rounded-xl border shadow-sm relative overflow-hidden">
+                        <div className="p-4 bg-card rounded-xl border shadow-sm relative overflow-hidden transition-all hover:border-primary/50">
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Sealed Price</p>
                             {(loading || refreshing) ? (
                                 <Skeleton className="h-8 w-24 mb-1" />
@@ -115,6 +115,41 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                             )}
                         </div>
                     </div>
+
+                    {(loading || refreshing) ? (
+                        <div className="space-y-3">
+                            <Skeleton className="h-4 w-32 px-1" />
+                            <div className="grid grid-cols-3 gap-3">
+                                <Skeleton className="h-16 w-full rounded-xl" />
+                                <Skeleton className="h-16 w-full rounded-xl" />
+                                <Skeleton className="h-16 w-full rounded-xl" />
+                            </div>
+                        </div>
+                    ) : history?.summary && (history.summary.grade9 || history.summary.grade95 || history.summary.psa10) ? (
+                        <div className="space-y-3">
+                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Graded Estimates (PriceCharting)</h3>
+                            <div className="grid grid-cols-3 gap-3">
+                                {history.summary.grade9 && (
+                                    <div className="p-3 bg-muted/20 rounded-xl border border-border/50 flex flex-col justify-center transition-colors hover:bg-muted/30">
+                                        <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider mb-1">PSA 9</p>
+                                        <p className="text-base font-bold">${history.summary.grade9.toFixed(2)}</p>
+                                    </div>
+                                )}
+                                {history.summary.grade95 && (
+                                    <div className="p-3 bg-muted/20 rounded-xl border border-border/50 flex flex-col justify-center transition-colors hover:bg-muted/30">
+                                        <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider mb-1">BGS 9.5</p>
+                                        <p className="text-base font-bold">${history.summary.grade95.toFixed(2)}</p>
+                                    </div>
+                                )}
+                                {history.summary.psa10 && (
+                                    <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 flex flex-col justify-center transition-colors hover:bg-primary/10">
+                                        <p className="text-[8px] text-primary uppercase font-bold tracking-wider mb-1">PSA 10</p>
+                                        <p className="text-base font-bold text-primary">${history.summary.psa10.toFixed(2)}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : null}
 
                     <div className="flex items-center justify-between text-sm px-4 py-2 bg-muted/20 rounded-lg text-muted-foreground italic">
                         <span>Last updated</span>
