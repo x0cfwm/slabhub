@@ -118,15 +118,12 @@ export async function lookupGrading(grader: string, certNumber: string): Promise
     return response.json();
 }
 
-export async function getMarketProducts(params: { page: number; limit: number; search?: string; onlyLinked?: boolean; setExternalId?: string }): Promise<MarketProductsResponse> {
+export async function getMarketProducts(params: { page: number; limit: number; search?: string; setExternalId?: string }): Promise<MarketProductsResponse> {
     const url = getFullUrl('/v1/market/products');
     url.searchParams.set('page', params.page.toString());
     url.searchParams.set('limit', params.limit.toString());
     if (params.search) {
         url.searchParams.set('search', params.search);
-    }
-    if (params.onlyLinked) {
-        url.searchParams.set('onlyLinked', 'true');
     }
     if (params.setExternalId) {
         url.searchParams.set('setExternalId', params.setExternalId);

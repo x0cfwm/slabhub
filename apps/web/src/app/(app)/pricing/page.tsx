@@ -37,7 +37,6 @@ function PricingContent() {
 
     const page = parseInt(searchParams.get("page") || "1");
     const search = searchParams.get("search") || "";
-    const onlyLinked = searchParams.get("onlyLinked") !== "false";
     const setExternalId = searchParams.get("setExternalId") || "all";
 
     const [data, setData] = useState<{ items: MarketProduct[], total: number } | null>(null);
@@ -48,14 +47,13 @@ function PricingContent() {
     const [selectedProduct, setSelectedProduct] = useState<MarketProduct | null>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
 
-    const fetchData = useCallback(async (p: number, s: string, ol: boolean, setExId: string) => {
+    const fetchData = useCallback(async (p: number, s: string, setExId: string) => {
         setLoading(true);
         try {
             const res = await getMarketProducts({
                 page: p,
                 limit: LIMIT,
                 search: s,
-                onlyLinked: ol,
                 setExternalId: setExId === "all" ? undefined : setExId
             });
             setData(res);
@@ -72,8 +70,8 @@ function PricingContent() {
     }, []);
 
     useEffect(() => {
-        fetchData(page, search, onlyLinked, setExternalId);
-    }, [page, search, onlyLinked, setExternalId, fetchData]);
+        fetchData(page, search, setExternalId);
+    }, [page, search, setExternalId, fetchData]);
 
     // Handle search debounce
     useEffect(() => {
@@ -89,12 +87,6 @@ function PricingContent() {
         return () => clearTimeout(timer);
     }, [localSearch, search, router, searchParams]);
 
-    const handleOnlyLinkedChange = (checked: boolean) => {
-        const params = new URLSearchParams(searchParams.toString());
-        params.set("onlyLinked", checked ? "true" : "false");
-        params.set("page", "1"); // Reset to page 1 on filter change
-        router.push(`?${params.toString()}`);
-    };
 
     const handleSetChange = (value: string) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -152,14 +144,6 @@ function PricingContent() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                        </div>
-                        <div className="flex items-center space-x-2 bg-muted/30 px-3 py-1.5 rounded-lg border shrink-0">
-                            <Switch
-                                id="only-linked"
-                                checked={onlyLinked}
-                                onCheckedChange={handleOnlyLinkedChange}
-                            />
-                            <Label htmlFor="only-linked" className="whitespace-nowrap text-sm cursor-pointer select-none">Only with prices</Label>
                         </div>
                     </>
                 ) : (

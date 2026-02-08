@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadGatewayException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadGatewayException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GetMarketProductsDto } from './dto/market-products.dto';
 import { PriceChartingParser } from './parsers/pricecharting.parser';
@@ -8,102 +8,56 @@ export class MarketPricingService {
     private cache = new Map<string, { data: any; expires: number }>();
     private rateLimit = new Map<string, number>();
 
+    private readonly logger = new Logger(MarketPricingService.name);
+
     constructor(
         private readonly prisma: PrismaService,
         private readonly parser: PriceChartingParser
     ) { }
 
     async listProducts(query: GetMarketProductsDto) {
-        const { page = 1, limit = 25, search, onlyLinked = false, setExternalId } = query;
+        const { page = 1, limit = 25, search, setExternalId } = query;
         const skip = (page - 1) * limit;
-
-        // 1. Get mappings from RefPriceChartingProduct
-        const pcMappings = await this.prisma.refPriceChartingProduct.findMany({
-            where: { tcgPlayerId: { not: null } },
-            select: { tcgPlayerId: true, productUrl: true }
-        });
-
-        const pcMap = new Map<string, string>();
-        pcMappings.forEach((p: { tcgPlayerId: number | null; productUrl: string }) => {
-            if (p.tcgPlayerId) pcMap.set(p.tcgPlayerId.toString(), p.productUrl);
-        });
-
-        // 2. Get all sets for name mapping
-        const sets = await this.prisma.refSet.findMany({
-            select: { externalId: true, name: true, code: true }
-        });
-        const setMap = new Map<string, string>();
-        const setCodeMap = new Map<string, string>();
-        sets.forEach(s => {
-            setMap.set(s.externalId, s.name);
-            if (s.code) setCodeMap.set(s.code.toUpperCase(), s.name);
-        });
 
         const where: any = {};
 
-        if (onlyLinked) {
-            const validTcgIds = Array.from(pcMap.keys());
-            where.tcgplayerId = { in: validTcgIds };
-        }
-
         if (setExternalId) {
-            where.setExternalId = setExternalId;
+            where.setId = setExternalId;
         }
 
         if (search) {
-            where.AND = [
-                {
-                    OR: [
-                        { name: { contains: search, mode: 'insensitive' } },
-                        { number: { contains: search, mode: 'insensitive' } },
-                    ]
-                }
+            where.OR = [
+                { title: { contains: search, mode: 'insensitive' } },
+                { cardNumber: { contains: search, mode: 'insensitive' } },
             ];
         }
 
         const [items, total] = await Promise.all([
-            this.prisma.refProduct.findMany({
+            this.prisma.refPriceChartingProduct.findMany({
                 where,
                 skip,
                 take: limit,
-                orderBy: { name: 'asc' },
+                orderBy: { title: 'asc' },
+                include: { set: true }
             }),
-            this.prisma.refProduct.count({ where }),
+            this.prisma.refPriceChartingProduct.count({ where }),
         ]);
 
         const mappedItems = items.map(product => {
-            // Try to resolve set name:
-            // 1. By setExternalId (ID match)
-            // 2. By setExternalId (Code match - sometimes IDs are codes)
-            // 3. Fallback: Parse code from number (e.g. EB01 from EB01-017)
-            let setName = 'Unknown Set';
-            if (product.setExternalId) {
-                setName = setMap.get(product.setExternalId) ||
-                    setCodeMap.get(product.setExternalId.toUpperCase()) ||
-                    'Unknown Set';
-            }
-
-            if (setName === 'Unknown Set' && product.number) {
-                const codeFromNumber = product.number.split('-')[0]?.toUpperCase();
-                if (codeFromNumber) {
-                    setName = setCodeMap.get(codeFromNumber) || 'Unknown Set';
-                }
-            }
-
             return {
                 id: product.id,
-                name: product.name,
-                number: product.number,
+                name: product.title || 'Unknown Product',
+                number: product.cardNumber,
                 imageUrl: product.imageUrl,
-                set: setName,
-                priceChartingUrl: product.tcgplayerId ? pcMap.get(product.tcgplayerId) : null,
-                tcgplayerId: product.tcgplayerId,
+                set: product.set?.name || 'Unknown Set',
+                priceChartingUrl: product.productUrl,
+                tcgplayerId: product.tcgPlayerId?.toString(),
                 rawPrice: product.rawPrice ? Number(product.rawPrice) : 0,
                 sealedPrice: product.sealedPrice ? Number(product.sealedPrice) : null,
                 grade9Price: product.grade9Price ? Number(product.grade9Price) : null,
                 grade10Price: product.grade10Price ? Number(product.grade10Price) : null,
                 lastUpdated: product.priceUpdatedAt ? product.priceUpdatedAt.toISOString() : product.updatedAt.toISOString(),
-                source: product.priceSource || 'RefProduct',
+                source: product.priceSource || 'PriceCharting',
             };
         });
 
@@ -116,7 +70,7 @@ export class MarketPricingService {
     }
 
     async getProductPriceHistory(productId: string, strict = false, refresh = false) {
-        const product = await this.prisma.refProduct.findUnique({
+        const product = await this.prisma.refPriceChartingProduct.findUnique({
             where: { id: productId },
         });
 
@@ -124,21 +78,11 @@ export class MarketPricingService {
             throw new NotFoundException('Product not found');
         }
 
-        // Look up PriceCharting URL from RefPriceChartingProduct
-        let priceChartingUrl: string | null = null;
-        if (product.tcgplayerId) {
-            const tcgId = parseInt(product.tcgplayerId);
-            if (!isNaN(tcgId)) {
-                const pcProduct = await this.prisma.refPriceChartingProduct.findFirst({
-                    where: { tcgPlayerId: tcgId }
-                });
-                priceChartingUrl = pcProduct?.productUrl || null;
-            }
-        }
+        const priceChartingUrl = product.productUrl;
 
-        // If no URL, we can't fetch live data
+        // If no URL (shouldn't happen with RefPriceChartingProduct but anyway)
         if (!priceChartingUrl) {
-            throw new NotFoundException('PriceCharting URL not found for this product. Link it first.');
+            throw new NotFoundException('PriceCharting URL not found for this product.');
         }
 
         // Check cache
@@ -166,20 +110,30 @@ export class MarketPricingService {
                 avgPrice = recentSales.reduce((acc, p) => acc + p.price, 0) / recentSales.length;
             }
 
-            // Update product in DB with new prices
-            await this.prisma.refProduct.update({
+            // Update RefPriceChartingProduct in DB with new prices
+            const updateData = {
+                rawPrice: avgPrice,
+                grade7Price: summary.grade7,
+                grade8Price: summary.grade8,
+                grade9Price: summary.grade9,
+                grade95Price: summary.grade95,
+                grade10Price: summary.psa10, // Note: psa10 in summary maps to grade10Price in DB
+                priceSource: recentSales[0]?.source || 'PriceCharting',
+                priceUpdatedAt: new Date(),
+            };
+
+            await this.prisma.refPriceChartingProduct.update({
                 where: { id: productId },
-                data: {
-                    rawPrice: avgPrice,
-                    grade7Price: summary.grade7,
-                    grade8Price: summary.grade8,
-                    grade9Price: summary.grade9,
-                    grade95Price: summary.grade95,
-                    grade10Price: summary.psa10, // Note: psa10 in summary maps to grade10Price in DB
-                    priceSource: recentSales[0]?.source || 'PriceCharting',
-                    priceUpdatedAt: new Date(),
-                }
+                data: updateData
             });
+
+            // Sync to RefProduct if linked by tcgPlayerId
+            if (product.tcgPlayerId) {
+                await this.prisma.refProduct.updateMany({
+                    where: { tcgplayerId: product.tcgPlayerId.toString() },
+                    data: updateData
+                }).catch(e => this.logger.warn(`Failed to sync prices to RefProduct: ${e.message}`));
+            }
 
             const response = {
                 productId,
@@ -210,14 +164,15 @@ export class MarketPricingService {
     }
 
     async listSets() {
-        return this.prisma.refSet.findMany({
+        const sets = await this.prisma.refPriceChartingSet.findMany({
             orderBy: { name: 'asc' },
-            select: {
-                externalId: true,
-                name: true,
-                code: true,
-            },
         });
+
+        return sets.map((s: any) => ({
+            externalId: s.id,
+            name: s.name,
+            code: s.slug
+        }));
     }
 
 }

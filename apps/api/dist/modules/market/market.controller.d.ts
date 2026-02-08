@@ -10,8 +10,8 @@ export declare class MarketPricingController {
             number: string | null;
             imageUrl: string | null;
             set: string;
-            priceChartingUrl: string | null | undefined;
-            tcgplayerId: string | null;
+            priceChartingUrl: string;
+            tcgplayerId: string | undefined;
             rawPrice: number;
             sealedPrice: number | null;
             grade9Price: number | null;
@@ -24,9 +24,9 @@ export declare class MarketPricingController {
         total: number;
     }>;
     getSets(): Promise<{
-        name: string;
-        externalId: string;
-        code: string | null;
+        externalId: any;
+        name: any;
+        code: any;
     }[]>;
     getProductPrices(id: string, strict?: string, refresh?: string): Promise<any>;
 }

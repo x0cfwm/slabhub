@@ -6,6 +6,7 @@ export declare class MarketPricingService {
     private readonly parser;
     private cache;
     private rateLimit;
+    private readonly logger;
     constructor(prisma: PrismaService, parser: PriceChartingParser);
     listProducts(query: GetMarketProductsDto): Promise<{
         items: {
@@ -14,8 +15,8 @@ export declare class MarketPricingService {
             number: string | null;
             imageUrl: string | null;
             set: string;
-            priceChartingUrl: string | null | undefined;
-            tcgplayerId: string | null;
+            priceChartingUrl: string;
+            tcgplayerId: string | undefined;
             rawPrice: number;
             sealedPrice: number | null;
             grade9Price: number | null;
@@ -29,8 +30,8 @@ export declare class MarketPricingService {
     }>;
     getProductPriceHistory(productId: string, strict?: boolean, refresh?: boolean): Promise<any>;
     listSets(): Promise<{
-        name: string;
-        externalId: string;
-        code: string | null;
+        externalId: any;
+        name: any;
+        code: any;
     }[]>;
 }
