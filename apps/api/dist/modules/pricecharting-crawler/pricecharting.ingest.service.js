@@ -186,6 +186,7 @@ let PriceChartingIngestService = PriceChartingIngestService_1 = class PriceChart
                 productSlug: data.productSlug,
                 localImagePath: data.localImagePath,
                 imageUrl: data.imageUrl,
+                productType: data.productType,
                 scrapedAt: new Date(),
             },
             create: {
@@ -200,6 +201,7 @@ let PriceChartingIngestService = PriceChartingIngestService_1 = class PriceChart
                 productSlug: data.productSlug,
                 localImagePath: data.localImagePath,
                 imageUrl: data.imageUrl,
+                productType: data.productType,
             },
         });
     }

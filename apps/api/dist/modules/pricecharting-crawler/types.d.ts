@@ -1,3 +1,4 @@
+export type PriceChartingProductType = 'SINGLE_CARD' | 'SEALED_PACK' | 'SEALED_BOX' | 'SEALED_OTHER';
 export interface ParsedProductDetails {
     productUrl: string;
     tcgPlayerId?: number;
@@ -10,6 +11,7 @@ export interface ParsedProductDetails {
     productSlug?: string;
     imageUrl?: string;
     localImagePath?: string;
+    productType?: PriceChartingProductType;
 }
 export interface PriceChartingCrawlOptions {
     maxProducts?: number;

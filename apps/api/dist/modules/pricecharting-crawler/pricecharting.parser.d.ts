@@ -7,4 +7,5 @@ export declare class PriceChartingParser {
         nextPages: string[];
     };
     parseProductPage(html: string, url: string): ParsedProductDetails;
+    private classifyProduct;
 }

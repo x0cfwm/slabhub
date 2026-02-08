@@ -112,6 +112,8 @@ let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
         const cardNumber = details['Card Number'];
         const imageUrl = $('div.cover img').attr('src');
         const setName = $('.breadcrumbs a:last-of-type').text().trim();
+        const h1Text = $('h1').text().trim();
+        const productType = this.classifyProduct(h1Text);
         return {
             productUrl: url,
             tcgPlayerId: tcgPlayerIdStr ? parseInt(tcgPlayerIdStr, 10) : undefined,
@@ -122,7 +124,28 @@ let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
             setName: setName || undefined,
             productSlug: url.split('/').filter(Boolean).pop(),
             imageUrl: imageUrl ? (imageUrl.startsWith('http') ? imageUrl : `https://www.pricecharting.com${imageUrl}`) : undefined,
+            productType,
         };
+    }
+    classifyProduct(title) {
+        const lowerTitle = title.toLowerCase();
+        if (lowerTitle.includes('booster box') || lowerTitle.includes('24 packs') || lowerTitle.includes('display box')) {
+            return 'SEALED_BOX';
+        }
+        if (lowerTitle.includes('booster pack')) {
+            return 'SEALED_PACK';
+        }
+        if (lowerTitle.includes('deck') ||
+            lowerTitle.includes('collection') ||
+            lowerTitle.includes('gift set') ||
+            lowerTitle.includes('box set') ||
+            lowerTitle.includes('double pack') ||
+            lowerTitle.includes('case') ||
+            lowerTitle.includes('sleeves') ||
+            lowerTitle.includes('playmat')) {
+            return 'SEALED_OTHER';
+        }
+        return 'SINGLE_CARD';
     }
 };
 exports.PriceChartingParser = PriceChartingParser;

@@ -170,6 +170,7 @@ export class PriceChartingIngestService {
                 productSlug: data.productSlug,
                 localImagePath: data.localImagePath,
                 imageUrl: data.imageUrl,
+                productType: data.productType,
                 scrapedAt: new Date(),
             },
             create: {
@@ -184,6 +185,7 @@ export class PriceChartingIngestService {
                 productSlug: data.productSlug,
                 localImagePath: data.localImagePath,
                 imageUrl: data.imageUrl,
+                productType: data.productType,
             },
         });
     }

@@ -356,6 +356,7 @@ model RefPriceChartingProduct {
   productSlug      String?  // derived from product page path
   localImagePath   String?
   imageUrl         String?
+  productType      String?  // SINGLE_CARD, SEALED_PACK, SEALED_BOX, SEALED_OTHER
   scrapedAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
