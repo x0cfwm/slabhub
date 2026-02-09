@@ -220,3 +220,40 @@ export async function deleteInventoryItem(id: string): Promise<void> {
         throw new Error('Failed to delete inventory item');
     }
 }
+
+export async function uploadFile(file: File): Promise<{ url: string }> {
+    const url = getFullUrl('/v1/media/upload');
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(url.toString(), {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to upload file');
+    }
+
+    return response.json();
+}
+
+export async function deleteFile(fileUrl: string): Promise<void> {
+    const url = getFullUrl('/v1/media');
+    const response = await fetch(url.toString(), {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: fileUrl }),
+        credentials: 'include',
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete file');
+    }
+}
+

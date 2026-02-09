@@ -126,7 +126,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
                             <span className="text-muted-foreground text-[7px] uppercase font-bold text-black border px-1 rounded-sm bg-accent">Cost</span>
                         </div>
                         <span className="font-bold text-[10px]">
-                            ${item.acquisitionPrice.toFixed(2)}
+                            ${(Number(item.acquisitionPrice) || 0).toFixed(2)}
                         </span>
                     </div>
                 </div>

@@ -8,14 +8,16 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var InventoryService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InventoryService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const client_1 = require("@prisma/client");
-let InventoryService = class InventoryService {
+let InventoryService = InventoryService_1 = class InventoryService {
     constructor(prisma) {
         this.prisma = prisma;
+        this.logger = new common_1.Logger(InventoryService_1.name);
     }
     async listItems(sellerId) {
         const items = await this.prisma.inventoryItem.findMany({
@@ -61,52 +63,62 @@ let InventoryService = class InventoryService {
         return this.transformItem(item);
     }
     async createItem(sellerId, dto) {
-        this.validateItemType(dto);
-        const item = await this.prisma.inventoryItem.create({
-            data: {
-                sellerId,
-                itemType: dto.itemType,
-                cardVariantId: dto.cardVariantId,
-                refPriceChartingProductId: dto.refPriceChartingProductId,
-                productName: dto.productName,
-                productType: dto.productType,
-                language: dto.language,
-                setName: dto.setName,
-                edition: dto.edition,
-                integrity: dto.integrity,
-                configuration: dto.configuration,
-                gradeProvider: dto.gradeProvider,
-                gradeValue: dto.gradeValue,
-                certNumber: dto.certNumber,
-                gradingCost: dto.gradingCost,
-                slabImages: dto.slabImages,
-                condition: dto.condition,
-                quantity: dto.quantity || 1,
-                stage: dto.stage || 'ACQUIRED',
-                listingPrice: dto.listingPrice,
-                acquisitionPrice: dto.acquisitionPrice,
-                acquisitionDate: dto.acquisitionDate
-                    ? new Date(dto.acquisitionDate)
-                    : null,
-                acquisitionSource: dto.acquisitionSource,
-                storageLocation: dto.storageLocation,
-                notes: dto.notes,
-                photos: dto.photos || [],
-            },
-            include: {
-                cardVariant: {
-                    include: {
-                        card: true,
+        try {
+            this.validateItemType(dto);
+            const item = await this.prisma.inventoryItem.create({
+                data: {
+                    sellerId,
+                    itemType: dto.itemType,
+                    cardVariantId: dto.cardVariantId,
+                    refPriceChartingProductId: dto.refPriceChartingProductId,
+                    productName: dto.productName,
+                    productType: dto.productType,
+                    language: dto.language,
+                    setName: dto.setName,
+                    edition: dto.edition,
+                    integrity: dto.integrity,
+                    configuration: dto.configuration,
+                    gradeProvider: dto.gradeProvider,
+                    gradeValue: dto.gradeValue,
+                    certNumber: dto.certNumber,
+                    certificationNumber: dto.certificationNumber || dto.certNumber,
+                    gradingMeta: dto.gradingMeta,
+                    gradingCost: dto.gradingCost,
+                    slabImages: dto.slabImages,
+                    condition: dto.condition,
+                    quantity: dto.quantity || 1,
+                    stage: dto.stage || 'ACQUIRED',
+                    listingPrice: dto.listingPrice,
+                    acquisitionPrice: dto.acquisitionPrice,
+                    acquisitionDate: dto.acquisitionDate
+                        ? new Date(dto.acquisitionDate)
+                        : null,
+                    acquisitionSource: dto.acquisitionSource,
+                    storageLocation: dto.storageLocation,
+                    notes: dto.notes,
+                    photos: dto.photos || [],
+                },
+                include: {
+                    cardVariant: {
+                        include: {
+                            card: true,
+                        },
+                    },
+                    refPriceChartingProduct: {
+                        include: {
+                            set: true,
+                        },
                     },
                 },
-                refPriceChartingProduct: {
-                    include: {
-                        set: true,
-                    },
-                },
-            },
-        });
-        return this.transformItem(item);
+            });
+            return this.transformItem(item);
+        }
+        catch (error) {
+            this.logger.error(`Failed to create inventory item: ${error.message}`, error.stack);
+            if (error instanceof common_1.BadRequestException)
+                throw error;
+            throw new common_1.BadRequestException(`Database error: ${error.message}`);
+        }
     }
     async updateItem(sellerId, itemId, dto) {
         const existing = await this.prisma.inventoryItem.findFirst({
@@ -233,6 +245,7 @@ let InventoryService = class InventoryService {
             acquisitionSource: item.acquisitionSource,
             storageLocation: item.storageLocation,
             notes: item.notes,
+            photos: item.photos || [],
             createdAt: item.createdAt.toISOString(),
             updatedAt: item.updatedAt.toISOString(),
             quantity: item.quantity,
@@ -258,6 +271,7 @@ let InventoryService = class InventoryService {
                 certNumber: item.certNumber,
                 gradingCost: item.gradingCost ? Number(item.gradingCost) : null,
                 slabImages: item.slabImages || {},
+                gradingMeta: item.gradingMeta || {},
                 previousCertNumbers: item.previousCertNumbers || [],
                 cardProfile,
             };
@@ -279,7 +293,7 @@ let InventoryService = class InventoryService {
     }
 };
 exports.InventoryService = InventoryService;
-exports.InventoryService = InventoryService = __decorate([
+exports.InventoryService = InventoryService = InventoryService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], InventoryService);

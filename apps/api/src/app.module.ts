@@ -15,11 +15,18 @@ import { JustTcgModule } from './modules/justtcg/justtcg.module';
 import { GradingModule } from './modules/grading/grading.module';
 import { MarketModule } from './modules/market/market.module';
 import { PriceChartingCrawlerModule } from './modules/pricecharting-crawler/pricecharting-crawler.module';
+import { MediaModule } from './modules/media/media.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { z } from 'zod';
 
 @Module({
     imports: [
         SentryModule.forRoot(),
+        ServeStaticModule.forRoot({
+            rootPath: join(process.cwd(), 'uploads'),
+            serveRoot: '/uploads',
+        }),
         ConfigModule.forRoot({
             isGlobal: true,
             validate: (config) => {
@@ -48,6 +55,7 @@ import { z } from 'zod';
         GradingModule,
         MarketModule,
         PriceChartingCrawlerModule,
+        MediaModule,
     ],
     providers: [
         {

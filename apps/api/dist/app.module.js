@@ -24,6 +24,9 @@ const justtcg_module_1 = require("./modules/justtcg/justtcg.module");
 const grading_module_1 = require("./modules/grading/grading.module");
 const market_module_1 = require("./modules/market/market.module");
 const pricecharting_crawler_module_1 = require("./modules/pricecharting-crawler/pricecharting-crawler.module");
+const media_module_1 = require("./modules/media/media.module");
+const serve_static_1 = require("@nestjs/serve-static");
+const path_1 = require("path");
 const zod_1 = require("zod");
 let AppModule = class AppModule {
 };
@@ -32,6 +35,10 @@ exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             setup_1.SentryModule.forRoot(),
+            serve_static_1.ServeStaticModule.forRoot({
+                rootPath: (0, path_1.join)(process.cwd(), 'uploads'),
+                serveRoot: '/uploads',
+            }),
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
                 validate: (config) => {
@@ -60,6 +67,7 @@ exports.AppModule = AppModule = __decorate([
             grading_module_1.GradingModule,
             market_module_1.MarketModule,
             pricecharting_crawler_module_1.PriceChartingCrawlerModule,
+            media_module_1.MediaModule,
         ],
         providers: [
             {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createInventoryItem, lookupGrading, GradingLookupResult, getMarketProducts } from "@/lib/api";
+import { createInventoryItem, lookupGrading, GradingLookupResult, getMarketProducts, uploadFile, deleteFile } from "@/lib/api";
 import {
     CardProfile,
     InventoryItem,
@@ -29,7 +29,7 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, ChevronRight, ChevronLeft, Check, Package as PackageIcon, FileText, BadgeCheck, Box } from "lucide-react";
+import { Search, ChevronRight, ChevronLeft, Check, Package as PackageIcon, FileText, BadgeCheck, Box, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
@@ -47,6 +47,8 @@ export default function AddItemPage() {
     const [isFetching, setIsFetching] = useState(false);
     const [lookupResult, setLookupResult] = useState<GradingLookupResult | null>(null);
     const [manualEntry, setManualEntry] = useState(false);
+    const [uploadingPhotos, setUploadingPhotos] = useState<Record<string, boolean>>({});
+    const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
 
     // Unified Form State
     const [formData, setFormData] = useState<any>({
@@ -96,7 +98,7 @@ export default function AddItemPage() {
     }, [search, category]);
 
     const handleFetchDetails = async () => {
-        if (!formData.gradingCompany || !formData.certNumber) {
+        if (!formData.gradeProvider || !formData.certNumber) {
             toast.error("Please provide both Grader and Certification Number");
             return;
         }
@@ -104,14 +106,14 @@ export default function AddItemPage() {
         setIsFetching(true);
         setLookupResult(null);
         try {
-            const result = await lookupGrading(formData.gradingCompany, formData.certNumber);
+            const result = await lookupGrading(formData.gradeProvider, formData.certNumber);
             setLookupResult(result);
             if (result.success && result.data) {
                 setFormData({
                     ...formData,
                     grade: result.data.gradeLabel,
                     gradeValue: result.data.gradeValue,
-                    certificationNumber: result.certNumber,
+                    certNumber: result.certNumber,
                     gradingMeta: result.data,
                     // Optionally attempt to match card name
                 });
@@ -130,19 +132,21 @@ export default function AddItemPage() {
         setLoading(true);
         try {
             // Determine the final cardVariantId if it's a card
-            let finalCardVariantId = formData.cardVariantId;
-            if (category !== "SEALED_PRODUCT") {
-                // In a real app, we would resolve/create a CardVariant record here
-                // For the mock, we simulate a unique ID based on the selection
-                finalCardVariantId = `${formData.baseCardId}-${formData.variantType}-${formData.language}`;
-            }
+            const {
+                type,
+                baseCardId,
+                variantType,
+                grade,
+                gradingCompany,
+                cardVariantId, // Also remove the initial cardVariantId if any
+                ...sanitizedFormData
+            } = formData;
 
             const itemToSave = {
-                ...formData,
+                ...sanitizedFormData,
+                photos: uploadedPhotos,
                 refPriceChartingProductId: formData.refPriceChartingProductId,
-                cardVariantId: finalCardVariantId,
-                type: category,
-                createdAt: new Date().toISOString()
+                itemType: category,
             };
             await createInventoryItem(itemToSave as any);
             toast.success("Item added to inventory");
@@ -412,8 +416,8 @@ export default function AddItemPage() {
                                                 <div className="space-y-2">
                                                     <Label className="text-xs font-bold uppercase tracking-wider">Grader</Label>
                                                     <Select
-                                                        value={formData.gradingCompany}
-                                                        onValueChange={v => setFormData({ ...formData, gradingCompany: v as GradingCompany })}
+                                                        value={formData.gradeProvider}
+                                                        onValueChange={v => setFormData({ ...formData, gradeProvider: v as GradingCompany })}
                                                     >
                                                         <SelectTrigger className="h-12 border-primary/20"><SelectValue placeholder="Select Grader (PSA/BGS...)" /></SelectTrigger>
                                                         <SelectContent>
@@ -434,7 +438,7 @@ export default function AddItemPage() {
                                                         <Button
                                                             className="h-12 px-6 bg-primary hover:bg-primary/90 shadow-[0_0_15px_rgba(var(--primary),0.3)]"
                                                             onClick={handleFetchDetails}
-                                                            disabled={isFetching || !formData.gradingCompany || !formData.certNumber}
+                                                            disabled={isFetching || !formData.gradeProvider || !formData.certNumber}
                                                         >
                                                             {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                                                             <span className="ml-2 hidden md:inline">Fetch details</span>
@@ -686,21 +690,80 @@ export default function AddItemPage() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {["Front Face", "Back Face", "Cert Corner", "Seal Proof"].map(label => (
-                                <div key={label} className="group border-2 border-dashed border-primary/20 rounded-2xl aspect-square flex flex-col items-center justify-center bg-primary/5 hover:bg-primary/10 hover:border-primary/50 cursor-pointer transition-all">
-                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                        <PackageIcon className="h-5 w-5 text-primary opacity-60" />
-                                    </div>
-                                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary/60">{label}</span>
+                            {["Front Face", "Back Face", "Cert Corner", "Seal Proof"].map((label, idx) => (
+                                <div
+                                    key={label}
+                                    className="relative group border-2 border-dashed border-primary/20 rounded-2xl aspect-square flex flex-col items-center justify-center bg-primary/5 hover:bg-primary/10 hover:border-primary/50 cursor-pointer transition-all overflow-hidden"
+                                    onClick={() => document.getElementById(`file-upload-${idx}`)?.click()}
+                                >
+                                    {uploadingPhotos[label] ? (
+                                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                    ) : uploadedPhotos[idx] ? (
+                                        <img src={uploadedPhotos[idx]} className="absolute inset-0 w-full h-full object-cover" alt={label} />
+                                    ) : (
+                                        <>
+                                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                                <PackageIcon className="h-5 w-5 text-primary opacity-60" />
+                                            </div>
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-primary/60">{label}</span>
+                                        </>
+                                    )}
+                                    <input
+                                        type="file"
+                                        id={`file-upload-${idx}`}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+
+                                            setUploadingPhotos(prev => ({ ...prev, [label]: true }));
+                                            try {
+                                                const { url } = await uploadFile(file);
+                                                const newPhotos = [...uploadedPhotos];
+                                                newPhotos[idx] = url;
+                                                setUploadedPhotos(newPhotos);
+                                                toast.success(`${label} uploaded`);
+                                            } catch (error) {
+                                                toast.error(`Failed to upload ${label}`);
+                                            } finally {
+                                                setUploadingPhotos(prev => ({ ...prev, [label]: false }));
+                                                e.target.value = ""; // Reset input value
+                                            }
+                                        }}
+                                    />
+                                    {uploadedPhotos[idx] && (
+                                        <>
+                                            <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-primary/80 flex items-center justify-center text-white backdrop-blur-sm z-10">
+                                                <Check className="h-3 w-3" />
+                                            </div>
+                                            <button
+                                                className="absolute bottom-2 right-2 h-7 w-7 rounded-lg bg-destructive/10 hover:bg-destructive/20 flex items-center justify-center text-destructive backdrop-blur-sm transition-all z-10"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const urlToRemove = uploadedPhotos[idx];
+                                                    if (urlToRemove) {
+                                                        deleteFile(urlToRemove).catch(err => console.error("Failed to delete from server", err));
+                                                        const newPhotos = [...uploadedPhotos];
+                                                        newPhotos[idx] = "";
+                                                        setUploadedPhotos(newPhotos);
+                                                        toast.success(`${label} removed`);
+                                                    }
+                                                }}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             ))}
                         </div>
                         <div className="p-4 bg-primary/10 rounded-xl border border-primary/20 text-center">
                             <p className="text-xs text-primary font-bold">
-                                PROFESSIONAL SCANNING ACTIVE
+                                {uploadedPhotos.length > 0 ? "ASSETS ATTACHED SUCCESSFULLY" : "PROFESSIONAL SCANNING READY"}
                             </p>
                             <p className="text-[10px] text-primary/60">
-                                AI will automatically extract Cert Number and Grade from images.
+                                {uploadedPhotos.length > 0 ? `Total ${uploadedPhotos.filter(Boolean).length} assets uploaded.` : "AI will automatically extract Cert Number and Grade from images."}
                             </p>
                         </div>
                     </CardContent>

@@ -14,6 +14,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -39,6 +40,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -51,6 +53,7 @@ export declare class InventoryController {
         certNumber: any;
         gradingCost: number | null;
         slabImages: any;
+        gradingMeta: any;
         previousCertNumbers: any;
         cardProfile: {
             id: any;
@@ -69,6 +72,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -90,6 +94,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -104,6 +109,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -129,6 +135,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -141,6 +148,7 @@ export declare class InventoryController {
         certNumber: any;
         gradingCost: number | null;
         slabImages: any;
+        gradingMeta: any;
         previousCertNumbers: any;
         cardProfile: {
             id: any;
@@ -159,6 +167,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -180,6 +189,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -194,6 +204,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -219,6 +230,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -231,6 +243,7 @@ export declare class InventoryController {
         certNumber: any;
         gradingCost: number | null;
         slabImages: any;
+        gradingMeta: any;
         previousCertNumbers: any;
         cardProfile: {
             id: any;
@@ -249,6 +262,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -270,6 +284,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -284,6 +299,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -309,6 +325,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -321,6 +338,7 @@ export declare class InventoryController {
         certNumber: any;
         gradingCost: number | null;
         slabImages: any;
+        gradingMeta: any;
         previousCertNumbers: any;
         cardProfile: {
             id: any;
@@ -339,6 +357,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -360,6 +379,7 @@ export declare class InventoryController {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;

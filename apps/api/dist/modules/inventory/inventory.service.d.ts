@@ -3,6 +3,7 @@ import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
 export declare class InventoryService {
     private readonly prisma;
+    private readonly logger;
     constructor(prisma: PrismaService);
     listItems(sellerId: string): Promise<({
         id: any;
@@ -14,6 +15,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -39,6 +41,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -51,6 +54,7 @@ export declare class InventoryService {
         certNumber: any;
         gradingCost: number | null;
         slabImages: any;
+        gradingMeta: any;
         previousCertNumbers: any;
         cardProfile: {
             id: any;
@@ -69,6 +73,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -90,6 +95,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -104,6 +110,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -129,6 +136,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -141,6 +149,7 @@ export declare class InventoryService {
         certNumber: any;
         gradingCost: number | null;
         slabImages: any;
+        gradingMeta: any;
         previousCertNumbers: any;
         cardProfile: {
             id: any;
@@ -159,6 +168,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -180,6 +190,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -194,6 +205,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -219,6 +231,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -231,6 +244,7 @@ export declare class InventoryService {
         certNumber: any;
         gradingCost: number | null;
         slabImages: any;
+        gradingMeta: any;
         previousCertNumbers: any;
         cardProfile: {
             id: any;
@@ -249,6 +263,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -270,6 +285,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -284,6 +300,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -309,6 +326,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -321,6 +339,7 @@ export declare class InventoryService {
         certNumber: any;
         gradingCost: number | null;
         slabImages: any;
+        gradingMeta: any;
         previousCertNumbers: any;
         cardProfile: {
             id: any;
@@ -339,6 +358,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;
@@ -360,6 +380,7 @@ export declare class InventoryService {
         acquisitionSource: any;
         storageLocation: any;
         notes: any;
+        photos: any;
         createdAt: any;
         updatedAt: any;
         quantity: any;

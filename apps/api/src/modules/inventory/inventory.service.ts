@@ -2,6 +2,7 @@ import {
     Injectable,
     NotFoundException,
     BadRequestException,
+    Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
@@ -10,6 +11,8 @@ import { ItemType } from '@prisma/client';
 
 @Injectable()
 export class InventoryService {
+    private readonly logger = new Logger(InventoryService.name);
+
     constructor(private readonly prisma: PrismaService) { }
 
     async listItems(sellerId: string) {
@@ -61,56 +64,64 @@ export class InventoryService {
     }
 
     async createItem(sellerId: string, dto: CreateInventoryItemDto) {
-        // Validate based on item type
-        this.validateItemType(dto);
+        try {
+            this.validateItemType(dto);
 
-        const item = await this.prisma.inventoryItem.create({
-            data: {
-                sellerId,
-                itemType: dto.itemType,
-                cardVariantId: dto.cardVariantId,
-                refPriceChartingProductId: dto.refPriceChartingProductId,
-                productName: dto.productName,
-                productType: dto.productType,
-                language: dto.language,
-                setName: dto.setName,
-                edition: dto.edition,
-                integrity: dto.integrity,
-                configuration: dto.configuration as any,
-                gradeProvider: dto.gradeProvider,
-                gradeValue: dto.gradeValue,
-                certNumber: dto.certNumber,
-                gradingCost: dto.gradingCost,
-                slabImages: dto.slabImages as any,
-                condition: dto.condition,
-                quantity: dto.quantity || 1,
-                stage: dto.stage || 'ACQUIRED',
-                listingPrice: dto.listingPrice,
-                acquisitionPrice: dto.acquisitionPrice,
-                acquisitionDate: dto.acquisitionDate
-                    ? new Date(dto.acquisitionDate)
-                    : null,
-                acquisitionSource: dto.acquisitionSource,
-                storageLocation: dto.storageLocation,
-                notes: dto.notes,
-                photos: dto.photos || [],
-            },
-            include: {
-                cardVariant: {
-                    include: {
-                        card: true,
+            const item = await this.prisma.inventoryItem.create({
+                data: {
+                    sellerId,
+                    itemType: dto.itemType,
+                    cardVariantId: dto.cardVariantId,
+                    refPriceChartingProductId: dto.refPriceChartingProductId,
+                    productName: dto.productName,
+                    productType: dto.productType,
+                    language: dto.language,
+                    setName: dto.setName,
+                    edition: dto.edition,
+                    integrity: dto.integrity,
+                    configuration: dto.configuration as any,
+                    gradeProvider: dto.gradeProvider,
+                    gradeValue: dto.gradeValue,
+                    certNumber: dto.certNumber,
+                    certificationNumber: dto.certificationNumber || dto.certNumber,
+                    gradingMeta: dto.gradingMeta,
+                    gradingCost: dto.gradingCost,
+                    slabImages: dto.slabImages as any,
+                    condition: dto.condition,
+                    quantity: dto.quantity || 1,
+                    stage: dto.stage || 'ACQUIRED',
+                    listingPrice: dto.listingPrice,
+                    acquisitionPrice: dto.acquisitionPrice,
+                    acquisitionDate: dto.acquisitionDate
+                        ? new Date(dto.acquisitionDate)
+                        : null,
+                    acquisitionSource: dto.acquisitionSource,
+                    storageLocation: dto.storageLocation,
+                    notes: dto.notes,
+                    photos: dto.photos || [],
+                },
+                include: {
+                    cardVariant: {
+                        include: {
+                            card: true,
+                        },
+                    },
+                    refPriceChartingProduct: {
+                        include: {
+                            set: true,
+                        },
                     },
                 },
-                refPriceChartingProduct: {
-                    include: {
-                        set: true,
-                    },
-                },
-            },
-        });
+            });
 
-        return this.transformItem(item);
+            return this.transformItem(item);
+        } catch (error) {
+            this.logger.error(`Failed to create inventory item: ${error.message}`, error.stack);
+            if (error instanceof BadRequestException) throw error;
+            throw new BadRequestException(`Database error: ${error.message}`);
+        }
     }
+
 
     async updateItem(
         sellerId: string,
@@ -260,6 +271,7 @@ export class InventoryService {
             acquisitionSource: item.acquisitionSource,
             storageLocation: item.storageLocation,
             notes: item.notes,
+            photos: item.photos || [],
             createdAt: item.createdAt.toISOString(),
             updatedAt: item.updatedAt.toISOString(),
             quantity: item.quantity,
@@ -286,6 +298,7 @@ export class InventoryService {
                 certNumber: item.certNumber,
                 gradingCost: item.gradingCost ? Number(item.gradingCost) : null,
                 slabImages: item.slabImages || {},
+                gradingMeta: item.gradingMeta || {},
                 previousCertNumbers: item.previousCertNumbers || [],
                 cardProfile,
             };
