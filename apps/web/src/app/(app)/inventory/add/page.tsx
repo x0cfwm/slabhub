@@ -229,7 +229,7 @@ export default function AddItemPage() {
             )}
 
             {step === 2 && (
-                <Card className="border-primary/20 bg-background/50 backdrop-blur-xl">
+                <Card className="border-primary/20 bg-white shadow-sm">
                     <CardHeader>
                         <div className="flex items-center justify-between">
                             <div>
@@ -254,7 +254,7 @@ export default function AddItemPage() {
                                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                         <Input
                                             placeholder="Pikachu, Luffy, Charizard..."
-                                            className="pl-9"
+                                            className="pl-9 bg-white"
                                             value={search}
                                             onChange={e => setSearch(e.target.value)}
                                         />
@@ -266,7 +266,7 @@ export default function AddItemPage() {
                                                 onClick={() => setFormData({ ...formData, baseCardId: card.id, cardVariantId: card.id })}
                                                 className={cn(
                                                     "flex items-center gap-3 p-2 border rounded-xl cursor-pointer transition-all hover:border-primary/50",
-                                                    formData.baseCardId === card.id ? "border-primary bg-primary/10" : "bg-accent/20"
+                                                    formData.baseCardId === card.id ? "border-primary bg-primary/5" : "bg-white"
                                                 )}
                                             >
                                                 <img src={card.imageUrl || undefined} className="h-10 rounded-md shadow-lg" alt="" />
@@ -281,7 +281,7 @@ export default function AddItemPage() {
                                 </div>
 
                                 {formData.baseCardId && selectedCard && (
-                                    <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 space-y-6 animate-in fade-in slide-in-from-top-4">
+                                    <div className="p-4 rounded-2xl bg-white border border-border/60 shadow-sm space-y-6 animate-in fade-in slide-in-from-top-4">
                                         <div className="flex items-center gap-4">
                                             <div className="relative h-24 w-16 shrink-0 rounded-lg overflow-hidden border-2 border-primary/20 shadow-2xl">
                                                 <img
@@ -314,7 +314,7 @@ export default function AddItemPage() {
                                                     value={formData.variantType}
                                                     onValueChange={v => setFormData({ ...formData, variantType: v as VariantType })}
                                                 >
-                                                    <SelectTrigger className="bg-background/50 border-primary/20 h-10">
+                                                    <SelectTrigger className="bg-white border-primary/20 h-10">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -330,7 +330,7 @@ export default function AddItemPage() {
                                                     value={formData.language}
                                                     onValueChange={v => setFormData({ ...formData, language: v as Language })}
                                                 >
-                                                    <SelectTrigger className="bg-background/50 border-primary/20 h-10">
+                                                    <SelectTrigger className="bg-white border-primary/20 h-10">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -375,7 +375,7 @@ export default function AddItemPage() {
 
                                 {category === "SINGLE_CARD_GRADED" && (
                                     <div className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl bg-accent/10 border border-primary/10">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl bg-white border border-border/60 shadow-sm">
                                             <div className="space-y-4">
                                                 <div className="space-y-2">
                                                     <Label className="text-xs font-bold uppercase tracking-wider">Grader</Label>
@@ -383,7 +383,7 @@ export default function AddItemPage() {
                                                         value={formData.gradingCompany}
                                                         onValueChange={v => setFormData({ ...formData, gradingCompany: v as GradingCompany })}
                                                     >
-                                                        <SelectTrigger className="h-12 border-primary/20 bg-background"><SelectValue placeholder="Select Grader (PSA/BGS...)" /></SelectTrigger>
+                                                        <SelectTrigger className="h-12 border-primary/20 bg-white"><SelectValue placeholder="Select Grader (PSA/BGS...)" /></SelectTrigger>
                                                         <SelectContent>
                                                             <SelectItem value="PSA">PSA</SelectItem>
                                                             <SelectItem value="BGS">BGS</SelectItem>
@@ -395,7 +395,7 @@ export default function AddItemPage() {
                                                     <div className="flex gap-2">
                                                         <Input
                                                             placeholder="e.g. 112983707"
-                                                            className="h-12 font-mono text-lg border-primary/20 bg-background"
+                                                            className="h-12 font-mono text-lg border-primary/20 bg-white"
                                                             value={formData.certNumber || ""}
                                                             onChange={e => setFormData({ ...formData, certNumber: e.target.value })}
                                                         />
@@ -485,7 +485,7 @@ export default function AddItemPage() {
                                             )}
                                         </div>
 
-                                        <div className="p-4 border border-dashed border-primary/30 rounded-lg bg-primary/5 flex items-center gap-2">
+                                        <div className="p-4 border border-dashed border-primary/30 rounded-lg bg-white flex items-center gap-2 shadow-sm">
                                             <BadgeCheck className="h-5 w-5 text-primary" />
                                             <span className="text-xs text-primary/80">Graded slabs are non-fungible. Quantity is locked to 1.</span>
                                         </div>
@@ -494,7 +494,7 @@ export default function AddItemPage() {
                             </div>
                         ) : (
                             <div className="space-y-8">
-                                <div className="flex gap-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
+                                <div className="flex gap-4 p-4 rounded-xl border border-border/60 bg-white shadow-sm">
                                     <span className="text-xs font-bold text-primary flex items-center mb-2">QUICK PRESETS:</span>
                                     <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => applySealedPreset("ILLUSTRATION_BOX")}>Illustration Box</Button>
                                     <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => applySealedPreset("MINI_TIN")}>Mini Tin</Button>
@@ -557,7 +557,7 @@ export default function AddItemPage() {
                                     </div>
                                 </div>
 
-                                <div className="p-5 border rounded-xl bg-accent/20 space-y-4">
+                                <div className="p-5 border border-border/60 rounded-xl bg-white shadow-sm space-y-4">
                                     <h4 className="text-sm font-bold flex items-center gap-2"><Box className="h-4 w-4" /> Configuration Details</h4>
                                     <div className="flex flex-wrap gap-6">
                                         <div className="flex items-center gap-2">
@@ -633,7 +633,7 @@ export default function AddItemPage() {
                             </div>
                         </div>
                     </CardContent>
-                    <div className="p-6 border-t flex justify-between bg-accent/10">
+                    <div className="p-6 border-t flex justify-between bg-white">
                         <Button variant="outline" onClick={() => setStep(1)}>
                             <ChevronLeft className="mr-2 h-4 w-4" />
                             Type Selection
@@ -647,7 +647,7 @@ export default function AddItemPage() {
             )}
 
             {step === 3 && (
-                <Card className="border-primary/20 bg-background/50 backdrop-blur-xl">
+                <Card className="border-primary/20 bg-white shadow-sm">
                     <CardHeader>
                         <CardTitle>Step 3: Asset Documentation</CardTitle>
                         <CardDescription>Upload high-resolution scans or photos for listing verification.</CardDescription>
@@ -672,7 +672,7 @@ export default function AddItemPage() {
                             </p>
                         </div>
                     </CardContent>
-                    <div className="p-6 border-t flex justify-between bg-accent/10">
+                    <div className="p-6 border-t flex justify-between bg-white">
                         <Button variant="outline" onClick={() => setStep(2)}>
                             <ChevronLeft className="mr-2 h-4 w-4" />
                             Back to Details
