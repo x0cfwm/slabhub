@@ -25,26 +25,38 @@ let MarketPricingService = MarketPricingService_1 = class MarketPricingService {
     async listProducts(query) {
         const { page = 1, limit = 25, search, setExternalId, productType } = query;
         const skip = (page - 1) * limit;
-        const where = {};
+        const conditions = [];
         if (setExternalId) {
-            where.setId = setExternalId;
+            conditions.push({ setId: setExternalId });
         }
         if (productType) {
-            where.productType = productType;
+            const types = String(productType).split(',').map(t => t.trim()).filter(Boolean);
+            if (types.length > 0) {
+                conditions.push({ productType: { in: types } });
+            }
         }
         if (search) {
             const searchTerms = search.trim().split(/\s+/).filter(Boolean);
-            if (searchTerms.length > 0) {
-                where.AND = searchTerms.map(term => ({
+            for (const term of searchTerms) {
+                conditions.push({
                     OR: [
                         { title: { contains: term, mode: 'insensitive' } },
                         { set: { name: { contains: term, mode: 'insensitive' } } },
                         { cardNumber: { contains: term, mode: 'insensitive' } }
                     ]
-                }));
+                });
             }
         }
-        where.rawPrice = { gt: 0 };
+        else {
+            conditions.push({
+                OR: [
+                    { rawPrice: { gt: 0 } },
+                    { sealedPrice: { gt: 0 } }
+                ]
+            });
+        }
+        const where = { AND: conditions };
+        this.logger.debug(`Listing products with where: ${JSON.stringify(where)}`);
         const [items, total] = await Promise.all([
             this.prisma.refPriceChartingProduct.findMany({
                 where,

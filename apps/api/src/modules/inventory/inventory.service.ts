@@ -22,6 +22,11 @@ export class InventoryService {
                         card: true,
                     },
                 },
+                refPriceChartingProduct: {
+                    include: {
+                        set: true,
+                    },
+                },
             },
         });
 
@@ -38,6 +43,11 @@ export class InventoryService {
                 cardVariant: {
                     include: {
                         card: true,
+                    },
+                },
+                refPriceChartingProduct: {
+                    include: {
+                        set: true,
                     },
                 },
             },
@@ -59,6 +69,7 @@ export class InventoryService {
                 sellerId,
                 itemType: dto.itemType,
                 cardVariantId: dto.cardVariantId,
+                refPriceChartingProductId: dto.refPriceChartingProductId,
                 productName: dto.productName,
                 productType: dto.productType,
                 language: dto.language,
@@ -90,6 +101,11 @@ export class InventoryService {
                         card: true,
                     },
                 },
+                refPriceChartingProduct: {
+                    include: {
+                        set: true,
+                    },
+                },
             },
         });
 
@@ -117,6 +133,7 @@ export class InventoryService {
             where: { id: itemId },
             data: {
                 cardVariantId: dto.cardVariantId,
+                refPriceChartingProductId: dto.refPriceChartingProductId,
                 productName: dto.productName,
                 language: dto.language,
                 setName: dto.setName,
@@ -147,6 +164,11 @@ export class InventoryService {
                         card: true,
                     },
                 },
+                refPriceChartingProduct: {
+                    include: {
+                        set: true,
+                    },
+                },
             },
         });
 
@@ -175,15 +197,15 @@ export class InventoryService {
 
     private validateItemType(dto: CreateInventoryItemDto) {
         if (dto.itemType === ItemType.SINGLE_CARD_RAW) {
-            if (!dto.cardVariantId) {
+            if (!dto.cardVariantId && !dto.refPriceChartingProductId) {
                 throw new BadRequestException(
-                    'cardVariantId is required for SINGLE_CARD_RAW',
+                    'cardVariantId or refPriceChartingProductId is required for SINGLE_CARD_RAW',
                 );
             }
         } else if (dto.itemType === ItemType.SINGLE_CARD_GRADED) {
-            if (!dto.cardVariantId) {
+            if (!dto.cardVariantId && !dto.refPriceChartingProductId) {
                 throw new BadRequestException(
-                    'cardVariantId is required for SINGLE_CARD_GRADED',
+                    'cardVariantId or refPriceChartingProductId is required for SINGLE_CARD_GRADED',
                 );
             }
             if (!dto.gradeProvider || !dto.gradeValue) {
@@ -212,6 +234,15 @@ export class InventoryService {
                 cardNumber: item.cardVariant.card.cardNumber,
                 imageUrl: item.cardVariant.card.imageUrl,
             };
+        } else if (item.refPriceChartingProduct) {
+            cardProfile = {
+                id: item.refPriceChartingProduct.id,
+                name: item.refPriceChartingProduct.title || 'Unknown',
+                set: item.refPriceChartingProduct.set?.name || 'Unknown',
+                rarity: '',
+                cardNumber: item.refPriceChartingProduct.cardNumber || '',
+                imageUrl: item.refPriceChartingProduct.imageUrl || '',
+            };
         }
 
         // Format based on frontend expected structure
@@ -239,6 +270,7 @@ export class InventoryService {
                 ...base,
                 type: 'SINGLE_CARD_RAW',
                 cardVariantId: item.cardVariantId,
+                refPriceChartingProductId: item.refPriceChartingProductId,
                 condition: item.condition,
                 // Denormalized card info for frontend convenience
                 cardProfile,
@@ -248,6 +280,7 @@ export class InventoryService {
                 ...base,
                 type: 'SINGLE_CARD_GRADED',
                 cardVariantId: item.cardVariantId,
+                refPriceChartingProductId: item.refPriceChartingProductId,
                 gradingCompany: item.gradeProvider,
                 grade: item.gradeValue,
                 certNumber: item.certNumber,

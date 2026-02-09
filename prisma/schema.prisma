@@ -223,6 +223,7 @@ model InventoryItem {
   
   // Card reference (for single cards)
   cardVariantId    String?
+  refPriceChartingProductId String?
   
   // Sealed product fields
   productName      String?
@@ -266,11 +267,13 @@ model InventoryItem {
   // Relations
   seller           SellerProfile   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   cardVariant      CardVariant?    @relation(fields: [cardVariantId], references: [id], onDelete: SetNull)
+  refPriceChartingProduct RefPriceChartingProduct? @relation(fields: [refPriceChartingProductId], references: [id], onDelete: SetNull)
 
   @@index([sellerId])
   @@index([stage])
   @@index([itemType])
   @@index([cardVariantId])
+  @@index([refPriceChartingProductId])
   @@index([certificationNumber])
 }
 
@@ -372,6 +375,8 @@ model RefPriceChartingProduct {
 
   scrapedAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  inventoryItems   InventoryItem[]
 
   @@index([tcgPlayerId])
   @@index([priceChartingId])

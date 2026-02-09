@@ -2,6 +2,7 @@ import { ItemType, InventoryStage, GradeProvider, Condition, ProductType, Sealed
 export declare class CreateInventoryItemDto {
     itemType: ItemType;
     cardVariantId?: string;
+    refPriceChartingProductId?: string;
     productName?: string;
     productType?: ProductType;
     language?: string;

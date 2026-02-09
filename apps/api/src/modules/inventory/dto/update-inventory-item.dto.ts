@@ -20,6 +20,10 @@ export class UpdateInventoryItemDto {
     @IsString()
     cardVariantId?: string;
 
+    @IsOptional()
+    @IsString()
+    refPriceChartingProductId?: string;
+
     // For sealed products
     @IsOptional()
     @IsString()

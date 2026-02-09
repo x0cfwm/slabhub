@@ -20,6 +20,7 @@ export declare class InventoryService {
     } | {
         type: string;
         cardVariantId: any;
+        refPriceChartingProductId: any;
         condition: any;
         cardProfile: {
             id: any;
@@ -44,6 +45,7 @@ export declare class InventoryService {
     } | {
         type: string;
         cardVariantId: any;
+        refPriceChartingProductId: any;
         gradingCompany: any;
         grade: any;
         certNumber: any;
@@ -108,6 +110,7 @@ export declare class InventoryService {
     } | {
         type: string;
         cardVariantId: any;
+        refPriceChartingProductId: any;
         condition: any;
         cardProfile: {
             id: any;
@@ -132,6 +135,7 @@ export declare class InventoryService {
     } | {
         type: string;
         cardVariantId: any;
+        refPriceChartingProductId: any;
         gradingCompany: any;
         grade: any;
         certNumber: any;
@@ -196,6 +200,7 @@ export declare class InventoryService {
     } | {
         type: string;
         cardVariantId: any;
+        refPriceChartingProductId: any;
         condition: any;
         cardProfile: {
             id: any;
@@ -220,6 +225,7 @@ export declare class InventoryService {
     } | {
         type: string;
         cardVariantId: any;
+        refPriceChartingProductId: any;
         gradingCompany: any;
         grade: any;
         certNumber: any;
@@ -284,6 +290,7 @@ export declare class InventoryService {
     } | {
         type: string;
         cardVariantId: any;
+        refPriceChartingProductId: any;
         condition: any;
         cardProfile: {
             id: any;
@@ -308,6 +315,7 @@ export declare class InventoryService {
     } | {
         type: string;
         cardVariantId: any;
+        refPriceChartingProductId: any;
         gradingCompany: any;
         grade: any;
         certNumber: any;

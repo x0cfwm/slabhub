@@ -1,6 +1,7 @@
 import { InventoryStage, GradeProvider, Condition, SealedIntegrity } from '@prisma/client';
 export declare class UpdateInventoryItemDto {
     cardVariantId?: string;
+    refPriceChartingProductId?: string;
     productName?: string;
     language?: string;
     setName?: string;

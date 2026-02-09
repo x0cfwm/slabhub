@@ -27,6 +27,11 @@ let InventoryService = class InventoryService {
                         card: true,
                     },
                 },
+                refPriceChartingProduct: {
+                    include: {
+                        set: true,
+                    },
+                },
             },
         });
         return items.map((item) => this.transformItem(item));
@@ -43,6 +48,11 @@ let InventoryService = class InventoryService {
                         card: true,
                     },
                 },
+                refPriceChartingProduct: {
+                    include: {
+                        set: true,
+                    },
+                },
             },
         });
         if (!item) {
@@ -57,6 +67,7 @@ let InventoryService = class InventoryService {
                 sellerId,
                 itemType: dto.itemType,
                 cardVariantId: dto.cardVariantId,
+                refPriceChartingProductId: dto.refPriceChartingProductId,
                 productName: dto.productName,
                 productType: dto.productType,
                 language: dto.language,
@@ -88,6 +99,11 @@ let InventoryService = class InventoryService {
                         card: true,
                     },
                 },
+                refPriceChartingProduct: {
+                    include: {
+                        set: true,
+                    },
+                },
             },
         });
         return this.transformItem(item);
@@ -106,6 +122,7 @@ let InventoryService = class InventoryService {
             where: { id: itemId },
             data: {
                 cardVariantId: dto.cardVariantId,
+                refPriceChartingProductId: dto.refPriceChartingProductId,
                 productName: dto.productName,
                 language: dto.language,
                 setName: dto.setName,
@@ -136,6 +153,11 @@ let InventoryService = class InventoryService {
                         card: true,
                     },
                 },
+                refPriceChartingProduct: {
+                    include: {
+                        set: true,
+                    },
+                },
             },
         });
         return this.transformItem(item);
@@ -157,13 +179,13 @@ let InventoryService = class InventoryService {
     }
     validateItemType(dto) {
         if (dto.itemType === client_1.ItemType.SINGLE_CARD_RAW) {
-            if (!dto.cardVariantId) {
-                throw new common_1.BadRequestException('cardVariantId is required for SINGLE_CARD_RAW');
+            if (!dto.cardVariantId && !dto.refPriceChartingProductId) {
+                throw new common_1.BadRequestException('cardVariantId or refPriceChartingProductId is required for SINGLE_CARD_RAW');
             }
         }
         else if (dto.itemType === client_1.ItemType.SINGLE_CARD_GRADED) {
-            if (!dto.cardVariantId) {
-                throw new common_1.BadRequestException('cardVariantId is required for SINGLE_CARD_GRADED');
+            if (!dto.cardVariantId && !dto.refPriceChartingProductId) {
+                throw new common_1.BadRequestException('cardVariantId or refPriceChartingProductId is required for SINGLE_CARD_GRADED');
             }
             if (!dto.gradeProvider || !dto.gradeValue) {
                 throw new common_1.BadRequestException('gradeProvider and gradeValue are required for SINGLE_CARD_GRADED');
@@ -185,6 +207,16 @@ let InventoryService = class InventoryService {
                 rarity: item.cardVariant.card.rarity,
                 cardNumber: item.cardVariant.card.cardNumber,
                 imageUrl: item.cardVariant.card.imageUrl,
+            };
+        }
+        else if (item.refPriceChartingProduct) {
+            cardProfile = {
+                id: item.refPriceChartingProduct.id,
+                name: item.refPriceChartingProduct.title || 'Unknown',
+                set: item.refPriceChartingProduct.set?.name || 'Unknown',
+                rarity: '',
+                cardNumber: item.refPriceChartingProduct.cardNumber || '',
+                imageUrl: item.refPriceChartingProduct.imageUrl || '',
             };
         }
         const base = {
@@ -210,6 +242,7 @@ let InventoryService = class InventoryService {
                 ...base,
                 type: 'SINGLE_CARD_RAW',
                 cardVariantId: item.cardVariantId,
+                refPriceChartingProductId: item.refPriceChartingProductId,
                 condition: item.condition,
                 cardProfile,
             };
@@ -219,6 +252,7 @@ let InventoryService = class InventoryService {
                 ...base,
                 type: 'SINGLE_CARD_GRADED',
                 cardVariantId: item.cardVariantId,
+                refPriceChartingProductId: item.refPriceChartingProductId,
                 gradingCompany: item.gradeProvider,
                 grade: item.gradeValue,
                 certNumber: item.certNumber,

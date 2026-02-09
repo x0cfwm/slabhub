@@ -25,6 +25,10 @@ export class CreateInventoryItemDto {
     @IsString()
     cardVariantId?: string;
 
+    @IsOptional()
+    @IsString()
+    refPriceChartingProductId?: string;
+
     // For sealed products
     @IsOptional()
     @IsString()

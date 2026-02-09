@@ -68,7 +68,18 @@ export default function AddItemPage() {
         const fetchCards = async () => {
             if (search.length >= 2) {
                 try {
-                    const response = await getMarketProducts({ page: 1, limit: 10, search });
+                    let productTypeFilter = undefined;
+                    if (category === "SINGLE_CARD_RAW" || category === "SINGLE_CARD_GRADED") {
+                        productTypeFilter = "SINGLE_CARD";
+                    } else if (category === "SEALED_PRODUCT") {
+                        productTypeFilter = "SEALED_OTHER,SEALED_BOX,SEALED_PACK";
+                    }
+                    const response = await getMarketProducts({
+                        page: 1,
+                        limit: 10,
+                        search,
+                        productType: productTypeFilter
+                    });
                     setCards(response.items);
                 } catch (error) {
                     console.error("Failed to search cards", error);
@@ -76,14 +87,14 @@ export default function AddItemPage() {
             } else {
                 setCards([]);
                 if (search.length === 0) {
-                    setFormData((prev: any) => ({ ...prev, baseCardId: undefined, cardVariantId: undefined }));
+                    setFormData((prev: any) => ({ ...prev, baseCardId: undefined, cardVariantId: undefined, refPriceChartingProductId: undefined }));
                 }
             }
         };
 
         const timer = setTimeout(fetchCards, 300);
         return () => clearTimeout(timer);
-    }, [search]);
+    }, [search, category]);
 
     const handleFetchDetails = async () => {
         if (!formData.gradingCompany || !formData.certNumber) {
@@ -129,6 +140,7 @@ export default function AddItemPage() {
 
             const itemToSave = {
                 ...formData,
+                refPriceChartingProductId: formData.refPriceChartingProductId,
                 cardVariantId: finalCardVariantId,
                 type: category,
                 createdAt: new Date().toISOString()
@@ -143,7 +155,7 @@ export default function AddItemPage() {
         }
     };
 
-    const selectedCard = cards.find(c => c.id === formData.cardVariantId);
+    const selectedCard = cards.find(c => c.id === (formData.refPriceChartingProductId || formData.cardVariantId));
 
     const applySealedPreset = (preset: "ILLUSTRATION_BOX" | "MINI_TIN") => {
         if (preset === "ILLUSTRATION_BOX") {
@@ -246,39 +258,60 @@ export default function AddItemPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-8">
-                        {category !== "SEALED_PRODUCT" ? (
-                            <div className="space-y-6">
-                                <div className="space-y-2">
-                                    <Label>Search Card Model</Label>
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            placeholder="Pikachu, Luffy, Charizard..."
-                                            className="pl-9 bg-white"
-                                            value={search}
-                                            onChange={e => setSearch(e.target.value)}
-                                        />
-                                    </div>
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <Label>{category === "SEALED_PRODUCT" ? "Search Product Model" : "Search Card Model"}</Label>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder={category === "SEALED_PRODUCT" ? "Booster Box, ETB, Pack..." : "Pikachu, Luffy, Charizard..."}
+                                        className="pl-9 bg-white"
+                                        value={search}
+                                        onChange={e => setSearch(e.target.value)}
+                                    />
+                                </div>
+                                {cards.length > 0 && (
                                     <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                                         {cards.map(card => (
                                             <div
                                                 key={card.id}
-                                                onClick={() => setFormData({ ...formData, baseCardId: card.id, cardVariantId: card.id })}
+                                                onClick={() => {
+                                                    if (category === "SEALED_PRODUCT") {
+                                                        setFormData({
+                                                            ...formData,
+                                                            refPriceChartingProductId: card.id,
+                                                            productName: card.name,
+                                                            setName: card.set
+                                                        });
+                                                    } else {
+                                                        setFormData({
+                                                            ...formData,
+                                                            refPriceChartingProductId: card.id,
+                                                            baseCardId: card.id,
+                                                            cardVariantId: card.id
+                                                        });
+                                                    }
+                                                }}
                                                 className={cn(
                                                     "flex items-center gap-3 p-2 border rounded-xl cursor-pointer transition-all hover:border-primary/50",
-                                                    formData.baseCardId === card.id ? "border-primary bg-primary/5" : "bg-white"
+                                                    (formData.refPriceChartingProductId === card.id || formData.baseCardId === card.id) ? "border-primary bg-primary/5" : "bg-white"
                                                 )}
                                             >
                                                 <img src={card.imageUrl || undefined} className="h-10 rounded-md shadow-lg" alt="" />
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-bold text-xs truncate">{card.name}</p>
-                                                    <p className="text-[10px] text-muted-foreground uppercase">{card.set} • {card.number}</p>
+                                                    <p className="text-[10px] text-muted-foreground uppercase">{card.set} {card.number ? `• ${card.number}` : ''}</p>
                                                 </div>
-                                                {formData.baseCardId === card.id && <Check className="h-4 w-4 text-primary" />}
+                                                {(formData.refPriceChartingProductId === card.id || formData.baseCardId === card.id) && <Check className="h-4 w-4 text-primary" />}
                                             </div>
                                         ))}
                                     </div>
-                                </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {category !== "SEALED_PRODUCT" ? (
+                            <div className="space-y-6">
 
                                 {formData.baseCardId && selectedCard && (
                                     <div className="p-4 rounded-2xl bg-white border border-border/60 shadow-sm space-y-6 animate-in fade-in slide-in-from-top-4">
