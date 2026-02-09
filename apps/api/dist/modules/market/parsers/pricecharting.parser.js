@@ -163,7 +163,7 @@ let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
             const priceTd = $(el).find('td.price, td.numeric');
             const dateStr = dateTd.text().trim();
             const titleLink = titleTd.find('a');
-            const titleText = titleLink.text().trim();
+            const titleText = titleLink.text().replace(/\s+/g, ' ').trim();
             const fullTitleCellText = titleTd.text().trim();
             const link = titleLink.attr('href');
             let priceStr = priceTd.find('.js-price').text().trim();

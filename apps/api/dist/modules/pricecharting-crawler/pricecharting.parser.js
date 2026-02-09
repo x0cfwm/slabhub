@@ -123,7 +123,7 @@ let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
             setSlug: (0, url_1.extractSlug)(url, 'game'),
             setName: setName || undefined,
             productSlug: url.split('/').filter(Boolean).pop(),
-            title: h1Text,
+            title: h1Text.replace(/\s+/g, ' '),
             imageUrl: imageUrl ? (imageUrl.startsWith('http') ? imageUrl : `https://www.pricecharting.com${imageUrl}`) : undefined,
             productType,
             ...this.parsePricesFromTable($),

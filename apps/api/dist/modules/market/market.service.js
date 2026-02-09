@@ -33,10 +33,16 @@ let MarketPricingService = MarketPricingService_1 = class MarketPricingService {
             where.productType = productType;
         }
         if (search) {
-            where.OR = [
-                { title: { contains: search, mode: 'insensitive' } },
-                { cardNumber: { contains: search, mode: 'insensitive' } },
-            ];
+            const searchTerms = search.trim().split(/\s+/).filter(Boolean);
+            if (searchTerms.length > 0) {
+                where.AND = searchTerms.map(term => ({
+                    OR: [
+                        { title: { contains: term, mode: 'insensitive' } },
+                        { set: { name: { contains: term, mode: 'insensitive' } } },
+                        { cardNumber: { contains: term, mode: 'insensitive' } }
+                    ]
+                }));
+            }
         }
         where.rawPrice = { gt: 0 };
         const [items, total] = await Promise.all([

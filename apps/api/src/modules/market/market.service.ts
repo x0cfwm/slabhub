@@ -30,10 +30,16 @@ export class MarketPricingService {
         }
 
         if (search) {
-            where.OR = [
-                { title: { contains: search, mode: 'insensitive' } },
-                { cardNumber: { contains: search, mode: 'insensitive' } },
-            ];
+            const searchTerms = search.trim().split(/\s+/).filter(Boolean);
+            if (searchTerms.length > 0) {
+                where.AND = searchTerms.map(term => ({
+                    OR: [
+                        { title: { contains: term, mode: 'insensitive' } },
+                        { set: { name: { contains: term, mode: 'insensitive' } } },
+                        { cardNumber: { contains: term, mode: 'insensitive' } }
+                    ]
+                }));
+            }
         }
 
         // Do not display products in case of empty rawPrice
