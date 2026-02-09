@@ -91,33 +91,57 @@ let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
                 grade95: this.parsePrice($('#box_only_price span.price').text()),
                 psa10: this.parsePrice($('#manual_only_price span.price').text()),
             };
-            let table = $('#completed_sales_table');
-            if (table.length === 0) {
-                table = $('.js-completed-sales-table');
-            }
-            if (table.length === 0) {
-                $('table').each((i, el) => {
-                    const text = $(el).text();
-                    if (text.includes('Date') && text.includes('Price') && (text.includes('Title') || text.includes('Sale'))) {
-                        table = $(el);
+            const gradeMappings = [
+                { selector: '#used, .completed-auctions-used', label: 'Raw' },
+                { selector: '#graded-10, .completed-auctions-manual-only', label: 'PSA 10' },
+                { selector: '#graded-9-5, #graded-95, .completed-auctions-box-only', label: 'Grade 9.5' },
+                { selector: '#graded-9, .completed-auctions-graded', label: 'Grade 9' },
+                { selector: '#graded-8, .completed-auctions-new', label: 'Grade 8' },
+                { selector: '#graded-7, .completed-auctions-cib', label: 'Grade 7' },
+            ];
+            let foundSales = false;
+            for (const mapping of gradeMappings) {
+                const elements = $(mapping.selector);
+                elements.each((_, el) => {
+                    const section = $(el);
+                    if (section.hasClass('tab'))
+                        return;
+                    const table = section.find('table.hoverable-rows');
+                    const rows = table.length > 0 ? table.find('tbody tr') : section.find('tbody tr');
+                    if (rows.length > 0) {
+                        this.processRows($, rows, sales, mapping.label);
+                        foundSales = true;
                         return false;
                     }
                 });
             }
-            const rows = table.find('tbody tr');
-            if (rows.length === 0) {
-                this.logger.warn(`No sales rows found for ${url}`);
-                const anyRows = $('tr').filter((i, el) => {
-                    const text = $(el).text();
-                    return text.includes('$') && /\d{4}-\d{2}-\d{2}/.test(text);
-                });
-                if (anyRows.length > 0) {
-                    this.logger.log(`Found ${anyRows.length} rows using pattern fallback`);
-                    this.processRows($, anyRows, sales);
+            if (!foundSales) {
+                let table = $('#completed_sales_table');
+                if (table.length === 0) {
+                    table = $('.js-completed-sales-table');
                 }
-            }
-            else {
-                this.processRows($, rows, sales);
+                if (table.length === 0) {
+                    $('table').each((i, el) => {
+                        const text = $(el).text();
+                        if (text.includes('Date') && text.includes('Price') && (text.includes('Title') || text.includes('Sale'))) {
+                            table = $(el);
+                            return false;
+                        }
+                    });
+                }
+                const rows = table.find('tbody tr');
+                if (rows.length > 0) {
+                    this.processRows($, rows, sales, 'Raw');
+                }
+                else {
+                    const anyRows = $('tr').filter((i, el) => {
+                        const text = $(el).text();
+                        return text.includes('$') && /\d{4}-\d{2}-\d{2}/.test(text);
+                    });
+                    if (anyRows.length > 0) {
+                        this.processRows($, anyRows, sales, 'Raw');
+                    }
+                }
             }
             if (sales.length === 0 && !summary.ungraded) {
                 throw new Error('No entries could be parsed from the page structure.');
@@ -129,10 +153,11 @@ let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
             throw error;
         }
     }
-    processRows($, rows, entries) {
+    processRows($, rows, entries, grade) {
         rows.each((i, el) => {
-            if (entries.length >= 20)
-                return false;
+            const gradeSalesCount = entries.filter(e => e.grade === grade).length;
+            if (gradeSalesCount >= 10)
+                return;
             const dateTd = $(el).find('td.date');
             const titleTd = $(el).find('td.title');
             const priceTd = $(el).find('td.price, td.numeric');
@@ -158,6 +183,7 @@ let PriceChartingParser = PriceChartingParser_1 = class PriceChartingParser {
                 price,
                 source,
                 link: link ? (link.startsWith('http') ? link : `https://www.pricecharting.com${link}`) : undefined,
+                grade,
             });
         });
     }

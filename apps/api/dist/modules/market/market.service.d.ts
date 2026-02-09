@@ -19,7 +19,10 @@ export declare class MarketPricingService {
             priceChartingUrl: string;
             tcgplayerId: string | undefined;
             rawPrice: number;
+            grade7Price: number | null;
+            grade8Price: number | null;
             grade9Price: number | null;
+            grade95Price: number | null;
             grade10Price: number | null;
             lastUpdated: string;
             source: string;

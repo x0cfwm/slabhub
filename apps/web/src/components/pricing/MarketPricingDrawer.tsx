@@ -21,6 +21,8 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [selectedGrade, setSelectedGrade] = useState<string>("Raw");
+
 
     const fetchHistory = (isRefresh = false) => {
         if (!product) return;
@@ -46,8 +48,10 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
             fetchHistory();
         } else if (!open) {
             setHistory(null);
+            setSelectedGrade("Raw");
         }
     }, [product, open]);
+
 
     if (!product) return null;
 
@@ -94,12 +98,18 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
 
                 <div className="space-y-6">
                     <div>
-                        <div className="p-4 bg-card rounded-xl border shadow-sm relative overflow-hidden transition-all hover:border-primary/50">
+                        <div
+                            className={`p-4 rounded-xl border shadow-sm relative overflow-hidden transition-all cursor-pointer ${selectedGrade === "Raw"
+                                ? "bg-card border-primary ring-1 ring-primary/20"
+                                : "bg-card hover:border-primary/50"
+                                }`}
+                            onClick={() => setSelectedGrade("Raw")}
+                        >
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Raw Price</p>
                             {(loading || refreshing) ? (
                                 <Skeleton className="h-8 w-24 mb-1" />
                             ) : (
-                                <p className="text-2xl font-bold text-primary">
+                                <p className={`text-2xl font-bold ${selectedGrade === "Raw" ? "text-primary" : ""}`}>
                                     ${(history?.updatedRawPrice ?? product.rawPrice).toFixed(2)}
                                 </p>
                             )}
@@ -115,31 +125,84 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                 <Skeleton className="h-16 w-full rounded-xl" />
                             </div>
                         </div>
-                    ) : history?.summary && (history.summary.grade9 || history.summary.grade95 || history.summary.psa10) ? (
+                    ) : history?.summary && (history.summary.grade7 || history.summary.grade8 || history.summary.grade9 || history.summary.grade95 || history.summary.psa10) ? (
                         <div className="space-y-3">
                             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Graded Estimates</h3>
-                            <div className="grid grid-cols-3 gap-3">
-                                {history.summary.grade9 && (
-                                    <div className="p-3 bg-muted/20 rounded-xl border border-border/50 flex flex-col justify-center transition-colors hover:bg-muted/30">
-                                        <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider mb-1">PSA 9</p>
-                                        <p className="text-base font-bold">${history.summary.grade9.toFixed(2)}</p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {history.summary.psa10 && (
+                                    <div
+                                        className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "PSA 10"
+                                            ? "bg-muted/30 border-primary ring-1 ring-primary/20"
+                                            : "bg-muted/20 border-border/50 hover:bg-muted/30"
+                                            }`}
+                                        onClick={() => setSelectedGrade("PSA 10")}
+                                    >
+                                        <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider mb-1">PSA 10</p>
+                                        <p className={`text-base font-bold ${selectedGrade === "PSA 10" ? "text-primary" : ""}`}>
+                                            ${history.summary.psa10.toFixed(2)}
+                                        </p>
                                     </div>
                                 )}
                                 {history.summary.grade95 && (
-                                    <div className="p-3 bg-muted/20 rounded-xl border border-border/50 flex flex-col justify-center transition-colors hover:bg-muted/30">
+                                    <div
+                                        className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 9.5"
+                                            ? "bg-muted/30 border-primary ring-1 ring-primary/20"
+                                            : "bg-muted/20 border-border/50 hover:bg-muted/30"
+                                            }`}
+                                        onClick={() => setSelectedGrade("Grade 9.5")}
+                                    >
                                         <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider mb-1">BGS 9.5</p>
-                                        <p className="text-base font-bold">${history.summary.grade95.toFixed(2)}</p>
+                                        <p className={`text-base font-bold ${selectedGrade === "Grade 9.5" ? "text-primary" : ""}`}>
+                                            ${history.summary.grade95.toFixed(2)}
+                                        </p>
                                     </div>
                                 )}
-                                {history.summary.psa10 && (
-                                    <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 flex flex-col justify-center transition-colors hover:bg-primary/10">
-                                        <p className="text-[8px] text-primary uppercase font-bold tracking-wider mb-1">PSA 10</p>
-                                        <p className="text-base font-bold text-primary">${history.summary.psa10.toFixed(2)}</p>
+                                {history.summary.grade9 && (
+                                    <div
+                                        className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 9"
+                                            ? "bg-muted/30 border-primary ring-1 ring-primary/20"
+                                            : "bg-muted/20 border-border/50 hover:bg-muted/30"
+                                            }`}
+                                        onClick={() => setSelectedGrade("Grade 9")}
+                                    >
+                                        <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider mb-1">PSA 9</p>
+                                        <p className={`text-base font-bold ${selectedGrade === "Grade 9" ? "text-primary" : ""}`}>
+                                            ${history.summary.grade9.toFixed(2)}
+                                        </p>
+                                    </div>
+                                )}
+                                {history.summary.grade8 && (
+                                    <div
+                                        className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 8"
+                                            ? "bg-muted/30 border-primary ring-1 ring-primary/20"
+                                            : "bg-muted/20 border-border/50 hover:bg-muted/30"
+                                            }`}
+                                        onClick={() => setSelectedGrade("Grade 8")}
+                                    >
+                                        <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider mb-1">PSA 8</p>
+                                        <p className={`text-base font-bold ${selectedGrade === "Grade 8" ? "text-primary" : ""}`}>
+                                            ${history.summary.grade8.toFixed(2)}
+                                        </p>
+                                    </div>
+                                )}
+                                {history.summary.grade7 && (
+                                    <div
+                                        className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 7"
+                                            ? "bg-muted/30 border-primary ring-1 ring-primary/20"
+                                            : "bg-muted/20 border-border/50 hover:bg-muted/30"
+                                            }`}
+                                        onClick={() => setSelectedGrade("Grade 7")}
+                                    >
+                                        <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider mb-1">PSA 7</p>
+                                        <p className={`text-base font-bold ${selectedGrade === "Grade 7" ? "text-primary" : ""}`}>
+                                            ${history.summary.grade7.toFixed(2)}
+                                        </p>
                                     </div>
                                 )}
                             </div>
                         </div>
                     ) : null}
+
 
                     <div className="flex items-center justify-between text-sm px-4 py-2 bg-muted/20 rounded-lg text-muted-foreground italic">
                         <span>Last updated</span>
@@ -199,60 +262,63 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {history.prices.map((entry, idx) => (
-                                            <TableRow key={idx}>
-                                                <TableCell className="text-xs py-3 px-4 font-medium whitespace-nowrap">{entry.date}</TableCell>
-                                                <TableCell className="text-xs py-3 px-4 max-w-[280px] truncate" title={entry.title}>
-                                                    {entry.link ? (
-                                                        <a
-                                                            href={entry.link}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="hover:text-primary hover:underline flex items-center gap-1 inline-flex items-center"
-                                                        >
-                                                            {entry.title}
-                                                            <ExternalLink className="h-3 w-3 inline-block" />
-                                                        </a>
-                                                    ) : (
-                                                        entry.title
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-xs py-3 px-4 font-semibold">
-                                                    ${entry.price.toFixed(2)}
-                                                </TableCell>
-                                                <TableCell className="text-right py-3 pr-6">
-                                                    {entry.link ? (
-                                                        <a
-                                                            href={entry.link}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="inline-block"
-                                                        >
+                                        {(history?.prices ?? [])
+                                            .filter(entry => !entry.grade || entry.grade === selectedGrade)
+                                            .map((entry, idx) => (
+                                                <TableRow key={idx}>
+                                                    <TableCell className="text-xs py-3 px-4 font-medium whitespace-nowrap">{entry.date}</TableCell>
+                                                    <TableCell className="text-xs py-3 px-4 max-w-[280px] truncate" title={entry.title}>
+                                                        {entry.link ? (
+                                                            <a
+                                                                href={entry.link}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="hover:text-primary hover:underline flex items-center gap-1 inline-flex items-center"
+                                                            >
+                                                                {entry.title}
+                                                                <ExternalLink className="h-3 w-3 inline-block" />
+                                                            </a>
+                                                        ) : (
+                                                            entry.title
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-xs py-3 px-4 font-semibold">
+                                                        ${entry.price.toFixed(2)}
+                                                    </TableCell>
+                                                    <TableCell className="text-right py-3 pr-6">
+                                                        {entry.link ? (
+                                                            <a
+                                                                href={entry.link}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="inline-block"
+                                                            >
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className={`text-[10px] px-2 h-5 font-normal cursor-pointer hover:bg-muted transition-colors ${entry.source === 'eBay' ? 'border-blue-500/30 text-blue-500 hover:border-blue-500' :
+                                                                        entry.source === 'TCGPlayer' ? 'border-orange-500/30 text-orange-500 hover:border-orange-500' :
+                                                                            ''
+                                                                        }`}
+                                                                >
+                                                                    {entry.source}
+                                                                </Badge>
+                                                            </a>
+                                                        ) : (
                                                             <Badge
                                                                 variant="outline"
-                                                                className={`text-[10px] px-2 h-5 font-normal cursor-pointer hover:bg-muted transition-colors ${entry.source === 'eBay' ? 'border-blue-500/30 text-blue-500 hover:border-blue-500' :
-                                                                    entry.source === 'TCGPlayer' ? 'border-orange-500/30 text-orange-500 hover:border-orange-500' :
+                                                                className={`text-[10px] px-2 h-5 font-normal ${entry.source === 'eBay' ? 'border-blue-500/30 text-blue-500' :
+                                                                    entry.source === 'TCGPlayer' ? 'border-orange-500/30 text-orange-500' :
                                                                         ''
                                                                     }`}
                                                             >
                                                                 {entry.source}
                                                             </Badge>
-                                                        </a>
-                                                    ) : (
-                                                        <Badge
-                                                            variant="outline"
-                                                            className={`text-[10px] px-2 h-5 font-normal ${entry.source === 'eBay' ? 'border-blue-500/30 text-blue-500' :
-                                                                entry.source === 'TCGPlayer' ? 'border-orange-500/30 text-orange-500' :
-                                                                    ''
-                                                                }`}
-                                                        >
-                                                            {entry.source}
-                                                        </Badge>
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
                                     </TableBody>
+
                                 </Table>
                             </div>
                         )}

@@ -184,7 +184,7 @@ function PricingContent() {
                         <TableRow>
                             <TableHead className="w-[80px]">Card</TableHead>
                             <TableHead>Card Name</TableHead>
-                            <TableHead>Raw Price</TableHead>
+                            <TableHead className="w-[300px]">Market Prices</TableHead>
                             <TableHead>Last Updated</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -234,9 +234,29 @@ function PricingContent() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <span className="font-bold text-sm">
-                                            {product.rawPrice && product.rawPrice > 0 ? `$${product.rawPrice.toFixed(2)}` : "-"}
-                                        </span>
+                                        <div className="flex flex-col gap-1.5 py-1">
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="font-bold text-sm">
+                                                    {product.rawPrice && product.rawPrice > 0 ? `$${product.rawPrice.toFixed(2)}` : "-"}
+                                                </span>
+                                                <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wide">Raw</span>
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-1">
+                                                {[
+                                                    { label: "10", price: product.grade10Price },
+                                                    { label: "9.5", price: product.grade95Price },
+                                                    { label: "9", price: product.grade9Price },
+                                                    { label: "8", price: product.grade8Price },
+                                                    { label: "7", price: product.grade7Price },
+                                                ].filter(g => g.price && g.price > 0).map((g) => (
+                                                    <div key={g.label} className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-muted border border-border/50">
+                                                        <span className="text-[8px] font-bold text-muted-foreground">{g.label}</span>
+                                                        <span className="text-[10px] font-semibold">${g.price?.toFixed(2)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </TableCell>
                                     <TableCell className="text-[10px] text-muted-foreground">
                                         {new Date(product.lastUpdated).toLocaleDateString()}

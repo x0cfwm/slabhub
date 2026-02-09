@@ -5,6 +5,7 @@ export interface PriceChartingEntry {
     price: number;
     source: 'eBay' | 'TCGPlayer' | 'Unknown';
     link?: string;
+    grade?: string;
 }
 export interface PriceChartingSummary {
     ungraded?: number;
