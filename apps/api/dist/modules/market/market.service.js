@@ -38,6 +38,7 @@ let MarketPricingService = MarketPricingService_1 = class MarketPricingService {
                 { cardNumber: { contains: search, mode: 'insensitive' } },
             ];
         }
+        where.rawPrice = { gt: 0 };
         const [items, total] = await Promise.all([
             this.prisma.refPriceChartingProduct.findMany({
                 where,
@@ -60,8 +61,8 @@ let MarketPricingService = MarketPricingService_1 = class MarketPricingService {
             where: { id },
             include: { set: true }
         });
-        if (!product) {
-            throw new common_1.NotFoundException('Product not found');
+        if (!product || !product.rawPrice || Number(product.rawPrice) <= 0) {
+            throw new common_1.NotFoundException('Product not found or has no price');
         }
         return this.mapProduct(product);
     }

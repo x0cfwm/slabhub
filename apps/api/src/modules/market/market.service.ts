@@ -36,6 +36,9 @@ export class MarketPricingService {
             ];
         }
 
+        // Do not display products in case of empty rawPrice
+        where.rawPrice = { gt: 0 };
+
         const [items, total] = await Promise.all([
             this.prisma.refPriceChartingProduct.findMany({
                 where,
@@ -61,8 +64,8 @@ export class MarketPricingService {
             include: { set: true }
         });
 
-        if (!product) {
-            throw new NotFoundException('Product not found');
+        if (!product || !(product as any).rawPrice || Number((product as any).rawPrice) <= 0) {
+            throw new NotFoundException('Product not found or has no price');
         }
 
         return this.mapProduct(product);
