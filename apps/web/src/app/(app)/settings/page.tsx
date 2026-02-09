@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { AlertTriangle, CreditCard, LogOut, MapPin, RefreshCw, Save, Truck } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { useAuth } from "@/components/auth-provider";
 
@@ -70,14 +71,27 @@ export default function SettingsPage() {
                                 <CardTitle>Shop Profile</CardTitle>
                                 <CardDescription>Adjust your public identity and shop status.</CardDescription>
                             </div>
-                            <div className="flex items-center space-x-2 bg-primary/5 px-3 py-1.5 rounded-full border border-primary/10">
-                                <Label htmlFor="shop-active" className="text-sm font-medium cursor-pointer">
+                            <div className={cn(
+                                "flex items-center space-x-2 px-3 py-1.5 rounded-full transition-colors",
+                                "dark:border dark:bg-card",
+                                profile?.isActive
+                                    ? "dark:bg-primary/5 dark:border-primary/10"
+                                    : "dark:bg-muted dark:border-muted-foreground/10"
+                            )}>
+                                <Label
+                                    htmlFor="shop-active"
+                                    className={cn(
+                                        "text-sm font-medium cursor-pointer transition-colors",
+                                        !profile?.isActive && "text-muted-foreground"
+                                    )}
+                                >
                                     Shop is {profile?.isActive ? 'Active' : 'Inactive'}
                                 </Label>
                                 <Switch
                                     id="shop-active"
                                     checked={profile?.isActive}
                                     onCheckedChange={checked => setProfile(p => p ? { ...p, isActive: checked } : null)}
+                                    className="data-[state=unchecked]:bg-muted dark:data-[state=unchecked]:bg-input"
                                 />
                             </div>
                         </div>
@@ -202,17 +216,17 @@ export default function SettingsPage() {
                     </CardFooter>
                 </Card>
 
-                <Card className="border-destructive/20 bg-destructive/5">
+                <Card className="border-border bg-muted/30 shadow-sm">
                     <CardHeader>
-                        <CardTitle className="text-destructive uppercase text-xs tracking-widest font-bold">Account</CardTitle>
+                        <CardTitle className="text-muted-foreground uppercase text-[10px] tracking-[0.2em] font-bold">Account</CardTitle>
                         <CardDescription>Manage your session and access.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Button
                             type="button"
-                            variant="destructive"
+                            variant="outline"
                             onClick={handleLogout}
-                            className="bg-destructive/10 text-destructive hover:bg-destructive hover:text-white border border-destructive/20"
+                            className="text-muted-foreground hover:text-foreground transition-all"
                         >
                             <LogOut className="mr-2 h-4 w-4" />
                             Log Out from SlabHub
