@@ -108,111 +108,107 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                 </SheetHeader>
 
                 <div className="space-y-6">
-                    <div>
-                        <div
-                            className={`p-4 rounded-xl border shadow-sm relative overflow-hidden transition-all cursor-pointer ${selectedGrade === "Raw"
-                                ? "bg-card border-primary ring-1 ring-primary/20"
-                                : "bg-card hover:border-primary/50"
-                                }`}
-                            onClick={() => setSelectedGrade("Raw")}
-                        >
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Raw Price</p>
-                            {(loading || refreshing) ? (
-                                <Skeleton className="h-8 w-24 mb-1" />
-                            ) : (
-                                <p className={`text-2xl font-bold ${selectedGrade === "Raw" ? "text-primary" : ""}`}>
-                                    ${(history?.updatedRawPrice ?? product.rawPrice).toFixed(2)}
-                                </p>
+                    <div className="space-y-3">
+                        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Market Estimates</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div
+                                className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Raw"
+                                    ? "bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/20"
+                                    : "bg-muted/20 border-border/50 hover:bg-muted/30"
+                                    }`}
+                                onClick={() => setSelectedGrade("Raw")}
+                            >
+                                <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "Raw" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>Raw Price</p>
+                                {(loading || refreshing) ? (
+                                    <Skeleton className="h-5 w-16" />
+                                ) : (
+                                    <p className={`text-base font-bold ${selectedGrade === "Raw" ? "text-amber-700 dark:text-amber-400" : ""}`}>
+                                        ${(history?.updatedRawPrice ?? product.rawPrice).toFixed(2)}
+                                    </p>
+                                )}
+                            </div>
+
+                            {(loading || refreshing) && !history?.summary ? (
+                                <>
+                                    <Skeleton className="h-[60px] w-full rounded-xl" />
+                                    <Skeleton className="h-[60px] w-full rounded-xl" />
+                                </>
+                            ) : history?.summary && (
+                                <>
+                                    {history.summary.grade9 && (
+                                        <div
+                                            className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 9"
+                                                ? "bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/20"
+                                                : "bg-muted/20 border-border/50 hover:bg-muted/30"
+                                                }`}
+                                            onClick={() => setSelectedGrade("Grade 9")}
+                                        >
+                                            <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "Grade 9" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>PSA 9</p>
+                                            <p className={`text-base font-bold ${selectedGrade === "Grade 9" ? "text-amber-700 dark:text-amber-400" : ""}`}>
+                                                ${history.summary.grade9.toFixed(2)}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {history.summary.grade95 && (
+                                        <div
+                                            className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 9.5"
+                                                ? "bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/20"
+                                                : "bg-muted/20 border-border/50 hover:bg-muted/30"
+                                                }`}
+                                            onClick={() => setSelectedGrade("Grade 9.5")}
+                                        >
+                                            <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "Grade 9.5" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>BGS 9.5</p>
+                                            <p className={`text-base font-bold ${selectedGrade === "Grade 9.5" ? "text-amber-700 dark:text-amber-400" : ""}`}>
+                                                ${history.summary.grade95.toFixed(2)}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {history.summary.psa10 && (
+                                        <div
+                                            className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "PSA 10"
+                                                ? "bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/20"
+                                                : "bg-muted/20 border-border/50 hover:bg-muted/30"
+                                                }`}
+                                            onClick={() => setSelectedGrade("PSA 10")}
+                                        >
+                                            <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "PSA 10" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>PSA 10</p>
+                                            <p className={`text-base font-bold ${selectedGrade === "PSA 10" ? "text-amber-700 dark:text-amber-400" : ""}`}>
+                                                ${history.summary.psa10.toFixed(2)}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {history.summary.grade8 && (
+                                        <div
+                                            className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 8"
+                                                ? "bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/20"
+                                                : "bg-muted/20 border-border/50 hover:bg-muted/30"
+                                                }`}
+                                            onClick={() => setSelectedGrade("Grade 8")}
+                                        >
+                                            <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "Grade 8" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>PSA 8</p>
+                                            <p className={`text-base font-bold ${selectedGrade === "Grade 8" ? "text-amber-700 dark:text-amber-400" : ""}`}>
+                                                ${history.summary.grade8.toFixed(2)}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {history.summary.grade7 && (
+                                        <div
+                                            className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 7"
+                                                ? "bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/20"
+                                                : "bg-muted/20 border-border/50 hover:bg-muted/30"
+                                                }`}
+                                            onClick={() => setSelectedGrade("Grade 7")}
+                                        >
+                                            <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "Grade 7" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>PSA 7</p>
+                                            <p className={`text-base font-bold ${selectedGrade === "Grade 7" ? "text-amber-700 dark:text-amber-400" : ""}`}>
+                                                ${history.summary.grade7.toFixed(2)}
+                                            </p>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
-
-                    {(loading || refreshing) ? (
-                        <div className="space-y-3">
-                            <Skeleton className="h-4 w-32 px-1" />
-                            <div className="grid grid-cols-3 gap-3">
-                                <Skeleton className="h-16 w-full rounded-xl" />
-                                <Skeleton className="h-16 w-full rounded-xl" />
-                                <Skeleton className="h-16 w-full rounded-xl" />
-                            </div>
-                        </div>
-                    ) : history?.summary && (history.summary.grade7 || history.summary.grade8 || history.summary.grade9 || history.summary.grade95 || history.summary.psa10) ? (
-                        <div className="space-y-3">
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Graded Estimates</h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                {history.summary.psa10 && (
-                                    <div
-                                        className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "PSA 10"
-                                            ? "bg-muted/30 border-primary ring-1 ring-primary/20"
-                                            : "bg-muted/20 border-border/50 hover:bg-muted/30"
-                                            }`}
-                                        onClick={() => setSelectedGrade("PSA 10")}
-                                    >
-                                        <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider mb-1">PSA 10</p>
-                                        <p className={`text-base font-bold ${selectedGrade === "PSA 10" ? "text-primary" : ""}`}>
-                                            ${history.summary.psa10.toFixed(2)}
-                                        </p>
-                                    </div>
-                                )}
-                                {history.summary.grade95 && (
-                                    <div
-                                        className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 9.5"
-                                            ? "bg-muted/30 border-primary ring-1 ring-primary/20"
-                                            : "bg-muted/20 border-border/50 hover:bg-muted/30"
-                                            }`}
-                                        onClick={() => setSelectedGrade("Grade 9.5")}
-                                    >
-                                        <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider mb-1">BGS 9.5</p>
-                                        <p className={`text-base font-bold ${selectedGrade === "Grade 9.5" ? "text-primary" : ""}`}>
-                                            ${history.summary.grade95.toFixed(2)}
-                                        </p>
-                                    </div>
-                                )}
-                                {history.summary.grade9 && (
-                                    <div
-                                        className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 9"
-                                            ? "bg-muted/30 border-primary ring-1 ring-primary/20"
-                                            : "bg-muted/20 border-border/50 hover:bg-muted/30"
-                                            }`}
-                                        onClick={() => setSelectedGrade("Grade 9")}
-                                    >
-                                        <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider mb-1">PSA 9</p>
-                                        <p className={`text-base font-bold ${selectedGrade === "Grade 9" ? "text-primary" : ""}`}>
-                                            ${history.summary.grade9.toFixed(2)}
-                                        </p>
-                                    </div>
-                                )}
-                                {history.summary.grade8 && (
-                                    <div
-                                        className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 8"
-                                            ? "bg-muted/30 border-primary ring-1 ring-primary/20"
-                                            : "bg-muted/20 border-border/50 hover:bg-muted/30"
-                                            }`}
-                                        onClick={() => setSelectedGrade("Grade 8")}
-                                    >
-                                        <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider mb-1">PSA 8</p>
-                                        <p className={`text-base font-bold ${selectedGrade === "Grade 8" ? "text-primary" : ""}`}>
-                                            ${history.summary.grade8.toFixed(2)}
-                                        </p>
-                                    </div>
-                                )}
-                                {history.summary.grade7 && (
-                                    <div
-                                        className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 7"
-                                            ? "bg-muted/30 border-primary ring-1 ring-primary/20"
-                                            : "bg-muted/20 border-border/50 hover:bg-muted/30"
-                                            }`}
-                                        onClick={() => setSelectedGrade("Grade 7")}
-                                    >
-                                        <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider mb-1">PSA 7</p>
-                                        <p className={`text-base font-bold ${selectedGrade === "Grade 7" ? "text-primary" : ""}`}>
-                                            ${history.summary.grade7.toFixed(2)}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    ) : null}
 
 
                     <div className="flex items-center justify-between text-sm px-4 py-2 bg-muted/20 rounded-lg text-muted-foreground italic">
