@@ -58,6 +58,7 @@ export class MarketPricingService {
                 priceChartingUrl: product.productUrl,
                 tcgplayerId: product.tcgPlayerId?.toString(),
                 rawPrice: product.rawPrice ? Number(product.rawPrice) : 0,
+                sealedPrice: product.sealedPrice ? Number(product.sealedPrice) : null,
                 grade7Price: product.grade7Price ? Number(product.grade7Price) : null,
                 grade8Price: product.grade8Price ? Number(product.grade8Price) : null,
                 grade9Price: product.grade9Price ? Number(product.grade9Price) : null,

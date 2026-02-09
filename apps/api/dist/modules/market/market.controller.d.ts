@@ -14,6 +14,7 @@ export declare class MarketPricingController {
             priceChartingUrl: string;
             tcgplayerId: string | undefined;
             rawPrice: number;
+            sealedPrice: number | null;
             grade7Price: number | null;
             grade8Price: number | null;
             grade9Price: number | null;
