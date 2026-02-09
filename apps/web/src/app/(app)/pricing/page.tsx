@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getMarketProducts, getMarketSets } from "@/lib/api";
+import { getMarketProducts, getMarketSets, getMarketProduct } from "@/lib/api";
 import { MarketProduct, MarketSet } from "@/lib/types";
 import {
     Select,
@@ -75,6 +75,46 @@ function PricingContent() {
         fetchData(page, search, setExternalId, productType);
     }, [page, search, setExternalId, productType, fetchData]);
 
+    // Sync selectedProduct with URL productId
+    useEffect(() => {
+        const productId = searchParams.get("productId");
+        if (productId) {
+            if (selectedProduct?.id !== productId) {
+                // Try finding in current data
+                const found = data?.items.find(p => p.id === productId);
+                if (found) {
+                    setSelectedProduct(found);
+                    setDrawerOpen(true);
+                } else {
+                    // Fetch if not in current data or not loaded yet
+                    setLoading(true);
+                    getMarketProduct(productId)
+                        .then(p => {
+                            setSelectedProduct(p);
+                            setDrawerOpen(true);
+                        })
+                        .catch(err => {
+                            console.error("Failed to fetch product for URL", err);
+                            // If failed, maybe remove the invalid ID from URL
+                            const params = new URLSearchParams(searchParams.toString());
+                            params.delete("productId");
+                            router.replace(`?${params.toString()}`);
+                        })
+                        .finally(() => setLoading(false));
+                }
+            } else {
+                // If IDs match but drawer is closed (e.g. back button), open it
+                if (!drawerOpen) setDrawerOpen(true);
+            }
+        } else {
+            // URL has no productId, close drawer if it was open from a direct link/refresh
+            if (drawerOpen) {
+                setDrawerOpen(false);
+                setSelectedProduct(null);
+            }
+        }
+    }, [searchParams, data]); // data is needed to check if product is already in list
+
     // Handle search debounce
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -115,8 +155,22 @@ function PricingContent() {
     const totalPages = data ? Math.ceil(data.total / LIMIT) : 0;
 
     const openDetails = (product: MarketProduct) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("productId", product.id);
+        router.push(`?${params.toString()}`);
         setSelectedProduct(product);
         setDrawerOpen(true);
+    };
+
+    const handleDrawerChange = (open: boolean) => {
+        setDrawerOpen(open);
+        if (!open) {
+            const params = new URLSearchParams(searchParams.toString());
+            if (params.has("productId")) {
+                params.delete("productId");
+                router.push(`?${params.toString()}`);
+            }
+        }
     };
 
     return (
@@ -310,7 +364,7 @@ function PricingContent() {
             <MarketPricingDrawer
                 product={selectedProduct}
                 open={drawerOpen}
-                onOpenChange={setDrawerOpen}
+                onOpenChange={handleDrawerChange}
             />
         </div>
     );

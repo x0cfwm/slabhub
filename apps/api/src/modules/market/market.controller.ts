@@ -28,4 +28,9 @@ export class MarketPricingController {
             refresh === 'true'
         );
     }
+
+    @Get('products/:id')
+    async getProduct(@Param('id') id: string) {
+        return this.marketService.getProduct(id);
+    }
 }

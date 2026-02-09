@@ -47,33 +47,46 @@ export class MarketPricingService {
             this.prisma.refPriceChartingProduct.count({ where }),
         ]);
 
-        const mappedItems = items.map(product => {
-            return {
-                id: product.id,
-                name: product.title || 'Unknown Product',
-                number: product.cardNumber,
-                imageUrl: product.imageUrl,
-                set: product.set?.name || 'Unknown Set',
-                productType: product.productType,
-                priceChartingUrl: product.productUrl,
-                tcgplayerId: product.tcgPlayerId?.toString(),
-                rawPrice: product.rawPrice ? Number(product.rawPrice) : 0,
-                sealedPrice: product.sealedPrice ? Number(product.sealedPrice) : null,
-                grade7Price: product.grade7Price ? Number(product.grade7Price) : null,
-                grade8Price: product.grade8Price ? Number(product.grade8Price) : null,
-                grade9Price: product.grade9Price ? Number(product.grade9Price) : null,
-                grade95Price: product.grade95Price ? Number(product.grade95Price) : null,
-                grade10Price: product.grade10Price ? Number(product.grade10Price) : null,
-                lastUpdated: product.priceUpdatedAt ? product.priceUpdatedAt.toISOString() : product.updatedAt.toISOString(),
-                source: product.priceSource || 'PriceCharting',
-            };
-        });
-
         return {
-            items: mappedItems,
+            items: items.map(p => this.mapProduct(p)),
             page,
             limit,
             total,
+        };
+    }
+
+    async getProduct(id: string) {
+        const product = await this.prisma.refPriceChartingProduct.findUnique({
+            where: { id },
+            include: { set: true }
+        });
+
+        if (!product) {
+            throw new NotFoundException('Product not found');
+        }
+
+        return this.mapProduct(product);
+    }
+
+    private mapProduct(product: any) {
+        return {
+            id: product.id,
+            name: product.title || 'Unknown Product',
+            number: product.cardNumber,
+            imageUrl: product.imageUrl,
+            set: product.set?.name || 'Unknown Set',
+            productType: product.productType,
+            priceChartingUrl: product.productUrl,
+            tcgplayerId: product.tcgPlayerId?.toString(),
+            rawPrice: product.rawPrice ? Number(product.rawPrice) : 0,
+            sealedPrice: product.sealedPrice ? Number(product.sealedPrice) : null,
+            grade7Price: product.grade7Price ? Number(product.grade7Price) : null,
+            grade8Price: product.grade8Price ? Number(product.grade8Price) : null,
+            grade9Price: product.grade9Price ? Number(product.grade9Price) : null,
+            grade95Price: product.grade95Price ? Number(product.grade95Price) : null,
+            grade10Price: product.grade10Price ? Number(product.grade10Price) : null,
+            lastUpdated: product.priceUpdatedAt ? product.priceUpdatedAt.toISOString() : product.updatedAt.toISOString(),
+            source: product.priceSource || 'PriceCharting',
         };
     }
 

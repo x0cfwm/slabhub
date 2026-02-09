@@ -1,5 +1,5 @@
 import { Grader } from "../../../api/src/modules/grading/types/grading.types";
-import { MarketPriceHistory, MarketProductsResponse, MarketSet } from "./types";
+import { MarketPriceHistory, MarketProduct, MarketProductsResponse, MarketSet } from "./types";
 
 export interface GradingLookupResult {
     grader: string;
@@ -135,6 +135,15 @@ export async function getMarketProducts(params: { page: number; limit: number; s
     const response = await fetch(url.toString(), { credentials: 'include' });
     if (!response.ok) {
         throw new Error('Failed to fetch market products');
+    }
+    return response.json();
+}
+
+export async function getMarketProduct(id: string): Promise<MarketProduct> {
+    const url = getFullUrl(`/v1/market/products/${id}`);
+    const response = await fetch(url.toString(), { credentials: 'include' });
+    if (!response.ok) {
+        throw new Error('Failed to fetch market product');
     }
     return response.json();
 }
