@@ -22,7 +22,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { InventoryItem, CardProfile, InventoryStage } from "@/lib/types";
 import { Trash2, Save, ExternalLink } from "lucide-react";
-import { mockApi } from "@/lib/mockApi";
+import { updateInventoryItem, deleteInventoryItem } from "@/lib/api";
 import { toast } from "sonner";
 
 interface ItemDrawerProps {
@@ -56,7 +56,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
         if (!item) return;
         setLoading(true);
         try {
-            await mockApi.updateInventoryItem(item.id, formData);
+            await updateInventoryItem(item.id, formData);
             toast.success("Item updated");
             onUpdate();
             onClose();
@@ -159,7 +159,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                             if (!item) return;
                             if (window.confirm("Are you sure you want to remove this asset?")) {
                                 try {
-                                    await mockApi.deleteInventoryItem(item.id);
+                                    await deleteInventoryItem(item.id);
                                     toast.success("Asset removed from inventory");
                                     onUpdate();
                                     onClose();

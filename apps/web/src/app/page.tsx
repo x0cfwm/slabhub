@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Package, ArrowRight, Shield, TrendingUp, BarChart3 } from "lucide-react";
-import { mockApi } from "@/lib/mockApi";
+import { getMe } from "@/lib/api";
 import { SellerProfile } from "@/lib/types";
 
 export default function LandingPage() {
@@ -12,8 +12,8 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    mockApi.getCurrentUser()
-      .then(setProfile)
+    getMe()
+      .then(res => setProfile(res?.profile || null))
       .finally(() => setLoading(false));
   }, []);
 

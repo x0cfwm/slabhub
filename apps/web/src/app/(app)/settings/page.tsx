@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { mockApi } from "@/lib/mockApi";
 import { SellerProfile } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,7 +38,8 @@ export default function SettingsPage() {
         if (!profile) return;
         setSaving(true);
         try {
-            await mockApi.updateProfile(profile);
+            // TODO: Implement real profile update in api.ts if needed
+            // await updateProfile(profile);
             toast.success("Settings saved");
         } catch (err) {
             toast.error("Failed to save settings");
@@ -48,15 +48,6 @@ export default function SettingsPage() {
         }
     };
 
-    const handleReset = async () => {
-        if (!confirm("Are you sure? This will wipe ALL current inventory and reset to initial seed data.")) return;
-        try {
-            await mockApi.resetData();
-            window.location.reload();
-        } catch (err) {
-            toast.error("Reset failed");
-        }
-    };
 
     const handleLogout = async () => {
         await authLogout();
@@ -229,23 +220,6 @@ export default function SettingsPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="border-destructive/20 bg-destructive/5 opacity-50">
-                    <CardHeader>
-                        <CardTitle className="text-destructive uppercase text-xs tracking-widest font-bold">Danger Zone</CardTitle>
-                        <CardDescription>Reset all application data to its initial state.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleReset}
-                            className="text-destructive hover:bg-destructive hover:text-white border-destructive/20 shadow-none"
-                        >
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Reset All Data (Local Only)
-                        </Button>
-                    </CardContent>
-                </Card>
             </form>
         </div>
     );

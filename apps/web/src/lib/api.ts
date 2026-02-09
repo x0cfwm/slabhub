@@ -1,5 +1,5 @@
 import { Grader } from "../../../api/src/modules/grading/types/grading.types";
-import { MarketPriceHistory, MarketProduct, MarketProductsResponse, MarketSet } from "./types";
+import { MarketPriceHistory, MarketProduct, MarketProductsResponse, MarketSet, InventoryItem } from "./types";
 
 export interface GradingLookupResult {
     grader: string;
@@ -167,4 +167,56 @@ export async function getProductPriceHistory(productId: string, refresh = false)
         throw new Error('Failed to fetch price history');
     }
     return response.json();
+}
+
+export async function listInventory(): Promise<InventoryItem[]> {
+    const url = getFullUrl('/v1/inventory');
+    const response = await fetch(url.toString(), { credentials: 'include' });
+    if (!response.ok) {
+        throw new Error('Failed to fetch inventory');
+    }
+    return response.json();
+}
+
+export async function createInventoryItem(item: any): Promise<InventoryItem> {
+    const url = getFullUrl('/v1/inventory');
+    const response = await fetch(url.toString(), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(item),
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        throw new Error('Failed to create inventory item');
+    }
+    return response.json();
+}
+
+export async function updateInventoryItem(id: string, patch: any): Promise<InventoryItem> {
+    const url = getFullUrl(`/v1/inventory/${id}`);
+    const response = await fetch(url.toString(), {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(patch),
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        throw new Error('Failed to update inventory item');
+    }
+    return response.json();
+}
+
+export async function deleteInventoryItem(id: string): Promise<void> {
+    const url = getFullUrl(`/v1/inventory/${id}`);
+    const response = await fetch(url.toString(), {
+        method: 'DELETE',
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        throw new Error('Failed to delete inventory item');
+    }
 }

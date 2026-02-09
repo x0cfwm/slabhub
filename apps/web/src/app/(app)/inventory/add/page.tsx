@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { mockApi } from "@/lib/mockApi";
+import { createInventoryItem, lookupGrading, GradingLookupResult, getMarketProducts } from "@/lib/api";
 import {
     CardProfile,
     InventoryItem,
@@ -32,7 +32,6 @@ import { toast } from "sonner";
 import { Search, ChevronRight, ChevronLeft, Check, Package as PackageIcon, FileText, BadgeCheck, Box } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { lookupGrading, GradingLookupResult, getMarketProducts } from "@/lib/api";
 import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -145,7 +144,7 @@ export default function AddItemPage() {
                 type: category,
                 createdAt: new Date().toISOString()
             };
-            await mockApi.createInventoryItem(itemToSave as any);
+            await createInventoryItem(itemToSave as any);
             toast.success("Item added to inventory");
             router.push("/inventory");
         } catch (err) {

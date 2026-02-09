@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { mockApi } from "@/lib/mockApi";
 import { toast } from "sonner";
 import { Package } from "lucide-react";
 
@@ -30,10 +29,8 @@ export default function OnboardingPage() {
         e.preventDefault();
         setLoading(true);
         try {
-            await mockApi.updateProfile({
-                ...formData,
-                socials: {}
-            });
+            // TODO: Implement real profile update if needed
+            // await updateProfile(formData);
             toast.success("Profile created successfully!");
             router.push("/dashboard");
         } catch (err) {

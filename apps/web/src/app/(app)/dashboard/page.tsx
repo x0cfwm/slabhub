@@ -16,30 +16,27 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { mockApi } from "@/lib/mockApi";
-import { InventoryItem, PricingSnapshot, CardProfile, SellerProfile } from "@/lib/types";
+import { listInventory, getMe, getMarketProducts } from "@/lib/api";
+import { InventoryItem, MarketProduct, SellerProfile } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 export default function DashboardPage() {
     const [items, setItems] = useState<InventoryItem[]>([]);
-    const [pricing, setPricing] = useState<PricingSnapshot[]>([]);
-    const [cards, setCards] = useState<CardProfile[]>([]);
+    const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
     const [profile, setProfile] = useState<SellerProfile | null>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchData = async () => {
         try {
-            const [inv, prc, crd, prof] = await Promise.all([
-                mockApi.listInventory(),
-                mockApi.listPricing(),
-                mockApi.listCardProfiles(),
-                mockApi.getCurrentUser()
+            const [inv, market, prof] = await Promise.all([
+                listInventory(),
+                getMarketProducts({ page: 1, limit: 100 }), // Fetch some market products for pricing
+                getMe()
             ]);
             setItems(inv);
-            setPricing(prc);
-            setCards(crd);
-            setProfile(prof);
+            setMarketProducts(market.items);
+            setProfile(prof?.profile || null);
         } catch (err) {
             toast.error("Failed to fetch dashboard data");
         } finally {
@@ -52,34 +49,41 @@ export default function DashboardPage() {
     }, []);
 
     const stats = useMemo(() => {
-        const totalItems = items.reduce((acc, i) => acc + i.quantity, 0);
-        const forSaleItems = items.filter(i => i.stage === "LISTED").reduce((acc, i) => acc + i.quantity, 0);
+        const totalItems = items.reduce((acc, i) => acc + (i.quantity || 1), 0);
+        const forSaleItems = items.filter(i => i.stage === "LISTED").reduce((acc, i) => acc + (i.quantity || 1), 0);
 
         const marketValue = items.reduce((acc, item) => {
             const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
             const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
 
             const vid = (item as any).cardVariantId || (item as any).cardProfileId;
-            const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
+            const refId = item.refPriceChartingProductId;
 
-            const price = pricing.find(p => p.cardProfileId === bid || p.cardProfileId === vid);
-            const unitPrice = isSealed ? (price?.sealedPrice ?? 0) : (price?.rawPrice ?? 0);
+            // Try to find price from market products
+            const marketProduct = marketProducts.find(p => p.id === refId || p.id === vid);
 
-            return acc + (unitPrice * item.quantity);
+            let unitPrice = 0;
+            if (marketProduct) {
+                unitPrice = isSealed ? (marketProduct.sealedPrice ?? 0) : (marketProduct.rawPrice ?? 0);
+            } else if (item.marketPriceSnapshot) {
+                unitPrice = Number(item.marketPriceSnapshot);
+            }
+
+            return acc + (unitPrice * (item.quantity || 1));
         }, 0);
 
         const stages = items.reduce((acc, item) => {
-            acc[item.stage] = (acc[item.stage] || 0) + item.quantity;
+            acc[item.stage] = (acc[item.stage] || 0) + (item.quantity || 1);
             return acc;
         }, {} as Record<string, number>);
 
         return { totalItems, forSaleItems, marketValue, stages };
-    }, [items, pricing]);
+    }, [items, marketProducts]);
 
     const lastUpdated = useMemo(() => {
-        if (pricing.length === 0) return null;
-        return new Date(pricing[0].updatedAt).toLocaleString();
-    }, [pricing]);
+        if (marketProducts.length === 0) return null;
+        return new Date(marketProducts[0].lastUpdated).toLocaleString();
+    }, [marketProducts]);
 
     if (loading) {
         return (
@@ -206,10 +210,10 @@ export default function DashboardPage() {
                                 const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
 
                                 const vid = (item as any).cardVariantId || (item as any).cardProfileId;
-                                const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
-                                const profile = cards.find(c => c.id === bid);
+                                const refId = item.refPriceChartingProductId;
+                                const marketProduct = marketProducts.find(p => p.id === refId || p.id === vid);
 
-                                const displayName = isSealed ? (item as any).productName : profile?.name || "Unknown Asset";
+                                const displayName = isSealed ? (item as any).productName : marketProduct?.name || "Unknown Asset";
 
                                 return (
                                     <div key={item.id} className="flex items-center">

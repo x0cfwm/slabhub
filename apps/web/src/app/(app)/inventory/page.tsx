@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { mockApi } from "@/lib/mockApi";
-import { InventoryItem, CardProfile, PricingSnapshot, InventoryStage } from "@/lib/types";
+import { listInventory, getMarketProducts } from "@/lib/api";
+import { InventoryItem, MarketProduct, InventoryStage } from "@/lib/types";
 import { ItemCard } from "@/components/inventory/ItemCard";
 import { ItemDrawer } from "@/components/inventory/ItemDrawer";
 import { KanbanBoard } from "@/components/inventory/KanbanBoard";
@@ -27,8 +27,7 @@ import { COLUMNS } from "@/components/inventory/dnd";
 
 export default function InventoryPage() {
     const [items, setItems] = useState<InventoryItem[]>([]);
-    const [cards, setCards] = useState<CardProfile[]>([]);
-    const [pricing, setPricing] = useState<PricingSnapshot[]>([]);
+    const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [stageFilter, setStageFilter] = useState<string>("all");
@@ -37,14 +36,12 @@ export default function InventoryPage() {
 
     const fetchData = async () => {
         try {
-            const [inv, crd, prc] = await Promise.all([
-                mockApi.listInventory(),
-                mockApi.listCardProfiles(),
-                mockApi.listPricing()
+            const [inv, market] = await Promise.all([
+                listInventory(),
+                getMarketProducts({ page: 1, limit: 100 })
             ]);
             setItems(inv);
-            setCards(crd);
-            setPricing(prc);
+            setMarketProducts(market.items);
         } catch (err) {
             toast.error("Failed to load inventory");
         } finally {
@@ -76,11 +73,11 @@ export default function InventoryPage() {
                             (item as any).productType?.toLowerCase().includes(s);
                     }
 
-                    const card = cards.find(c => c.id === ((item as any).cardVariantId || (item as any).cardProfileId));
+                    const card = marketProducts.find(c => c.id === ((item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId));
                     return (
                         card?.name.toLowerCase().includes(s) ||
                         card?.set.toLowerCase().includes(s) ||
-                        card?.cardNumber?.toLowerCase().includes(s)
+                        card?.number?.toLowerCase().includes(s)
                     );
                 })();
 
@@ -88,7 +85,7 @@ export default function InventoryPage() {
 
                 return matchesSearch && matchesStage;
             });
-    }, [items, cards, search, stageFilter]);
+    }, [items, marketProducts, search, stageFilter]);
 
     if (loading) {
         return (
@@ -151,8 +148,7 @@ export default function InventoryPage() {
                     <KanbanBoard
                         items={filteredItems}
                         setItems={setItems}
-                        cards={cards}
-                        pricing={pricing}
+                        cards={marketProducts as any}
                         onUpdate={fetchData}
                         onItemClick={setSelectedItem}
                     />
@@ -163,8 +159,7 @@ export default function InventoryPage() {
                     <InventoryList
                         items={filteredItems}
                         setItems={setItems}
-                        cards={cards}
-                        pricing={pricing}
+                        cards={marketProducts as any}
                         onUpdate={fetchData}
                         onItemClick={setSelectedItem}
                     />
@@ -174,11 +169,10 @@ export default function InventoryPage() {
             <ItemDrawer
                 isOpen={!!selectedItem}
                 item={selectedItem}
-                profile={cards.find(c => {
-                    const vid = (selectedItem as any)?.cardVariantId || (selectedItem as any)?.cardProfileId;
-                    const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
-                    return c.id === bid;
-                })}
+                profile={marketProducts.find(c => {
+                    const vid = (selectedItem as any)?.cardVariantId || (selectedItem as any)?.cardProfileId || selectedItem?.refPriceChartingProductId;
+                    return c.id === vid;
+                }) as any}
                 onClose={() => setSelectedItem(null)}
                 onUpdate={fetchData}
             />

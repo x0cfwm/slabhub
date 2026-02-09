@@ -16,9 +16,9 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { InventoryItem, CardProfile, PricingSnapshot, InventoryStage } from "@/lib/types";
+import { InventoryItem, MarketProduct, InventoryStage } from "@/lib/types";
 import { COLUMNS } from "./dnd";
-import { mockApi } from "@/lib/mockApi";
+import { updateInventoryItem } from "@/lib/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
@@ -26,13 +26,12 @@ import { ExternalLink } from "lucide-react";
 interface InventoryListProps {
     items: InventoryItem[];
     setItems: React.Dispatch<React.SetStateAction<InventoryItem[]>>;
-    cards: CardProfile[];
-    pricing: PricingSnapshot[];
+    cards: MarketProduct[];
     onUpdate: () => void;
     onItemClick: (item: InventoryItem) => void;
 }
 
-export function InventoryList({ items, setItems, cards, pricing, onUpdate, onItemClick }: InventoryListProps) {
+export function InventoryList({ items, setItems, cards, onUpdate, onItemClick }: InventoryListProps) {
     const handleStageChange = async (itemId: string, newStage: InventoryStage) => {
         const item = items.find(i => i.id === itemId);
         if (!item) return;
@@ -42,7 +41,7 @@ export function InventoryList({ items, setItems, cards, pricing, onUpdate, onIte
         setItems(prev => prev.map(i => i.id === itemId ? { ...i, stage: newStage } : i));
 
         try {
-            await mockApi.updateInventoryItem(itemId, { stage: newStage });
+            await updateInventoryItem(itemId, { stage: newStage });
         } catch (err) {
             toast.error("Failed to update status");
             // Rollback
@@ -69,16 +68,13 @@ export function InventoryList({ items, setItems, cards, pricing, onUpdate, onIte
                 <TableBody>
                     {items.map((item) => {
                         const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
-                        const isCard = itType.includes("SINGLE_CARD") || (itType as any) === "RAW" || (itType as any) === "GRADED";
-                        const variantId = isCard ? (item as any).cardVariantId || (item as any).cardProfileId : null;
-                        const baseId = variantId?.includes("-") ? variantId.split("-")[0] : variantId;
-                        const profile = cards.find(c => c.id === baseId);
-                        const price = pricing.find(p => p.cardProfileId === baseId || p.cardProfileId === variantId);
+                        const variantId = (item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId;
+                        const marketProduct = cards.find(p => p.id === variantId);
 
                         const isSealed = itType === "SEALED_PRODUCT" || (itType as any) === "SEALED";
-                        const marketPrice = isSealed ? price?.sealedPrice : price?.rawPrice;
+                        const marketPrice = isSealed ? marketProduct?.sealedPrice : marketProduct?.rawPrice;
 
-                        const displayName = isSealed ? (item as any).productName || profile?.name : profile?.name || "Unknown Asset";
+                        const displayName = isSealed ? (item as any).productName || marketProduct?.name : marketProduct?.name || "Unknown Asset";
                         const typeLabel = itType.replace("SINGLE_CARD_", "").replace("_PRODUCT", "");
 
                         return (
@@ -86,7 +82,7 @@ export function InventoryList({ items, setItems, cards, pricing, onUpdate, onIte
                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                     <div className="w-12 h-16 rounded-lg overflow-hidden border bg-accent/20 flex items-center justify-center">
                                         <img
-                                            src={profile?.imageUrl || "https://placehold.co/100x150?text=📦"}
+                                            src={marketProduct?.imageUrl || "https://placehold.co/100x150?text=📦"}
                                             alt={displayName}
                                             className="w-full h-full object-contain p-1"
                                         />
@@ -95,7 +91,7 @@ export function InventoryList({ items, setItems, cards, pricing, onUpdate, onIte
                                 <TableCell>
                                     <div className="flex flex-col">
                                         <span className="font-bold text-sm tracking-tight">{displayName}</span>
-                                        <span className="text-[10px] text-muted-foreground uppercase">{isSealed ? (item as any).productType || "Sealed" : profile?.set}</span>
+                                        <span className="text-[10px] text-muted-foreground uppercase">{isSealed ? (item as any).productType || "Sealed" : marketProduct?.set}</span>
                                     </div>
                                 </TableCell>
                                 <TableCell>
@@ -140,10 +136,10 @@ export function InventoryList({ items, setItems, cards, pricing, onUpdate, onIte
                                     </Select>
                                 </TableCell>
                                 <TableCell className="text-right font-mono text-xs">
-                                    ${item.acquisitionPrice.toFixed(2)}
+                                    ${(item.acquisitionPrice || 0).toFixed(2)}
                                 </TableCell>
                                 <TableCell className="text-right font-bold text-xs text-primary">
-                                    {marketPrice ? `$${marketPrice.toFixed(2)}` : "-"}
+                                    {marketPrice ? `$${marketPrice.toFixed(2)}` : (item.marketPriceSnapshot ? `$${Number(item.marketPriceSnapshot).toFixed(2)}` : "-")}
                                 </TableCell>
                                 <TableCell>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">

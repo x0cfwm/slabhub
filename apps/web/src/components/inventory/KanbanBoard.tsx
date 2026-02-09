@@ -9,23 +9,22 @@ import {
     DragEndEvent,
     rectIntersection
 } from "@dnd-kit/core";
-import { InventoryItem, CardProfile, PricingSnapshot, InventoryStage } from "@/lib/types";
+import { InventoryItem, MarketProduct, InventoryStage } from "@/lib/types";
 import { ItemCard } from "./ItemCard";
 import { StageColumn } from "./StageColumn";
 import { COLUMNS, useDndSensors } from "./dnd";
-import { mockApi } from "@/lib/mockApi";
+import { updateInventoryItem } from "@/lib/api";
 import { toast } from "sonner";
 
 interface KanbanBoardProps {
     items: InventoryItem[];
     setItems: React.Dispatch<React.SetStateAction<InventoryItem[]>>;
-    cards: CardProfile[];
-    pricing: PricingSnapshot[];
+    cards: MarketProduct[];
     onUpdate: () => void;
     onItemClick: (item: InventoryItem) => void;
 }
 
-export function KanbanBoard({ items, setItems, cards, pricing, onUpdate, onItemClick }: KanbanBoardProps) {
+export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: KanbanBoardProps) {
     const [activeId, setActiveId] = useState<string | null>(null);
     const sensors = useDndSensors();
 
@@ -53,7 +52,7 @@ export function KanbanBoard({ items, setItems, cards, pricing, onUpdate, onItemC
         setItems(prev => prev.map(i => i.id === itemId ? { ...i, stage: newStage } : i));
 
         try {
-            await mockApi.updateInventoryItem(itemId, { stage: newStage });
+            await updateInventoryItem(itemId, { stage: newStage });
             // Optionally refreshing from source to ensure sequence/sorting is right
             // onUpdate(); 
         } catch (err) {
@@ -80,23 +79,19 @@ export function KanbanBoard({ items, setItems, cards, pricing, onUpdate, onItemC
                     >
                         {items
                             .filter(i => i.stage === column.id)
-                            .map(item => (
-                                <ItemCard
-                                    key={item.id}
-                                    item={item}
-                                    profile={cards.find(c => {
-                                        const vid = (item as any).cardVariantId || (item as any).cardProfileId;
-                                        const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
-                                        return c.id === bid;
-                                    })}
-                                    price={pricing.find(p => {
-                                        const vid = (item as any).cardVariantId || (item as any).cardProfileId;
-                                        const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
-                                        return p.cardProfileId === bid || p.cardProfileId === vid;
-                                    })}
-                                    onClick={() => onItemClick(item)}
-                                />
-                            ))}
+                            .map(item => {
+                                const vid = (item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId;
+                                const marketProduct = cards.find(p => p.id === vid);
+
+                                return (
+                                    <ItemCard
+                                        key={item.id}
+                                        item={item}
+                                        profile={marketProduct as any}
+                                        onClick={() => onItemClick(item)}
+                                    />
+                                );
+                            })}
                     </StageColumn>
                 ))}
             </div>
@@ -110,22 +105,18 @@ export function KanbanBoard({ items, setItems, cards, pricing, onUpdate, onItemC
                     },
                 }),
             }}>
-                {activeId && activeItem ? (
-                    <ItemCard
-                        item={activeItem}
-                        profile={cards.find(c => {
-                            const vid = (activeItem as any).cardVariantId || (activeItem as any).cardProfileId;
-                            const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
-                            return c.id === bid;
-                        })}
-                        price={pricing.find(p => {
-                            const vid = (activeItem as any).cardVariantId || (activeItem as any).cardProfileId;
-                            const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
-                            return p.cardProfileId === bid || p.cardProfileId === vid;
-                        })}
-                        isOverlay
-                    />
-                ) : null}
+                {activeId && activeItem ? (() => {
+                    const vid = (activeItem as any).cardVariantId || (activeItem as any).cardProfileId || activeItem.refPriceChartingProductId;
+                    const marketProduct = cards.find(p => p.id === vid);
+
+                    return (
+                        <ItemCard
+                            item={activeItem}
+                            profile={marketProduct as any}
+                            isOverlay
+                        />
+                    );
+                })() : null}
             </DragOverlay>
         </DndContext>
     );

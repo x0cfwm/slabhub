@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
-import { mockApi } from "@/lib/mockApi";
-import { InventoryItem, CardProfile, PricingSnapshot, SellerProfile } from "@/lib/types";
+import { listInventory, getMarketProducts, getMe } from "@/lib/api";
+import { InventoryItem, MarketProduct, SellerProfile } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,28 +26,25 @@ export default function VendorClient() {
 
     const [profile, setProfile] = useState<SellerProfile | null>(null);
     const [items, setItems] = useState<InventoryItem[]>([]);
-    const [cards, setCards] = useState<CardProfile[]>([]);
-    const [pricing, setPricing] = useState<PricingSnapshot[]>([]);
+    const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [prof, inv, crd, prc] = await Promise.all([
-                    mockApi.getCurrentUser(),
-                    mockApi.listInventory(),
-                    mockApi.listCardProfiles(),
-                    mockApi.listPricing()
+                const [profRes, inv, market] = await Promise.all([
+                    getMe(),
+                    listInventory(),
+                    getMarketProducts({ page: 1, limit: 100 })
                 ]);
 
                 // In real app, we would fetch by handle. Mock just gets current user.
-                setProfile(prof);
+                setProfile(profRes?.profile || null);
                 setItems(inv.filter(i =>
                     i.stage === "LISTED"
                 ));
-                setCards(crd);
-                setPricing(prc);
+                setMarketProducts(market.items);
             } catch (err) {
                 toast.error("Failed to load vendor page");
             } finally {
@@ -60,9 +57,8 @@ export default function VendorClient() {
     const filteredItems = useMemo(() => {
         const s = search.toLowerCase();
         return items.filter(item => {
-            const vid = (item as any).cardVariantId || (item as any).cardProfileId;
-            const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
-            const card = cards.find(c => c.id === bid);
+            const vid = (item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId;
+            const card = marketProducts.find(c => c.id === vid);
 
             if (!search) return true;
 
@@ -73,7 +69,7 @@ export default function VendorClient() {
 
             return card?.name.toLowerCase().includes(s) || card?.set.toLowerCase().includes(s);
         });
-    }, [items, cards, search]);
+    }, [items, marketProducts, search]);
 
     if (loading) return <div className="p-8 text-center text-primary-foreground/50">Loading public page...</div>;
     if (!profile) return <div className="p-8 text-center text-primary-foreground/50">Vendor not found</div>;
@@ -179,13 +175,11 @@ export default function VendorClient() {
                                 const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
                                 const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
 
-                                const vid = (item as any).cardVariantId || (item as any).cardProfileId;
-                                const bid = vid?.includes("-") ? vid.split("-")[0] : vid;
-                                const profile = cards.find(c => c.id === bid);
-                                const price = pricing.find(p => p.cardProfileId === bid || p.cardProfileId === vid);
+                                const vid = (item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId;
+                                const marketProduct = marketProducts.find(p => p.id === vid);
 
-                                const marketPrice = isSealed ? price?.sealedPrice : price?.rawPrice;
-                                const displayName = isSealed ? (item as any).productName : profile?.name || "Unknown Asset";
+                                const marketPrice = isSealed ? marketProduct?.sealedPrice : marketProduct?.rawPrice;
+                                const displayName = isSealed ? (item as any).productName : marketProduct?.name || "Unknown Asset";
 
                                 return (
                                     <div key={item.id} className="group relative">
@@ -193,12 +187,12 @@ export default function VendorClient() {
                                         <Card className="relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md border-primary/10 bg-card/50 backdrop-blur-md">
                                             <div className="aspect-[3/4] overflow-hidden relative bg-accent/5">
                                                 <img
-                                                    src={profile?.imageUrl || "https://placehold.co/300x400?text=Asset"}
+                                                    src={marketProduct?.imageUrl || "https://placehold.co/300x400?text=Asset"}
                                                     className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-110 p-4"
                                                     alt={displayName}
                                                 />
                                                 <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black via-black/50 to-transparent">
-                                                    <p className="text-[10px] text-primary font-black uppercase tracking-[0.2em] truncate">{profile?.set || "TCG Asset"}</p>
+                                                    <p className="text-[10px] text-primary font-black uppercase tracking-[0.2em] truncate">{marketProduct?.set || "TCG Asset"}</p>
                                                 </div>
                                             </div>
                                             <CardContent className="p-4 space-y-4">
