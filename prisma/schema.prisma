@@ -1,6 +1,3 @@
-// Prisma schema for SlabHub - One Piece TCG Seller/Collector CRM
-// Stage 1: Core entities for seller profiles, cards, inventory, and pricing
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,9 +7,332 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================================================
-// ENUMS
-// ============================================================================
+/// User account
+model User {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  emailVerifiedAt DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  sellerProfile   SellerProfile?
+  sessions        Session[]
+}
+
+/// OTP codes for email verification
+model OtpChallenge {
+  id            String    @id @default(cuid())
+  email         String
+  codeHash      String
+  salt          String?
+  expiresAt     DateTime
+  consumedAt    DateTime?
+  attempts      Int       @default(0)
+  lastAttemptAt DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+/// Session record for secure authentication
+model Session {
+  id               String    @id @default(cuid())
+  userId           String
+  sessionTokenHash String    @unique
+  createdAt        DateTime  @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  userAgent        String?
+  ip               String?
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Seller profile - one per user for MVP
+model SellerProfile {
+  id               String          @id @default(cuid())
+  handle           String          @unique
+  shopName         String
+  isActive         Boolean         @default(true)
+  locationCountry  String
+  locationCity     String
+  paymentsAccepted String[]
+  meetupsEnabled   Boolean         @default(false)
+  shippingEnabled  Boolean         @default(false)
+  socials          Json            @default("{}")
+  wishlistText     String          @default("")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  userId           String?         @unique
+  inventoryItems   InventoryItem[]
+  user             User?           @relation(fields: [userId], references: [id])
+
+  @@index([handle])
+  @@index([userId])
+}
+
+/// Global card catalog - One Piece TCG cards
+model CardProfile {
+  id              String           @id
+  name            String
+  set             String
+  rarity          String
+  cardNumber      String
+  imageUrl        String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  cardVariants    CardVariant[]
+  pricingSnapshot PricingSnapshot?
+
+  @@index([name])
+  @@index([set])
+  @@index([cardNumber])
+}
+
+/// Card variants - specific print variants of a base card
+model CardVariant {
+  id             String          @id @default(cuid())
+  cardId         String
+  variantType    VariantType
+  language       Language
+  imageUrl       String
+  name           String
+  setName        String
+  setNumber      String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  card           CardProfile     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  inventoryItems InventoryItem[]
+
+  @@unique([cardId, variantType, language])
+  @@index([cardId])
+}
+
+/// Global pricing per CardProfile - one snapshot per card for MVP
+model PricingSnapshot {
+  id            String      @id @default(cuid())
+  cardProfileId String      @unique
+  rawPrice      Decimal     @db.Decimal(10, 2)
+  sealedPrice   Decimal?    @db.Decimal(10, 2)
+  source        String      @default("Mock:TCGPlayer")
+  updatedAt     DateTime    @updatedAt
+  cardProfile   CardProfile @relation(fields: [cardProfileId], references: [id], onDelete: Cascade)
+
+  @@index([cardProfileId])
+}
+
+/// Inventory items - belongs to a seller
+model InventoryItem {
+  id                        String                   @id @default(cuid())
+  sellerId                  String
+  itemType                  ItemType
+  cardVariantId             String?
+  productName               String?
+  productType               ProductType?
+  language                  String?
+  setName                   String?
+  edition                   String?
+  integrity                 SealedIntegrity?
+  configuration             Json?
+  gradeProvider             GradeProvider?
+  gradeValue                String?
+  certNumber                String?
+  gradingCost               Decimal?                 @db.Decimal(10, 2)
+  slabImages                Json?                    @default("{}")
+  previousCertNumbers       String[]                 @default([])
+  condition                 Condition?
+  quantity                  Int                      @default(1)
+  stage                     InventoryStage           @default(ACQUIRED)
+  listingPrice              Decimal?                 @db.Decimal(10, 2)
+  acquisitionPrice          Decimal?                 @db.Decimal(10, 2)
+  acquisitionDate           DateTime?
+  acquisitionSource         String?
+  storageLocation           String?
+  notes                     String?
+  marketPriceSnapshot       Decimal?                 @db.Decimal(10, 2)
+  photos                    Json                     @default("[]")
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
+  certificationNumber       String?
+  gradingMeta               Json?
+  refPriceChartingProductId String?
+  cardVariant               CardVariant?             @relation(fields: [cardVariantId], references: [id])
+  refPriceChartingProduct   RefPriceChartingProduct? @relation(fields: [refPriceChartingProductId], references: [id])
+  seller                    SellerProfile            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([sellerId])
+  @@index([stage])
+  @@index([itemType])
+  @@index([cardVariantId])
+  @@index([refPriceChartingProductId])
+  @@index([certificationNumber])
+}
+
+model RefGame {
+  id              String    @id @default(cuid())
+  externalId      String    @unique
+  name            String
+  slug            String?
+  sourceUpdatedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([externalId])
+}
+
+model RefSet {
+  id              String    @id @default(cuid())
+  externalId      String    @unique
+  name            String
+  code            String?
+  slug            String?
+  gameExternalId  String?
+  releaseDate     DateTime?
+  sourceUpdatedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([externalId])
+  @@index([gameExternalId])
+}
+
+model RefRarity {
+  id              String    @id @default(cuid())
+  externalId      String    @unique
+  name            String
+  code            String?
+  sourceUpdatedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([externalId])
+}
+
+model RefCondition {
+  id              String    @id @default(cuid())
+  externalId      String    @unique
+  name            String
+  abbreviation    String?
+  sourceUpdatedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([externalId])
+}
+
+model RefLanguage {
+  id              String    @id @default(cuid())
+  externalId      String    @unique
+  name            String
+  code            String?
+  sourceUpdatedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([externalId])
+}
+
+model RefPriceChartingProduct {
+  id              String               @id @default(cuid())
+  productUrl      String               @unique
+  tcgPlayerId     Int?
+  priceChartingId Int?
+  cardNumber      String?
+  details         Json
+  categorySlug    String?
+  setSlug         String?
+  productSlug     String?
+  scrapedAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  localImagePath  String?
+  imageUrl        String?
+  setId           String?
+  productType     String?
+  title           String?
+  grade10Price    Decimal?             @db.Decimal(10, 2)
+  grade7Price     Decimal?             @db.Decimal(10, 2)
+  grade8Price     Decimal?             @db.Decimal(10, 2)
+  grade95Price    Decimal?             @db.Decimal(10, 2)
+  grade9Price     Decimal?             @db.Decimal(10, 2)
+  priceUpdatedAt  DateTime?
+  rawPrice        Decimal?             @db.Decimal(10, 2)
+  sealedPrice     Decimal?             @db.Decimal(10, 2)
+  priceSource     String?
+  inventoryItems  InventoryItem[]
+  set             RefPriceChartingSet? @relation(fields: [setId], references: [id])
+
+  @@index([tcgPlayerId])
+  @@index([priceChartingId])
+  @@index([cardNumber])
+  @@index([setId])
+}
+
+model RefPriceChartingSet {
+  id        String                    @id @default(cuid())
+  name      String                    @unique
+  slug      String?                   @unique
+  createdAt DateTime                  @default(now())
+  updatedAt DateTime                  @updatedAt
+  products  RefPriceChartingProduct[]
+}
+
+model RefPrinting {
+  id              String    @id @default(cuid())
+  externalId      String    @unique
+  name            String
+  code            String?
+  sourceUpdatedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([externalId])
+}
+
+model RefProduct {
+  id               String    @id @default(cuid())
+  externalId       String    @unique
+  name             String
+  number           String?
+  imageUrl         String?
+  setExternalId    String?
+  rarityExternalId String?
+  gameExternalId   String?
+  sourceUpdatedAt  DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  tcgplayerId      String?
+  justTcgData      Json?
+  priceUpdatedAt   DateTime?
+  rawPrice         Decimal?  @db.Decimal(10, 2)
+  sealedPrice      Decimal?  @db.Decimal(10, 2)
+  grade10Price     Decimal?  @db.Decimal(10, 2)
+  grade7Price      Decimal?  @db.Decimal(10, 2)
+  grade8Price      Decimal?  @db.Decimal(10, 2)
+  grade95Price     Decimal?  @db.Decimal(10, 2)
+  grade9Price      Decimal?  @db.Decimal(10, 2)
+  priceSource      String?
+
+  @@index([externalId])
+  @@index([setExternalId])
+  @@index([rarityExternalId])
+  @@index([gameExternalId])
+}
+
+model RefSyncProgress {
+  id             String   @id @default(cuid())
+  mappingName    String   @unique
+  offset         Int      @default(0)
+  page           Int      @default(1)
+  cursor         String?
+  totalItems     Int?
+  processedItems Int      @default(0)
+  status         String   @default("IDLE")
+  lastError      String?
+  lastSyncAt     DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
 
 enum InventoryStage {
   ACQUIRED
@@ -79,373 +399,4 @@ enum VariantType {
 enum Language {
   JP
   EN
-}
-
-// ============================================================================
-// MODELS
-// ============================================================================
-
-/// User account
-model User {
-  id              String          @id @default(cuid())
-  email           String          @unique
-  emailVerifiedAt DateTime?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-
-  // Relations
-  sessions        Session[]
-  sellerProfile   SellerProfile?
-}
-
-/// OTP codes for email verification
-model OtpChallenge {
-  id            String    @id @default(cuid())
-  email         String
-  codeHash      String
-  salt          String?
-  expiresAt     DateTime
-  consumedAt    DateTime?
-  attempts      Int       @default(0)
-  lastAttemptAt DateTime?
-  createdAt     DateTime  @default(now())
-
-  @@index([email])
-  @@index([expiresAt])
-}
-
-/// Session record for secure authentication
-model Session {
-  id                String    @id @default(cuid())
-  userId            String
-  sessionTokenHash  String    @unique
-  createdAt         DateTime  @default(now())
-  expiresAt         DateTime
-  revokedAt         DateTime?
-  userAgent         String?
-  ip                String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
-}
-
-/// Seller profile - one per user for MVP
-model SellerProfile {
-  id               String          @id @default(cuid())
-  userId           String?         @unique // Link to User
-  handle           String          @unique
-  shopName         String
-  isActive         Boolean         @default(true)
-  locationCountry  String
-  locationCity     String
-  paymentsAccepted String[]
-  meetupsEnabled   Boolean         @default(false)
-  shippingEnabled  Boolean         @default(false)
-  socials          Json            @default("{}")
-  wishlistText     String          @default("")
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-
-  // Relations
-  inventoryItems   InventoryItem[]
-  user             User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([handle])
-  @@index([userId])
-}
-
-/// Global card catalog - One Piece TCG cards
-model CardProfile {
-  id             String           @id // Use stable IDs like "op01-001"
-  name           String
-  set            String
-  rarity         String
-  cardNumber     String
-  imageUrl       String
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-
-  // Relations
-  pricingSnapshot PricingSnapshot?
-  cardVariants    CardVariant[]
-
-  @@index([name])
-  @@index([set])
-  @@index([cardNumber])
-}
-
-/// Card variants - specific print variants of a base card
-model CardVariant {
-  id           String      @id @default(cuid())
-  cardId       String      // Reference to base CardProfile
-  variantType  VariantType
-  language     Language
-  imageUrl     String
-  // Denormalized for performance
-  name         String
-  setName      String
-  setNumber    String
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  // Relations
-  card         CardProfile @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  inventoryItems InventoryItem[]
-
-  @@unique([cardId, variantType, language])
-  @@index([cardId])
-}
-
-/// Global pricing per CardProfile - one snapshot per card for MVP
-model PricingSnapshot {
-  id            String      @id @default(cuid())
-  cardProfileId String      @unique
-  rawPrice      Decimal     @db.Decimal(10, 2)
-  sealedPrice   Decimal?    @db.Decimal(10, 2)
-  source        String      @default("Mock:TCGPlayer")
-  updatedAt     DateTime    @updatedAt
-
-  // Relations
-  cardProfile   CardProfile @relation(fields: [cardProfileId], references: [id], onDelete: Cascade)
-
-  @@index([cardProfileId])
-}
-
-/// Inventory items - belongs to a seller
-model InventoryItem {
-  id               String          @id @default(cuid())
-  sellerId         String
-  
-  // Item type discriminator
-  itemType         ItemType
-  
-  // Card reference (for single cards)
-  cardVariantId    String?
-  refPriceChartingProductId String?
-  
-  // Sealed product fields
-  productName      String?
-  productType      ProductType?
-  language         String?
-  setName          String?
-  edition          String?
-  integrity        SealedIntegrity?
-  configuration    Json?
-  
-  // Grading fields (for graded cards)
-  gradeProvider    GradeProvider?
-  gradeValue       String?         // Can be "10", "9.5", "Authentic", etc.
-  certNumber       String?         // Legacy field
-  certificationNumber String?      // Explicitly for lookup/indexing
-  gradingMeta      Json?           // Parsed data raw for auditing/debug
-  gradingCost      Decimal?        @db.Decimal(10, 2)
-  slabImages       Json?           @default("{}")
-  previousCertNumbers String[]     @default([])
-  
-  // Raw card fields
-  condition        Condition?
-  
-  // Common fields
-  quantity         Int             @default(1)
-  stage            InventoryStage  @default(ACQUIRED)
-  listingPrice     Decimal?        @db.Decimal(10, 2)
-  acquisitionPrice Decimal?        @db.Decimal(10, 2)
-  acquisitionDate  DateTime?
-  acquisitionSource String?
-  storageLocation  String?
-  notes            String?
-  marketPriceSnapshot Decimal?     @db.Decimal(10, 2)
-  
-  // Photos stored as JSON for Stage 1
-  photos           Json            @default("[]")
-  
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-
-  // Relations
-  seller           SellerProfile   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  cardVariant      CardVariant?    @relation(fields: [cardVariantId], references: [id], onDelete: SetNull)
-  refPriceChartingProduct RefPriceChartingProduct? @relation(fields: [refPriceChartingProductId], references: [id], onDelete: SetNull)
-
-  @@index([sellerId])
-  @@index([stage])
-  @@index([itemType])
-  @@index([cardVariantId])
-  @@index([refPriceChartingProductId])
-  @@index([certificationNumber])
-}
-
-// ============================================================================
-// JUSTTCG DICTIONARIES
-// ============================================================================
-
-model RefGame {
-  id              String   @id @default(cuid())
-  externalId      String   @unique
-  name            String
-  slug            String?
-  sourceUpdatedAt DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([externalId])
-}
-
-model RefSet {
-  id              String   @id @default(cuid())
-  externalId      String   @unique
-  name            String
-  code            String?
-  slug            String?
-  gameExternalId  String?
-  releaseDate     DateTime?
-  sourceUpdatedAt DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([externalId])
-  @@index([gameExternalId])
-}
-
-model RefRarity {
-  id              String   @id @default(cuid())
-  externalId      String   @unique
-  name            String
-  code            String?
-  sourceUpdatedAt DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([externalId])
-}
-
-model RefCondition {
-  id              String   @id @default(cuid())
-  externalId      String   @unique
-  name            String
-  abbreviation    String?
-  sourceUpdatedAt DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([externalId])
-}
-
-model RefLanguage {
-  id              String   @id @default(cuid())
-  externalId      String   @unique
-  name            String
-  code            String?
-  sourceUpdatedAt DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([externalId])
-}
-
-model RefPriceChartingProduct {
-  id               String   @id @default(cuid())
-  productUrl       String   @unique
-  tcgPlayerId      Int?
-  priceChartingId  Int?
-  cardNumber       String?
-  details          Json     // store entire parsed details block as a structured JSON map
-  categorySlug     String?  // "one-piece-cards"
-  setSlug          String?  // derived from set page path
-  setId            String?
-  set              RefPriceChartingSet? @relation(fields: [setId], references: [id])
-  title            String?
-  productSlug      String?  // derived from product page path
-  localImagePath   String?
-  imageUrl         String?
-  productType      String?  // SINGLE_CARD, SEALED_PACK, SEALED_BOX, SEALED_OTHER
-  
-  // Price data
-  rawPrice         Decimal? @db.Decimal(10, 2)
-  sealedPrice      Decimal? @db.Decimal(10, 2)
-  grade7Price      Decimal? @db.Decimal(10, 2)
-  grade8Price      Decimal? @db.Decimal(10, 2)
-  grade9Price      Decimal? @db.Decimal(10, 2)
-  grade95Price     Decimal? @db.Decimal(10, 2)
-  grade10Price     Decimal? @db.Decimal(10, 2)
-  priceSource      String?
-  priceUpdatedAt   DateTime?
-
-  scrapedAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  inventoryItems   InventoryItem[]
-
-  @@index([tcgPlayerId])
-  @@index([priceChartingId])
-  @@index([cardNumber])
-  @@index([setId])
-}
-
-model RefPriceChartingSet {
-  id               String   @id @default(cuid())
-  name             String   @unique
-  slug             String?  @unique
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  products         RefPriceChartingProduct[]
-}
-
-model RefPrinting {
-  id              String   @id @default(cuid())
-  externalId      String   @unique
-  name            String
-  code            String?
-  sourceUpdatedAt DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([externalId])
-}
-
-model RefProduct {
-  id               String   @id @default(cuid())
-  externalId       String   @unique
-  name             String
-  number           String?
-  imageUrl         String?
-  tcgplayerId      String?
-  justTcgData      Json?
-  setExternalId    String?
-  rarityExternalId String?
-  gameExternalId   String?
-  sourceUpdatedAt  DateTime?
-  rawPrice         Decimal? @db.Decimal(10, 2)
-  sealedPrice      Decimal? @db.Decimal(10, 2)
-  grade7Price      Decimal? @db.Decimal(10, 2)
-  grade8Price      Decimal? @db.Decimal(10, 2)
-  grade9Price      Decimal? @db.Decimal(10, 2)
-  grade95Price     Decimal? @db.Decimal(10, 2)
-  grade10Price     Decimal? @db.Decimal(10, 2)
-  priceSource      String?
-  priceUpdatedAt   DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  @@index([externalId])
-  @@index([setExternalId])
-  @@index([rarityExternalId])
-  @@index([gameExternalId])
-}
-
-model RefSyncProgress {
-  id              String   @id @default(cuid())
-  mappingName     String   @unique
-  offset          Int      @default(0)
-  page            Int      @default(1)
-  cursor          String?
-  totalItems      Int?
-  processedItems  Int      @default(0)
-  status          String   @default("IDLE") // IDLE, RUNNING, COMPLETED, FAILED
-  lastError       String?
-  lastSyncAt      DateTime @default(now())
-  updatedAt       DateTime @updatedAt
 }
