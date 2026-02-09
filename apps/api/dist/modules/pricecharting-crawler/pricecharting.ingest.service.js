@@ -59,23 +59,64 @@ let PriceChartingIngestService = PriceChartingIngestService_1 = class PriceChart
         this.visitedUrls = new Set();
     }
     async crawlOnePieceCards(options = {}) {
+        const mappingName = 'pricecharting:crawl:onepiece';
         const entrypoint = 'https://www.pricecharting.com/category/one-piece-cards';
         this.logger.log(`Starting crawl from ${entrypoint}`);
         this.visitedUrls.clear();
         let productCount = 0;
+        const { fresh = false, dryRun = false } = options;
+        let isShuttingDown = false;
+        const handleShutdown = async (signal) => {
+            if (isShuttingDown)
+                return;
+            isShuttingDown = true;
+            this.logger.warn(`Received ${signal}. Gracefully stopping and updating status...`);
+            if (!dryRun) {
+                await this.prisma.refSyncProgress.update({
+                    where: { mappingName },
+                    data: { status: 'FAILED', lastError: `Interrupted by ${signal}` }
+                }).catch(() => { });
+            }
+            process.exit(signal === 'SIGINT' ? 130 : 1);
+        };
+        const sigintListener = () => handleShutdown('SIGINT');
+        const sigtermListener = () => handleShutdown('SIGTERM');
+        process.on('SIGINT', sigintListener);
+        process.on('SIGTERM', sigtermListener);
+        let progress = await this.prisma.refSyncProgress.findUnique({
+            where: { mappingName }
+        });
+        if (progress && (fresh || progress.status === 'COMPLETED')) {
+            this.logger.log(`${fresh ? 'Fresh sync requested' : 'Previous sync was completed'}. Resetting progress for ${mappingName}...`);
+            await this.prisma.refSyncProgress.delete({ where: { mappingName } });
+            progress = null;
+        }
+        let resumeSetIndex = progress?.page ? progress.page - 1 : 0;
+        let resumeProductUrl = progress?.cursor;
+        let totalProcessed = progress?.processedItems ?? 0;
+        let foundResumeProduct = !resumeProductUrl;
+        this.logger.log(`Starting crawl... ${progress ? `(Resuming from set ${resumeSetIndex + 1}${resumeProductUrl ? ', product ' + resumeProductUrl : ''})` : '(Fresh Start)'}`);
         try {
             const categoryHtml = await this.client.fetch(entrypoint);
             const setUrls = this.parser.parseCategoryPage(categoryHtml, 'https://www.pricecharting.com');
             this.logger.log(`Found ${setUrls.length} sets. Crawling sets...`);
-            for (const setUrl of setUrls) {
+            for (let setIdx = resumeSetIndex; setIdx < setUrls.length; setIdx++) {
+                const setUrl = setUrls[setIdx];
                 if (options.onlySetSlug && !setUrl.includes(options.onlySetSlug)) {
                     continue;
                 }
-                this.logger.log(`Crawling set: ${setUrl}`);
+                this.logger.log(`Crawling set [${setIdx + 1}/${setUrls.length}]: ${setUrl}`);
                 const productUrls = await this.crawlSetPages(setUrl);
                 for (const productUrl of productUrls) {
                     if (this.visitedUrls.has(productUrl))
                         continue;
+                    if (!foundResumeProduct) {
+                        if (productUrl === resumeProductUrl) {
+                            this.logger.log(`Found resume product ${productUrl}. Resuming from next...`);
+                            foundResumeProduct = true;
+                        }
+                        continue;
+                    }
                     if (options.maxProducts && productCount >= options.maxProducts) {
                         this.logger.log(`Reached maxProducts limit (${options.maxProducts}). Stopping.`);
                         return;
@@ -84,20 +125,69 @@ let PriceChartingIngestService = PriceChartingIngestService_1 = class PriceChart
                         await this.crawlAndIngestProduct(productUrl, options);
                         this.visitedUrls.add(productUrl);
                         productCount++;
+                        totalProcessed++;
+                        if (!dryRun) {
+                            await this.prisma.refSyncProgress.upsert({
+                                where: { mappingName },
+                                update: {
+                                    page: setIdx + 1,
+                                    cursor: productUrl,
+                                    processedItems: totalProcessed,
+                                    status: 'RUNNING',
+                                    lastSyncAt: new Date(),
+                                },
+                                create: {
+                                    mappingName,
+                                    page: setIdx + 1,
+                                    cursor: productUrl,
+                                    processedItems: totalProcessed,
+                                    status: 'RUNNING',
+                                }
+                            });
+                        }
                         if (productCount % 10 === 0) {
                             this.logger.log(`Progress: ${productCount} products ingested...`);
                         }
                     }
                     catch (error) {
                         this.logger.error(`Error ingesting product ${productUrl}: ${error.message}`);
+                        if (!dryRun) {
+                            await this.prisma.refSyncProgress.update({
+                                where: { mappingName },
+                                data: {
+                                    cursor: productUrl,
+                                    lastError: error.message,
+                                    updatedAt: new Date(),
+                                }
+                            });
+                        }
                     }
                 }
+                foundResumeProduct = true;
+            }
+            if (!dryRun) {
+                await this.prisma.refSyncProgress.upsert({
+                    where: { mappingName },
+                    update: { status: 'COMPLETED', lastSyncAt: new Date() },
+                    create: { mappingName, status: 'COMPLETED' }
+                });
             }
             this.logger.log(`Crawl completed. Ingested ${productCount} products.`);
         }
         catch (error) {
+            if (!dryRun) {
+                await this.prisma.refSyncProgress.upsert({
+                    where: { mappingName },
+                    update: { status: 'FAILED', lastError: error.message },
+                    create: { mappingName, status: 'FAILED', lastError: error.message }
+                }).catch(() => { });
+            }
             this.logger.error(`Crawl failed: ${error.message}`);
             throw error;
+        }
+        finally {
+            process.off('SIGINT', sigintListener);
+            process.off('SIGTERM', sigtermListener);
         }
     }
     async crawlSetPages(setUrl) {

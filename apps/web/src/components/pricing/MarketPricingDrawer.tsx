@@ -63,36 +63,47 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent className="sm:max-w-2xl overflow-y-auto w-full p-6 sm:p-10">
                 <SheetHeader className="mb-8">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <SheetTitle className="text-2xl font-bold">{product.name}</SheetTitle>
-                            <SheetDescription className="font-mono text-sm flex items-center gap-3">
-                                {product.number}
-                                <span className="flex items-center gap-2">
-                                    <Badge variant="secondary" className="font-sans text-xs px-2">{product.source}</Badge>
-                                    {product.priceChartingUrl && (
-                                        <a
-                                            href={product.priceChartingUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-[10px] text-muted-foreground hover:text-primary hover:underline flex items-center gap-0.5"
-                                        >
-                                            View on PriceCharting
-                                            <ExternalLink className="h-2.5 w-2.5" />
-                                        </a>
-                                    )}
-                                </span>
-                            </SheetDescription>
+                    <div className="flex flex-col sm:flex-row gap-6">
+                        {product.imageUrl && (
+                            <div className="w-24 h-32 flex-shrink-0 rounded-xl overflow-hidden border bg-muted/30 shadow-sm mx-auto sm:mx-0">
+                                <img
+                                    src={product.imageUrl}
+                                    alt={product.name}
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                        )}
+                        <div className="flex-1 flex justify-between items-start min-w-0">
+                            <div>
+                                <SheetTitle className="text-2xl font-bold leading-tight">{product.name}</SheetTitle>
+                                <SheetDescription className="font-mono text-sm flex items-center gap-3 mt-1">
+                                    {product.number}
+                                    <span className="flex items-center gap-2">
+                                        <Badge variant="secondary" className="font-sans text-xs px-2">{product.source}</Badge>
+                                        {product.priceChartingUrl && (
+                                            <a
+                                                href={product.priceChartingUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[10px] text-muted-foreground hover:text-primary hover:underline flex items-center gap-0.5"
+                                            >
+                                                View on PriceCharting
+                                                <ExternalLink className="h-2.5 w-2.5" />
+                                            </a>
+                                        )}
+                                    </span>
+                                </SheetDescription>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
+                                onClick={handleRefresh}
+                                disabled={refreshing || loading}
+                            >
+                                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                            </Button>
                         </div>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors"
-                            onClick={handleRefresh}
-                            disabled={refreshing || loading}
-                        >
-                            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                        </Button>
                     </div>
                 </SheetHeader>
 

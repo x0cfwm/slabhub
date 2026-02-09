@@ -55,4 +55,13 @@ export class CrawlOnePieceCommand extends CommandRunner {
     parseOnlySetSlug(val: string): string {
         return val;
     }
+
+    @Option({
+        flags: '-f, --fresh',
+        description: 'Start a fresh sync (ignore previous progress)',
+        defaultValue: false,
+    })
+    parseFresh(val: boolean): boolean {
+        return val;
+    }
 }

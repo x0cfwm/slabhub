@@ -43,6 +43,9 @@ let CrawlOnePieceCommand = CrawlOnePieceCommand_1 = class CrawlOnePieceCommand e
     parseOnlySetSlug(val) {
         return val;
     }
+    parseFresh(val) {
+        return val;
+    }
 };
 exports.CrawlOnePieceCommand = CrawlOnePieceCommand;
 __decorate([
@@ -83,6 +86,16 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", String)
 ], CrawlOnePieceCommand.prototype, "parseOnlySetSlug", null);
+__decorate([
+    (0, nest_commander_1.Option)({
+        flags: '-f, --fresh',
+        description: 'Start a fresh sync (ignore previous progress)',
+        defaultValue: false,
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Boolean]),
+    __metadata("design:returntype", Boolean)
+], CrawlOnePieceCommand.prototype, "parseFresh", null);
 exports.CrawlOnePieceCommand = CrawlOnePieceCommand = CrawlOnePieceCommand_1 = __decorate([
     (0, nest_commander_1.Command)({ name: 'pricecharting:crawl:onepiece', description: 'Crawl PriceCharting One Piece catalog' }),
     __metadata("design:paramtypes", [pricecharting_ingest_service_1.PriceChartingIngestService])

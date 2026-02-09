@@ -10,4 +10,5 @@ export declare class CrawlOnePieceCommand extends CommandRunner {
     parseDryRun(val: boolean): boolean;
     parseLinkRefProducts(val: boolean): boolean;
     parseOnlySetSlug(val: string): string;
+    parseFresh(val: boolean): boolean;
 }

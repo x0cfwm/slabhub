@@ -28,4 +28,5 @@ export interface PriceChartingCrawlOptions {
     dryRun?: boolean;
     linkRefProducts?: boolean;
     onlySetSlug?: string;
+    fresh?: boolean;
 }
