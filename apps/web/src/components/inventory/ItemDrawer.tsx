@@ -30,7 +30,7 @@ interface ItemDrawerProps {
     profile?: CardProfile;
     isOpen: boolean;
     onClose: () => void;
-    onUpdate: () => void;
+    onUpdate: () => void | Promise<void>;
 }
 
 const STAGES: { value: InventoryStage; label: string }[] = [
@@ -70,7 +70,9 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
     if (!item) return null;
 
     const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
-    const displayName = itType === "SEALED_PRODUCT" || (itType === "SEALED") ? (item as any).productName : profile?.name;
+    const finalProfile = profile || item.cardProfile;
+    const isSealed = itType === "SEALED_PRODUCT" || (itType === "SEALED");
+    const displayName = isSealed ? (item as any).productName || finalProfile?.name : finalProfile?.name;
     const typeLabel = itType.replace("SINGLE_CARD_", "").replace("_PRODUCT", "");
 
     return (
@@ -79,15 +81,15 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                 <SheetHeader className="px-0">
                     <SheetTitle className="font-bold text-xl tracking-tight">{displayName || "Asset Details"}</SheetTitle>
                     <SheetDescription className="font-mono text-[10px] uppercase opacity-70">
-                        {profile?.set} — {typeLabel}
+                        {finalProfile?.set} — {typeLabel}
                     </SheetDescription>
                 </SheetHeader>
 
                 <div className="py-6 space-y-6">
                     <div className="flex justify-center bg-accent/20 rounded-2xl p-6 border border-primary/5">
                         <img
-                            src={profile?.imageUrl || "https://placehold.co/200x300?text=Asset"}
-                            alt={profile?.name}
+                            src={finalProfile?.imageUrl || `https://placehold.co/200x300?text=${isSealed ? 'Sealed' : 'Card'}`}
+                            alt={displayName}
                             className="h-64 rounded-xl shadow-2xl object-contain"
                         />
                     </div>
@@ -157,14 +159,19 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                         className="w-full h-12 text-sm font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
                         onClick={async () => {
                             if (!item) return;
-                            if (window.confirm("Are you sure you want to remove this asset?")) {
+                            if (window.confirm("Are you sure you want to remove this asset from your portfolio?")) {
+                                setLoading(true);
                                 try {
+                                    console.log(`Attempting to delete item: ${item.id}`);
                                     await deleteInventoryItem(item.id);
-                                    toast.success("Asset removed from inventory");
-                                    onUpdate();
+                                    toast.success("Asset removed from portfolio");
+                                    await onUpdate();
                                     onClose();
-                                } catch (err) {
-                                    toast.error("Failed to delete asset");
+                                } catch (err: any) {
+                                    console.error("Delete failed:", err);
+                                    toast.error(err.message || "Failed to delete asset");
+                                } finally {
+                                    setLoading(false);
                                 }
                             }
                         }}

@@ -5,7 +5,7 @@ export declare class InventoryService {
     private readonly prisma;
     private readonly logger;
     constructor(prisma: PrismaService);
-    listItems(sellerId: string): Promise<({
+    listItems(userId: string): Promise<({
         id: any;
         stage: any;
         acquisitionPrice: number | null;
@@ -100,7 +100,7 @@ export declare class InventoryService {
         updatedAt: any;
         quantity: any;
     })[]>;
-    getItem(sellerId: string, itemId: string): Promise<{
+    getItem(userId: string, itemId: string): Promise<{
         id: any;
         stage: any;
         acquisitionPrice: number | null;
@@ -195,7 +195,7 @@ export declare class InventoryService {
         updatedAt: any;
         quantity: any;
     }>;
-    createItem(sellerId: string, dto: CreateInventoryItemDto): Promise<{
+    createItem(userId: string, sellerId: string | undefined, dto: CreateInventoryItemDto): Promise<{
         id: any;
         stage: any;
         acquisitionPrice: number | null;
@@ -290,7 +290,7 @@ export declare class InventoryService {
         updatedAt: any;
         quantity: any;
     }>;
-    updateItem(sellerId: string, itemId: string, dto: UpdateInventoryItemDto): Promise<{
+    updateItem(userId: string, itemId: string, dto: UpdateInventoryItemDto): Promise<{
         id: any;
         stage: any;
         acquisitionPrice: number | null;
@@ -385,7 +385,7 @@ export declare class InventoryService {
         updatedAt: any;
         quantity: any;
     }>;
-    deleteItem(sellerId: string, itemId: string): Promise<{
+    deleteItem(userId: string, itemId: string): Promise<{
         success: boolean;
     }>;
     private validateItemType;

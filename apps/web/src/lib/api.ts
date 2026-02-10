@@ -217,7 +217,8 @@ export async function deleteInventoryItem(id: string): Promise<void> {
         credentials: 'include',
     });
     if (!response.ok) {
-        throw new Error('Failed to delete inventory item');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete inventory item from server');
     }
 }
 

@@ -22,48 +22,48 @@ let InventoryController = class InventoryController {
     constructor(inventoryService) {
         this.inventoryService = inventoryService;
     }
-    async listItems(sellerId) {
-        if (!sellerId) {
-            throw new common_1.NotFoundException('No authenticated seller');
+    async listItems(userId) {
+        if (!userId) {
+            throw new common_1.NotFoundException('No authenticated user');
         }
-        return this.inventoryService.listItems(sellerId);
+        return this.inventoryService.listItems(userId);
     }
-    async getItem(sellerId, id) {
-        if (!sellerId) {
-            throw new common_1.NotFoundException('No authenticated seller');
+    async getItem(userId, id) {
+        if (!userId) {
+            throw new common_1.NotFoundException('No authenticated user');
         }
-        return this.inventoryService.getItem(sellerId, id);
+        return this.inventoryService.getItem(userId, id);
     }
-    async createItem(sellerId, dto) {
-        if (!sellerId) {
-            throw new common_1.NotFoundException('No authenticated seller');
+    async createItem(userId, sellerId, dto) {
+        if (!userId) {
+            throw new common_1.NotFoundException('No authenticated user');
         }
-        return this.inventoryService.createItem(sellerId, dto);
+        return this.inventoryService.createItem(userId, sellerId, dto);
     }
-    async updateItem(sellerId, id, dto) {
-        if (!sellerId) {
-            throw new common_1.NotFoundException('No authenticated seller');
+    async updateItem(userId, id, dto) {
+        if (!userId) {
+            throw new common_1.NotFoundException('No authenticated user');
         }
-        return this.inventoryService.updateItem(sellerId, id, dto);
+        return this.inventoryService.updateItem(userId, id, dto);
     }
-    async deleteItem(sellerId, id) {
-        if (!sellerId) {
-            throw new common_1.NotFoundException('No authenticated seller');
+    async deleteItem(userId, id) {
+        if (!userId) {
+            throw new common_1.NotFoundException('No authenticated user');
         }
-        return this.inventoryService.deleteItem(sellerId, id);
+        return this.inventoryService.deleteItem(userId, id);
     }
 };
 exports.InventoryController = InventoryController;
 __decorate([
     (0, common_1.Get)(),
-    __param(0, (0, auth_middleware_1.CurrentSellerId)()),
+    __param(0, (0, auth_middleware_1.CurrentUserId)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], InventoryController.prototype, "listItems", null);
 __decorate([
     (0, common_1.Get)(':id'),
-    __param(0, (0, auth_middleware_1.CurrentSellerId)()),
+    __param(0, (0, auth_middleware_1.CurrentUserId)()),
     __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, String]),
@@ -71,15 +71,16 @@ __decorate([
 ], InventoryController.prototype, "getItem", null);
 __decorate([
     (0, common_1.Post)(),
-    __param(0, (0, auth_middleware_1.CurrentSellerId)()),
-    __param(1, (0, common_1.Body)()),
+    __param(0, (0, auth_middleware_1.CurrentUserId)()),
+    __param(1, (0, auth_middleware_1.CurrentSellerId)()),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, create_inventory_item_dto_1.CreateInventoryItemDto]),
+    __metadata("design:paramtypes", [Object, Object, create_inventory_item_dto_1.CreateInventoryItemDto]),
     __metadata("design:returntype", Promise)
 ], InventoryController.prototype, "createItem", null);
 __decorate([
     (0, common_1.Patch)(':id'),
-    __param(0, (0, auth_middleware_1.CurrentSellerId)()),
+    __param(0, (0, auth_middleware_1.CurrentUserId)()),
     __param(1, (0, common_1.Param)('id')),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -88,7 +89,7 @@ __decorate([
 ], InventoryController.prototype, "updateItem", null);
 __decorate([
     (0, common_1.Delete)(':id'),
-    __param(0, (0, auth_middleware_1.CurrentSellerId)()),
+    __param(0, (0, auth_middleware_1.CurrentUserId)()),
     __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, String]),

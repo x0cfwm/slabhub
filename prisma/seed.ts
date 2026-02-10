@@ -39,11 +39,24 @@ const CARD_PROFILES = [
 async function main() {
     console.log('🌱 Starting seed...');
 
+    // 0. Upsert demo user
+    console.log('👤 Upserting demo user...');
+    const user = await prisma.user.upsert({
+        where: { email: 'nami@slabhub.com' },
+        update: {},
+        create: {
+            email: 'nami@slabhub.com',
+        },
+    });
+    console.log(`✅ User: ${user.email} (${user.id})`);
+
     // 1. Upsert demo seller profile
     console.log('📝 Upserting seller profile...');
     const seller = await prisma.sellerProfile.upsert({
         where: { handle: 'nami-treasures' },
-        update: {},
+        update: {
+            userId: user.id,
+        },
         create: {
             handle: 'nami-treasures',
             shopName: "Nami's Treasure Shop",
@@ -53,6 +66,7 @@ async function main() {
             paymentsAccepted: ['PayNow', 'Cash', 'PayPal'],
             meetupsEnabled: true,
             shippingEnabled: true,
+            userId: user.id,
             socials: {
                 instagram: 'namitreasure',
                 discord: 'nami#1234',
@@ -161,6 +175,7 @@ async function main() {
         const variant = jpNormalVariants[i % jpNormalVariants.length];
         await prisma.inventoryItem.create({
             data: {
+                userId: user.id,
                 sellerId: seller.id,
                 itemType: ItemType.SINGLE_CARD_RAW,
                 cardVariantId: variant.id,
@@ -189,6 +204,7 @@ async function main() {
 
         await prisma.inventoryItem.create({
             data: {
+                userId: user.id,
                 sellerId: seller.id,
                 itemType: ItemType.SINGLE_CARD_GRADED,
                 cardVariantId: variant.id,
@@ -260,6 +276,7 @@ async function main() {
     for (const product of sealedProducts) {
         await prisma.inventoryItem.create({
             data: {
+                userId: user.id,
                 sellerId: seller.id,
                 itemType: ItemType.SEALED_PRODUCT,
                 productName: product.productName,

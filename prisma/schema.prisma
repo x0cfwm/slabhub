@@ -16,6 +16,7 @@ model User {
   updatedAt       DateTime       @updatedAt
   sellerProfile   SellerProfile?
   sessions        Session[]
+  inventoryItems  InventoryItem[]
 }
 
 /// OTP codes for email verification
@@ -126,7 +127,8 @@ model PricingSnapshot {
 /// Inventory items - belongs to a seller
 model InventoryItem {
   id                        String                   @id @default(cuid())
-  sellerId                  String
+  userId                    String
+  sellerId                  String?
   itemType                  ItemType
   cardVariantId             String?
   productName               String?
@@ -160,9 +162,11 @@ model InventoryItem {
   refPriceChartingProductId String?
   cardVariant               CardVariant?             @relation(fields: [cardVariantId], references: [id])
   refPriceChartingProduct   RefPriceChartingProduct? @relation(fields: [refPriceChartingProductId], references: [id])
-  seller                    SellerProfile            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  seller                    SellerProfile?           @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  user                      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([sellerId])
+  @@index([userId])
   @@index([stage])
   @@index([itemType])
   @@index([cardVariantId])

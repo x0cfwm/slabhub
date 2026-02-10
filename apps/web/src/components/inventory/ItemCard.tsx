@@ -35,10 +35,17 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
     const language = isNewVariantId ? variantId.split("-")[2] : "EN";
 
     const marketPrice = isSealed ? price?.sealedPrice : price?.rawPrice;
+    const finalProfile = profile || item.cardProfile;
 
     // Type-specific display values
-    const displayName = isSealed ? (item as any).productName || profile?.name : profile?.name || "Unknown";
-    const displaySub = isSealed ? (item as any).productType : profile?.set;
+    const displayName = isSealed
+        ? (item as any).productName || finalProfile?.name || "Unknown Product"
+        : finalProfile?.name || "Unknown Asset";
+
+    const displaySub = isSealed
+        ? (item as any).productType || "Sealed Product"
+        : finalProfile?.set || "Unknown Set";
+
     const typeLabel = itemType.replace("SINGLE_CARD_", "").replace("_PRODUCT", "");
 
     // Apply transform only if not in overlay (overlay handled by DndContext)
@@ -66,7 +73,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
                 <AspectRatio ratio={1 / 1}>
                     <div className="flex items-center justify-center w-full h-full bg-accent/10 relative overflow-hidden">
                         <img
-                            src={profile?.imageUrl || "https://placehold.co/300x400?text=Sealed+Product"}
+                            src={finalProfile?.imageUrl || `https://placehold.co/300x400?text=${isSealed ? 'Sealed' : 'Card'}`}
                             alt={displayName}
                             className={cn(
                                 "object-contain w-full h-full transition-all duration-500 group-hover:scale-110 p-2",

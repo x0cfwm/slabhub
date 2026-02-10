@@ -42,7 +42,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CurrentSellerHandle = exports.CurrentSellerId = exports.AuthMiddleware = void 0;
+exports.CurrentUserId = exports.CurrentSellerHandle = exports.CurrentSellerId = exports.AuthMiddleware = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const DEFAULT_SELLER_HANDLE = 'nami-treasures';
@@ -64,6 +64,7 @@ let AuthMiddleware = class AuthMiddleware {
             });
             if (session && !session.revokedAt && session.expiresAt > new Date()) {
                 seller = session.user.sellerProfile;
+                req.userId = session.userId;
             }
         }
         if (!seller) {
@@ -86,6 +87,9 @@ let AuthMiddleware = class AuthMiddleware {
         if (seller) {
             req.sellerId = seller.id;
             req.sellerHandle = seller.handle;
+            if (!req.userId && seller.userId) {
+                req.userId = seller.userId;
+            }
         }
         next();
     }
@@ -102,5 +106,9 @@ exports.CurrentSellerId = (0, common_1.createParamDecorator)((data, ctx) => {
 exports.CurrentSellerHandle = (0, common_1.createParamDecorator)((data, ctx) => {
     const request = ctx.switchToHttp().getRequest();
     return request.sellerHandle;
+});
+exports.CurrentUserId = (0, common_1.createParamDecorator)((data, ctx) => {
+    const request = ctx.switchToHttp().getRequest();
+    return request.userId;
 });
 //# sourceMappingURL=auth.middleware.js.map

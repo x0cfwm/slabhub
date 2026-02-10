@@ -15,9 +15,9 @@ export class InventoryService {
 
     constructor(private readonly prisma: PrismaService) { }
 
-    async listItems(sellerId: string) {
+    async listItems(userId: string) {
         const items = await this.prisma.inventoryItem.findMany({
-            where: { sellerId },
+            where: { userId },
             orderBy: { createdAt: 'desc' },
             include: {
                 cardVariant: {
@@ -36,11 +36,11 @@ export class InventoryService {
         return items.map((item) => this.transformItem(item));
     }
 
-    async getItem(sellerId: string, itemId: string) {
+    async getItem(userId: string, itemId: string) {
         const item = await this.prisma.inventoryItem.findFirst({
             where: {
                 id: itemId,
-                sellerId,
+                userId,
             },
             include: {
                 cardVariant: {
@@ -63,16 +63,21 @@ export class InventoryService {
         return this.transformItem(item);
     }
 
-    async createItem(sellerId: string, dto: CreateInventoryItemDto) {
+    async createItem(userId: string, sellerId: string | undefined, dto: CreateInventoryItemDto) {
         try {
             this.validateItemType(dto);
 
             const item = await this.prisma.inventoryItem.create({
                 data: {
-                    sellerId,
+                    user: { connect: { id: userId } },
+                    seller: sellerId ? { connect: { id: sellerId } } : undefined,
                     itemType: dto.itemType,
-                    cardVariantId: dto.cardVariantId,
-                    refPriceChartingProductId: dto.refPriceChartingProductId,
+                    cardVariant: dto.cardVariantId
+                        ? { connect: { id: dto.cardVariantId } }
+                        : undefined,
+                    refPriceChartingProduct: dto.refPriceChartingProductId
+                        ? { connect: { id: dto.refPriceChartingProductId } }
+                        : undefined,
                     productName: dto.productName,
                     productType: dto.productType,
                     language: dto.language,
@@ -98,7 +103,7 @@ export class InventoryService {
                     acquisitionSource: dto.acquisitionSource,
                     storageLocation: dto.storageLocation,
                     notes: dto.notes,
-                    photos: dto.photos || [],
+                    photos: (dto.photos || []).filter(Boolean),
                 },
                 include: {
                     cardVariant: {
@@ -124,7 +129,7 @@ export class InventoryService {
 
 
     async updateItem(
-        sellerId: string,
+        userId: string,
         itemId: string,
         dto: UpdateInventoryItemDto,
     ) {
@@ -132,7 +137,7 @@ export class InventoryService {
         const existing = await this.prisma.inventoryItem.findFirst({
             where: {
                 id: itemId,
-                sellerId,
+                userId,
             },
         });
 
@@ -143,8 +148,16 @@ export class InventoryService {
         const item = await this.prisma.inventoryItem.update({
             where: { id: itemId },
             data: {
-                cardVariantId: dto.cardVariantId,
-                refPriceChartingProductId: dto.refPriceChartingProductId,
+                ...(dto.cardVariantId !== undefined && {
+                    cardVariant: dto.cardVariantId
+                        ? { connect: { id: dto.cardVariantId } }
+                        : { disconnect: true }
+                }),
+                ...(dto.refPriceChartingProductId !== undefined && {
+                    refPriceChartingProduct: dto.refPriceChartingProductId
+                        ? { connect: { id: dto.refPriceChartingProductId } }
+                        : { disconnect: true }
+                }),
                 productName: dto.productName,
                 language: dto.language,
                 setName: dto.setName,
@@ -186,12 +199,12 @@ export class InventoryService {
         return this.transformItem(item);
     }
 
-    async deleteItem(sellerId: string, itemId: string) {
+    async deleteItem(userId: string, itemId: string) {
         // Verify ownership
         const existing = await this.prisma.inventoryItem.findFirst({
             where: {
                 id: itemId,
-                sellerId,
+                userId,
             },
         });
 

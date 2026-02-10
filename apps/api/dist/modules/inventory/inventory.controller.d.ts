@@ -4,7 +4,7 @@ import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
 export declare class InventoryController {
     private readonly inventoryService;
     constructor(inventoryService: InventoryService);
-    listItems(sellerId: string | undefined): Promise<({
+    listItems(userId: string | undefined): Promise<({
         id: any;
         stage: any;
         acquisitionPrice: number | null;
@@ -99,7 +99,7 @@ export declare class InventoryController {
         updatedAt: any;
         quantity: any;
     })[]>;
-    getItem(sellerId: string | undefined, id: string): Promise<{
+    getItem(userId: string | undefined, id: string): Promise<{
         id: any;
         stage: any;
         acquisitionPrice: number | null;
@@ -194,7 +194,7 @@ export declare class InventoryController {
         updatedAt: any;
         quantity: any;
     }>;
-    createItem(sellerId: string | undefined, dto: CreateInventoryItemDto): Promise<{
+    createItem(userId: string | undefined, sellerId: string | undefined, dto: CreateInventoryItemDto): Promise<{
         id: any;
         stage: any;
         acquisitionPrice: number | null;
@@ -289,7 +289,7 @@ export declare class InventoryController {
         updatedAt: any;
         quantity: any;
     }>;
-    updateItem(sellerId: string | undefined, id: string, dto: UpdateInventoryItemDto): Promise<{
+    updateItem(userId: string | undefined, id: string, dto: UpdateInventoryItemDto): Promise<{
         id: any;
         stage: any;
         acquisitionPrice: number | null;
@@ -384,7 +384,7 @@ export declare class InventoryController {
         updatedAt: any;
         quantity: any;
     }>;
-    deleteItem(sellerId: string | undefined, id: string): Promise<{
+    deleteItem(userId: string | undefined, id: string): Promise<{
         success: boolean;
     }>;
 }

@@ -69,10 +69,10 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick }:
                     {items.map((item) => {
                         const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
                         const variantId = (item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId;
-                        const marketProduct = cards.find(p => p.id === variantId);
+                        const marketProduct = cards.find(p => p.id === variantId) || item.cardProfile;
 
                         const isSealed = itType === "SEALED_PRODUCT" || (itType as any) === "SEALED";
-                        const marketPrice = isSealed ? marketProduct?.sealedPrice : marketProduct?.rawPrice;
+                        const marketPrice = isSealed ? (marketProduct as any)?.sealedPrice : (marketProduct as any)?.rawPrice;
 
                         const displayName = isSealed ? (item as any).productName || marketProduct?.name : marketProduct?.name || "Unknown Asset";
                         const typeLabel = itType.replace("SINGLE_CARD_", "").replace("_PRODUCT", "");
@@ -82,7 +82,7 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick }:
                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                     <div className="w-12 h-16 rounded-lg overflow-hidden border bg-accent/20 flex items-center justify-center">
                                         <img
-                                            src={marketProduct?.imageUrl || "https://placehold.co/100x150?text=📦"}
+                                            src={marketProduct?.imageUrl || `https://placehold.co/100x150?text=${isSealed ? '📦' : '🎴'}`}
                                             alt={displayName}
                                             className="w-full h-full object-contain p-1"
                                         />

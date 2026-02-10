@@ -151,8 +151,9 @@ export default function AddItemPage() {
             await createInventoryItem(itemToSave as any);
             toast.success("Item added to inventory");
             router.push("/inventory");
-        } catch (err) {
-            toast.error("Failed to add item");
+        } catch (err: any) {
+            console.error("Failed to add item:", err);
+            toast.error(err.message || "Failed to add item");
         } finally {
             setLoading(false);
         }

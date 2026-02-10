@@ -11,62 +11,63 @@ import {
 import { InventoryService } from './inventory.service';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
-import { CurrentSellerId } from '../auth/auth.middleware';
+import { CurrentSellerId, CurrentUserId } from '../auth/auth.middleware';
 
 @Controller('inventory')
 export class InventoryController {
     constructor(private readonly inventoryService: InventoryService) { }
 
     @Get()
-    async listItems(@CurrentSellerId() sellerId: string | undefined) {
-        if (!sellerId) {
-            throw new NotFoundException('No authenticated seller');
+    async listItems(@CurrentUserId() userId: string | undefined) {
+        if (!userId) {
+            throw new NotFoundException('No authenticated user');
         }
-        return this.inventoryService.listItems(sellerId);
+        return this.inventoryService.listItems(userId);
     }
 
     @Get(':id')
     async getItem(
-        @CurrentSellerId() sellerId: string | undefined,
+        @CurrentUserId() userId: string | undefined,
         @Param('id') id: string,
     ) {
-        if (!sellerId) {
-            throw new NotFoundException('No authenticated seller');
+        if (!userId) {
+            throw new NotFoundException('No authenticated user');
         }
-        return this.inventoryService.getItem(sellerId, id);
+        return this.inventoryService.getItem(userId, id);
     }
 
     @Post()
     async createItem(
+        @CurrentUserId() userId: string | undefined,
         @CurrentSellerId() sellerId: string | undefined,
         @Body() dto: CreateInventoryItemDto,
     ) {
-        if (!sellerId) {
-            throw new NotFoundException('No authenticated seller');
+        if (!userId) {
+            throw new NotFoundException('No authenticated user');
         }
-        return this.inventoryService.createItem(sellerId, dto);
+        return this.inventoryService.createItem(userId, sellerId, dto);
     }
 
     @Patch(':id')
     async updateItem(
-        @CurrentSellerId() sellerId: string | undefined,
+        @CurrentUserId() userId: string | undefined,
         @Param('id') id: string,
         @Body() dto: UpdateInventoryItemDto,
     ) {
-        if (!sellerId) {
-            throw new NotFoundException('No authenticated seller');
+        if (!userId) {
+            throw new NotFoundException('No authenticated user');
         }
-        return this.inventoryService.updateItem(sellerId, id, dto);
+        return this.inventoryService.updateItem(userId, id, dto);
     }
 
     @Delete(':id')
     async deleteItem(
-        @CurrentSellerId() sellerId: string | undefined,
+        @CurrentUserId() userId: string | undefined,
         @Param('id') id: string,
     ) {
-        if (!sellerId) {
-            throw new NotFoundException('No authenticated seller');
+        if (!userId) {
+            throw new NotFoundException('No authenticated user');
         }
-        return this.inventoryService.deleteItem(sellerId, id);
+        return this.inventoryService.deleteItem(userId, id);
     }
 }

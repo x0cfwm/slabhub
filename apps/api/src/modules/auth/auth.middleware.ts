@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 const DEFAULT_SELLER_HANDLE = 'nami-treasures';
 
 export interface AuthenticatedRequest extends Request {
+    userId?: string;
     sellerId?: string;
     sellerHandle?: string;
 }
@@ -44,6 +45,7 @@ export class AuthMiddleware implements NestMiddleware {
 
             if (session && !session.revokedAt && session.expiresAt > new Date()) {
                 seller = session.user.sellerProfile;
+                req.userId = session.userId;
             }
         }
 
@@ -70,6 +72,9 @@ export class AuthMiddleware implements NestMiddleware {
         if (seller) {
             req.sellerId = seller.id;
             req.sellerHandle = seller.handle;
+            if (!req.userId && seller.userId) {
+                req.userId = seller.userId;
+            }
         }
 
         next();
@@ -93,5 +98,14 @@ export const CurrentSellerHandle = createParamDecorator(
     (data: unknown, ctx: ExecutionContext): string | undefined => {
         const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
         return request.sellerHandle;
+    },
+);
+/**
+ * Decorator to extract current user ID from request
+ */
+export const CurrentUserId = createParamDecorator(
+    (data: unknown, ctx: ExecutionContext): string | undefined => {
+        const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
+        return request.userId;
     },
 );

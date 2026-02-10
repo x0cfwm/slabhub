@@ -81,7 +81,7 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: K
                             .filter(i => i.stage === column.id)
                             .map(item => {
                                 const vid = (item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId;
-                                const marketProduct = cards.find(p => p.id === vid);
+                                const marketProduct = cards.find(p => p.id === vid) || item.cardProfile;
 
                                 return (
                                     <ItemCard
@@ -107,7 +107,7 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: K
             }}>
                 {activeId && activeItem ? (() => {
                     const vid = (activeItem as any).cardVariantId || (activeItem as any).cardProfileId || activeItem.refPriceChartingProductId;
-                    const marketProduct = cards.find(p => p.id === vid);
+                    const marketProduct = cards.find(p => p.id === vid) || activeItem.cardProfile;
 
                     return (
                         <ItemCard
