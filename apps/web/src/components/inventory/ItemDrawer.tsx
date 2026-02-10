@@ -56,11 +56,31 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
         if (!item) return;
         setLoading(true);
         try {
-            await updateInventoryItem(item.id, formData);
+            // Remove fields that the backend doesn't allow in the update DTO
+            const {
+                id,
+                userId,
+                createdAt,
+                updatedAt,
+                type,
+                itemType,
+                cardProfile,
+                marketPriceSnapshot,
+                // These are frontend-only or mismatch fields
+                gradingCompany,
+                grade,
+                certificationNumber,
+                gradingMeta,
+                previousCertNumbers,
+                ...patchData
+            } = formData as any;
+
+            await updateInventoryItem(item.id, patchData);
             toast.success("Item updated");
             onUpdate();
             onClose();
         } catch (err) {
+            console.error("Update failed:", err);
             toast.error("Failed to update item");
         } finally {
             setLoading(false);
