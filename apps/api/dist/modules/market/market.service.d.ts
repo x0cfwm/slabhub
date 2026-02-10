@@ -8,7 +8,7 @@ export declare class MarketPricingService {
     private rateLimit;
     private readonly logger;
     constructor(prisma: PrismaService, parser: PriceChartingParser);
-    listProducts(query: GetMarketProductsDto): Promise<{
+    listProducts(query: GetMarketProductsDto, userId?: string): Promise<{
         items: {
             id: any;
             name: any;

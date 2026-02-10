@@ -1,14 +1,18 @@
 import { Controller, Get, Query, Param } from '@nestjs/common';
 import { MarketPricingService } from './market.service';
 import { GetMarketProductsDto } from './dto/market-products.dto';
+import { CurrentUserId } from '../auth/auth.middleware';
 
 @Controller('market')
 export class MarketPricingController {
     constructor(private readonly marketService: MarketPricingService) { }
 
     @Get('products')
-    async getProducts(@Query() query: GetMarketProductsDto) {
-        return this.marketService.listProducts(query);
+    async getProducts(
+        @Query() query: GetMarketProductsDto,
+        @CurrentUserId() userId: string | undefined
+    ) {
+        return this.marketService.listProducts(query, userId);
     }
 
     @Get('sets')

@@ -39,6 +39,7 @@ function PricingContent() {
     const search = searchParams.get("search") || "";
     const setExternalId = searchParams.get("setExternalId") || "all";
     const productType = searchParams.get("productType") || "all";
+    const onlyInInventory = searchParams.get("onlyInInventory") === "true";
 
     const [data, setData] = useState<{ items: MarketProduct[], total: number } | null>(null);
     const [sets, setSets] = useState<MarketSet[]>([]);
@@ -48,7 +49,7 @@ function PricingContent() {
     const [selectedProduct, setSelectedProduct] = useState<MarketProduct | null>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
 
-    const fetchData = useCallback(async (p: number, s: string, setExId: string, pt: string) => {
+    const fetchData = useCallback(async (p: number, s: string, setExId: string, pt: string, oii: boolean) => {
         setLoading(true);
         try {
             const res = await getMarketProducts({
@@ -56,7 +57,8 @@ function PricingContent() {
                 limit: LIMIT,
                 search: s,
                 setExternalId: setExId === "all" ? undefined : setExId,
-                productType: pt === "all" ? undefined : pt
+                productType: pt === "all" ? undefined : pt,
+                onlyInInventory: oii
             });
             setData(res);
         } catch (err) {
@@ -72,8 +74,8 @@ function PricingContent() {
     }, []);
 
     useEffect(() => {
-        fetchData(page, search, setExternalId, productType);
-    }, [page, search, setExternalId, productType, fetchData]);
+        fetchData(page, search, setExternalId, productType, onlyInInventory);
+    }, [page, search, setExternalId, productType, onlyInInventory, fetchData]);
 
     // Sync selectedProduct with URL productId
     useEffect(() => {
@@ -142,6 +144,14 @@ function PricingContent() {
         const params = new URLSearchParams(searchParams.toString());
         if (value === "all") params.delete("productType");
         else params.set("productType", value);
+        params.set("page", "1");
+        router.push(`?${params.toString()}`);
+    };
+
+    const handleOnlyInInventoryChange = (checked: boolean) => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (checked) params.set("onlyInInventory", "true");
+        else params.delete("onlyInInventory");
         params.set("page", "1");
         router.push(`?${params.toString()}`);
     };
@@ -222,6 +232,16 @@ function PricingContent() {
                                     <SelectItem value="SEALED_OTHER">Sealed Other</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+                        <div className="flex items-center gap-2 ml-auto">
+                            <Switch
+                                id="only-in-inventory"
+                                checked={onlyInInventory}
+                                onCheckedChange={handleOnlyInInventoryChange}
+                            />
+                            <Label htmlFor="only-in-inventory" className="text-sm font-medium cursor-pointer">
+                                In My Inventory
+                            </Label>
                         </div>
                     </>
                 ) : (

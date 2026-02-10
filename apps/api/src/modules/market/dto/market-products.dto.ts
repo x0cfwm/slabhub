@@ -27,4 +27,8 @@ export class GetMarketProductsDto {
     @IsOptional()
     @IsString()
     productType?: string;
+
+    @IsOptional()
+    @Type(() => Boolean)
+    onlyInInventory?: boolean;
 }

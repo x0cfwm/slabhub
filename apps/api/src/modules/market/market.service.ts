@@ -15,11 +15,21 @@ export class MarketPricingService {
         private readonly parser: PriceChartingParser
     ) { }
 
-    async listProducts(query: GetMarketProductsDto) {
-        const { page = 1, limit = 25, search, setExternalId, productType } = query;
+    async listProducts(query: GetMarketProductsDto, userId?: string) {
+        const { page = 1, limit = 25, search, setExternalId, productType, onlyInInventory } = query;
         const skip = (page - 1) * limit;
 
         const conditions: any[] = [];
+
+        if (onlyInInventory && userId) {
+            conditions.push({
+                inventoryItems: {
+                    some: {
+                        userId: userId
+                    }
+                }
+            });
+        }
 
         if (setExternalId) {
             conditions.push({ setId: setExternalId });

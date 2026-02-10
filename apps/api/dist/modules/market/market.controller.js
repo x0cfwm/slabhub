@@ -16,12 +16,13 @@ exports.MarketPricingController = void 0;
 const common_1 = require("@nestjs/common");
 const market_service_1 = require("./market.service");
 const market_products_dto_1 = require("./dto/market-products.dto");
+const auth_middleware_1 = require("../auth/auth.middleware");
 let MarketPricingController = class MarketPricingController {
     constructor(marketService) {
         this.marketService = marketService;
     }
-    async getProducts(query) {
-        return this.marketService.listProducts(query);
+    async getProducts(query, userId) {
+        return this.marketService.listProducts(query, userId);
     }
     async getSets() {
         return this.marketService.listSets();
@@ -37,8 +38,9 @@ exports.MarketPricingController = MarketPricingController;
 __decorate([
     (0, common_1.Get)('products'),
     __param(0, (0, common_1.Query)()),
+    __param(1, (0, auth_middleware_1.CurrentUserId)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [market_products_dto_1.GetMarketProductsDto]),
+    __metadata("design:paramtypes", [market_products_dto_1.GetMarketProductsDto, Object]),
     __metadata("design:returntype", Promise)
 ], MarketPricingController.prototype, "getProducts", null);
 __decorate([

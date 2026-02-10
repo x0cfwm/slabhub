@@ -4,4 +4,5 @@ export declare class GetMarketProductsDto {
     search?: string;
     setExternalId?: string;
     productType?: string;
+    onlyInInventory?: boolean;
 }

@@ -22,10 +22,19 @@ let MarketPricingService = MarketPricingService_1 = class MarketPricingService {
         this.rateLimit = new Map();
         this.logger = new common_1.Logger(MarketPricingService_1.name);
     }
-    async listProducts(query) {
-        const { page = 1, limit = 25, search, setExternalId, productType } = query;
+    async listProducts(query, userId) {
+        const { page = 1, limit = 25, search, setExternalId, productType, onlyInInventory } = query;
         const skip = (page - 1) * limit;
         const conditions = [];
+        if (onlyInInventory && userId) {
+            conditions.push({
+                inventoryItems: {
+                    some: {
+                        userId: userId
+                    }
+                }
+            });
+        }
         if (setExternalId) {
             conditions.push({ setId: setExternalId });
         }

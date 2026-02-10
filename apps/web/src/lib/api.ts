@@ -118,7 +118,7 @@ export async function lookupGrading(grader: string, certNumber: string): Promise
     return response.json();
 }
 
-export async function getMarketProducts(params: { page: number; limit: number; search?: string; setExternalId?: string; productType?: string }): Promise<MarketProductsResponse> {
+export async function getMarketProducts(params: { page: number; limit: number; search?: string; setExternalId?: string; productType?: string; onlyInInventory?: boolean }): Promise<MarketProductsResponse> {
     const url = getFullUrl('/v1/market/products');
     url.searchParams.set('page', params.page.toString());
     url.searchParams.set('limit', params.limit.toString());
@@ -130,6 +130,9 @@ export async function getMarketProducts(params: { page: number; limit: number; s
     }
     if (params.productType) {
         url.searchParams.set('productType', params.productType);
+    }
+    if (params.onlyInInventory) {
+        url.searchParams.set('onlyInInventory', 'true');
     }
 
     const response = await fetch(url.toString(), { credentials: 'include' });

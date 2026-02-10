@@ -3,7 +3,7 @@ import { GetMarketProductsDto } from './dto/market-products.dto';
 export declare class MarketPricingController {
     private readonly marketService;
     constructor(marketService: MarketPricingService);
-    getProducts(query: GetMarketProductsDto): Promise<{
+    getProducts(query: GetMarketProductsDto, userId: string | undefined): Promise<{
         items: {
             id: any;
             name: any;
