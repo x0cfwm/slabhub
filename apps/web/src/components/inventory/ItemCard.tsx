@@ -53,7 +53,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
             {...attributes}
             {...listeners}
             className={cn(
-                "group cursor-grab active:cursor-grabbing hover:shadow-md transition-all overflow-hidden border-muted-foreground/10",
+                "group cursor-grab active:cursor-grabbing hover:shadow-md transition-all overflow-hidden border-muted-foreground/10 py-0 gap-0",
                 isDragging && !isOverlay && "opacity-40 grayscale-[0.5]",
                 isOverlay && "shadow-2xl ring-2 ring-primary/20 cursor-grabbing",
                 item.type === "SINGLE_CARD_GRADED" && "border-primary/20 bg-primary/5"
@@ -106,15 +106,17 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
                 </div>
             </div>
             <CardContent className="p-3 space-y-2 pointer-events-none">
-                <div>
-                    <h4 className="font-bold text-xs truncate leading-tight">{displayName}</h4>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-tight">{displaySub}</p>
+                <div className="min-w-0">
+                    <h4 className="font-bold text-xs line-clamp-2 leading-tight h-8 mb-0.5">{displayName}</h4>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-tight truncate">{displaySub}</p>
                 </div>
 
                 <div className="flex items-center justify-between text-xs pt-1 border-t border-muted">
                     <div className="flex flex-col">
                         <span className="text-muted-foreground text-[7px] uppercase font-bold">Market</span>
-                        <span className="font-bold text-primary text-[10px]">${marketPrice?.toFixed(2) || "N/A"}</span>
+                        <span className="font-bold text-primary text-[10px]">
+                            {typeof marketPrice === 'number' ? `$${marketPrice.toFixed(2)}` : "N/A"}
+                        </span>
                     </div>
                     <div className="flex flex-col items-end">
                         <div className="flex items-center gap-1">
