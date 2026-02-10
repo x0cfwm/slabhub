@@ -72,7 +72,7 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick }:
                         const marketProduct = cards.find(p => p.id === variantId) || item.cardProfile;
 
                         const isSealed = itType === "SEALED_PRODUCT" || (itType as any) === "SEALED";
-                        const marketPrice = isSealed ? (marketProduct as any)?.sealedPrice : (marketProduct as any)?.rawPrice;
+                        const marketPrice = item.marketPrice ?? (isSealed ? (marketProduct as any)?.sealedPrice : (marketProduct as any)?.rawPrice);
 
                         const displayName = isSealed ? (item as any).productName || marketProduct?.name : marketProduct?.name || "Unknown Asset";
                         const typeLabel = itType.replace("SINGLE_CARD_", "").replace("_PRODUCT", "");
@@ -139,7 +139,7 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick }:
                                     ${(item.acquisitionPrice || 0).toFixed(2)}
                                 </TableCell>
                                 <TableCell className="text-right font-bold text-xs text-primary">
-                                    {marketPrice ? `$${marketPrice.toFixed(2)}` : (item.marketPriceSnapshot ? `$${Number(item.marketPriceSnapshot).toFixed(2)}` : "-")}
+                                    {typeof marketPrice === 'number' ? `$${marketPrice.toFixed(2)}` : (item.marketPriceSnapshot ? `$${Number(item.marketPriceSnapshot).toFixed(2)}` : "-")}
                                 </TableCell>
                                 <TableCell>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">

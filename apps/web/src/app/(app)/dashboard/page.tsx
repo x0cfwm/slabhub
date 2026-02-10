@@ -56,17 +56,20 @@ export default function DashboardPage() {
             const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
             const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
 
-            const vid = (item as any).cardVariantId || (item as any).cardProfileId;
-            const refId = item.refPriceChartingProductId;
+            let unitPrice = item.marketPrice ?? 0;
 
-            // Try to find price from market products
-            const marketProduct = marketProducts.find(p => p.id === refId || p.id === vid);
+            if (!unitPrice) {
+                const vid = (item as any).cardVariantId || (item as any).cardProfileId;
+                const refId = item.refPriceChartingProductId;
 
-            let unitPrice = 0;
-            if (marketProduct) {
-                unitPrice = isSealed ? (marketProduct.sealedPrice ?? 0) : (marketProduct.rawPrice ?? 0);
-            } else if (item.marketPriceSnapshot) {
-                unitPrice = Number(item.marketPriceSnapshot);
+                // Try to find price from market products (fallback)
+                const marketProduct = marketProducts.find(p => p.id === refId || p.id === vid);
+
+                if (marketProduct) {
+                    unitPrice = isSealed ? (marketProduct.sealedPrice ?? 0) : (marketProduct.rawPrice ?? 0);
+                } else if (item.marketPriceSnapshot) {
+                    unitPrice = Number(item.marketPriceSnapshot);
+                }
             }
 
             return acc + (unitPrice * (item.quantity || 1));
@@ -152,7 +155,7 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">${stats.marketValue.toFixed(2)}</div>
-                        <p className="text-xs text-muted-foreground">Based on mock market data</p>
+                        <p className="text-xs text-muted-foreground">Based on market data</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -209,11 +212,7 @@ export default function DashboardPage() {
                                 const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
                                 const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
 
-                                const vid = (item as any).cardVariantId || (item as any).cardProfileId;
-                                const refId = item.refPriceChartingProductId;
-                                const marketProduct = marketProducts.find(p => p.id === refId || p.id === vid);
-
-                                const displayName = isSealed ? (item as any).productName : marketProduct?.name || "Unknown Asset";
+                                const displayName = isSealed ? (item as any).productName : item.cardProfile?.name || "Unknown Asset";
 
                                 return (
                                     <div key={item.id} className="flex items-center">

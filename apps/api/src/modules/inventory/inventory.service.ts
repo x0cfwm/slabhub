@@ -246,6 +246,33 @@ export class InventoryService {
         }
     }
 
+    private getMarketPrice(item: any) {
+        if (!item.refPriceChartingProduct) return null;
+
+        const ref = item.refPriceChartingProduct;
+
+        if (item.itemType === 'SEALED_PRODUCT') {
+            return ref.sealedPrice ? Number(ref.sealedPrice) : null;
+        }
+
+        if (item.itemType === 'SINGLE_CARD_RAW') {
+            return ref.rawPrice ? Number(ref.rawPrice) : null;
+        }
+
+        if (item.itemType === 'SINGLE_CARD_GRADED') {
+            const grade = String(item.gradeValue);
+            if (grade === '10') return ref.grade10Price ? Number(ref.grade10Price) : (ref.rawPrice ? Number(ref.rawPrice) : null);
+            if (grade === '9.5') return ref.grade95Price ? Number(ref.grade95Price) : (ref.rawPrice ? Number(ref.rawPrice) : null);
+            if (grade === '9') return ref.grade9Price ? Number(ref.grade9Price) : (ref.rawPrice ? Number(ref.rawPrice) : null);
+            if (grade === '8') return ref.grade8Price ? Number(ref.grade8Price) : (ref.rawPrice ? Number(ref.rawPrice) : null);
+            if (grade === '7') return ref.grade7Price ? Number(ref.grade7Price) : (ref.rawPrice ? Number(ref.rawPrice) : null);
+
+            return ref.rawPrice ? Number(ref.rawPrice) : null;
+        }
+
+        return null;
+    }
+
     private transformItem(item: any) {
         // Build card info from variant if available
         let cardProfile = null;
@@ -266,6 +293,8 @@ export class InventoryService {
                 rarity: '',
                 cardNumber: item.refPriceChartingProduct.cardNumber || '',
                 imageUrl: item.refPriceChartingProduct.imageUrl || '',
+                rawPrice: item.refPriceChartingProduct.rawPrice ? Number(item.refPriceChartingProduct.rawPrice) : null,
+                sealedPrice: item.refPriceChartingProduct.sealedPrice ? Number(item.refPriceChartingProduct.sealedPrice) : null,
             };
         }
 
@@ -280,6 +309,7 @@ export class InventoryService {
             marketPriceSnapshot: item.marketPriceSnapshot
                 ? Number(item.marketPriceSnapshot)
                 : null,
+            marketPrice: this.getMarketPrice(item),
             acquisitionDate: item.acquisitionDate?.toISOString?.() || null,
             acquisitionSource: item.acquisitionSource,
             storageLocation: item.storageLocation,

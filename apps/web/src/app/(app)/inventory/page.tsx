@@ -73,11 +73,11 @@ export default function InventoryPage() {
                             (item as any).productType?.toLowerCase().includes(s);
                     }
 
-                    const card = marketProducts.find(c => c.id === ((item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId));
+                    const profile = item.cardProfile;
                     return (
-                        card?.name.toLowerCase().includes(s) ||
-                        card?.set.toLowerCase().includes(s) ||
-                        card?.number?.toLowerCase().includes(s)
+                        profile?.name.toLowerCase().includes(s) ||
+                        profile?.set.toLowerCase().includes(s) ||
+                        profile?.cardNumber?.toLowerCase().includes(s)
                     );
                 })();
 

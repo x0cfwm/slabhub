@@ -53,6 +53,7 @@ export interface InventoryBase {
     acquisitionPrice: number;
     listingPrice?: number;
     marketPriceSnapshot?: number;
+    marketPrice?: number;
     acquisitionDate: string;
     acquisitionSource?: string;
     storageLocation?: string;
@@ -115,6 +116,8 @@ export interface CardProfile {
     rarity: string;
     cardNumber: string;
     imageUrl: string;
+    rawPrice?: number | null;
+    sealedPrice?: number | null;
 }
 
 export interface PricingSnapshot {

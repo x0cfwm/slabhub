@@ -66,6 +66,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                 itemType,
                 cardProfile,
                 marketPriceSnapshot,
+                marketPrice,
                 // These are frontend-only or mismatch fields
                 gradingCompany,
                 grade,

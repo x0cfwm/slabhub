@@ -34,7 +34,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
     const variantType = isNewVariantId ? variantId.split("-")[1] : "NORMAL";
     const language = isNewVariantId ? variantId.split("-")[2] : "EN";
 
-    const marketPrice = isSealed ? price?.sealedPrice : price?.rawPrice;
+    const marketPrice = item.marketPrice ?? (isSealed ? price?.sealedPrice : price?.rawPrice);
     const finalProfile = profile || item.cardProfile;
 
     // Type-specific display values
