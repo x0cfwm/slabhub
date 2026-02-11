@@ -3,14 +3,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { getMe, logout as apiLogout } from "@/lib/api";
+import { SellerProfile } from "@/lib/types";
 
 interface User {
     id: string;
     email: string;
-    profile?: {
-        shopName: string;
-        handle: string;
-    } | null;
+    profile?: SellerProfile | null;
 }
 
 interface AuthContextType {

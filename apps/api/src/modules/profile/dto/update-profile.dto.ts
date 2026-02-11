@@ -1,8 +1,11 @@
-import { IsString, IsBoolean, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsArray, Matches } from 'class-validator';
 
 export class UpdateProfileDto {
     @IsOptional()
     @IsString()
+    @Matches(/^[a-z0-9-]+$/, {
+        message: 'Handle can only contain lowercase letters, numbers, and hyphens',
+    })
     handle?: string;
 
     @IsOptional()

@@ -17,6 +17,9 @@ exports.UpdateProfileDto = UpdateProfileDto;
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
+    (0, class_validator_1.Matches)(/^[a-z0-9-]+$/, {
+        message: 'Handle can only contain lowercase letters, numbers, and hyphens',
+    }),
     __metadata("design:type", String)
 ], UpdateProfileDto.prototype, "handle", void 0);
 __decorate([

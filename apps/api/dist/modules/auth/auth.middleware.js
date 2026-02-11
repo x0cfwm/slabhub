@@ -79,7 +79,7 @@ let AuthMiddleware = class AuthMiddleware {
                 });
             }
         }
-        if (!seller) {
+        if (!seller && !req.userId) {
             seller = await this.prisma.sellerProfile.findUnique({
                 where: { handle: DEFAULT_SELLER_HANDLE },
             });

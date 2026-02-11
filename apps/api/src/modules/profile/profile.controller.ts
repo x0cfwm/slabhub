@@ -7,28 +7,34 @@ import {
 } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import { CurrentSellerId } from '../auth/auth.middleware';
+import { CurrentSellerId, CurrentUserId } from '../auth/auth.middleware';
 
 @Controller('me')
 export class ProfileController {
     constructor(private readonly profileService: ProfileService) { }
 
     @Get()
-    async getProfile(@CurrentSellerId() sellerId: string | undefined) {
-        if (!sellerId) {
-            throw new NotFoundException('No authenticated seller');
+    async getProfile(
+        @CurrentUserId() userId: string | undefined,
+        @CurrentSellerId() sellerId: string | undefined,
+    ) {
+        if (userId) {
+            return this.profileService.getProfileByUserId(userId);
         }
-        return this.profileService.getProfile(sellerId);
+        if (sellerId) {
+            return this.profileService.getProfile(sellerId);
+        }
+        throw new NotFoundException('No authenticated user or seller');
     }
 
     @Patch()
     async updateProfile(
-        @CurrentSellerId() sellerId: string | undefined,
+        @CurrentUserId() userId: string | undefined,
         @Body() dto: UpdateProfileDto,
     ) {
-        if (!sellerId) {
-            throw new NotFoundException('No authenticated seller');
+        if (!userId) {
+            throw new NotFoundException('No authenticated user');
         }
-        return this.profileService.updateProfile(sellerId, dto);
+        return this.profileService.updateProfile(userId, dto);
     }
 }

@@ -62,8 +62,8 @@ export class AuthMiddleware implements NestMiddleware {
             }
         }
 
-        // 3. Default to demo seller if no auth provided
-        if (!seller) {
+        // 3. Default to demo seller if no auth provided (guest mode)
+        if (!seller && !req.userId) {
             seller = await this.prisma.sellerProfile.findUnique({
                 where: { handle: DEFAULT_SELLER_HANDLE },
             });

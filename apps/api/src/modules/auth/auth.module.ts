@@ -1,13 +1,13 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { AuthMiddleware } from './auth.middleware';
 import { AuthService } from './auth.service';
-import { AuthController, MeController } from './auth.controller';
+import { AuthController } from './auth.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { MailerService, MailerConsoleService } from './mail/mailer.service';
 
 @Module({
     imports: [PrismaModule],
-    controllers: [AuthController, MeController],
+    controllers: [AuthController],
     providers: [
         AuthService,
         AuthMiddleware,

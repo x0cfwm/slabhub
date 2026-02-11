@@ -12,13 +12,12 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MeController = exports.AuthController = void 0;
+exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const auth_service_1 = require("./auth.service");
 const request_otp_dto_1 = require("./dto/request-otp.dto");
 const verify_otp_dto_1 = require("./dto/verify-otp.dto");
 const cookies_1 = require("./utils/cookies");
-const session_guard_1 = require("./guards/session.guard");
 let AuthController = class AuthController {
     constructor(authService) {
         this.authService = authService;
@@ -71,27 +70,4 @@ exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])
 ], AuthController);
-let MeController = class MeController {
-    async getMe(req) {
-        const user = req.user;
-        return {
-            id: user.id,
-            email: user.email,
-            createdAt: user.createdAt,
-            profile: user.sellerProfile,
-        };
-    }
-};
-exports.MeController = MeController;
-__decorate([
-    (0, common_1.Get)(),
-    (0, common_1.UseGuards)(session_guard_1.SessionGuard),
-    __param(0, (0, common_1.Req)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], MeController.prototype, "getMe", null);
-exports.MeController = MeController = __decorate([
-    (0, common_1.Controller)('me')
-], MeController);
 //# sourceMappingURL=auth.controller.js.map

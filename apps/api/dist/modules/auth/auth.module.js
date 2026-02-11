@@ -22,7 +22,7 @@ exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
-        controllers: [auth_controller_1.AuthController, auth_controller_1.MeController],
+        controllers: [auth_controller_1.AuthController],
         providers: [
             auth_service_1.AuthService,
             auth_middleware_1.AuthMiddleware,

@@ -19,11 +19,3 @@ export declare class AuthController {
         ok: boolean;
     }>;
 }
-export declare class MeController {
-    getMe(req: any): Promise<{
-        id: any;
-        email: any;
-        createdAt: any;
-        profile: any;
-    }>;
-}

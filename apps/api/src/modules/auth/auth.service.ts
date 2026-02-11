@@ -42,48 +42,53 @@ export class AuthService {
 
     async verifyOtp(email: string, otp: string, userAgent?: string, ip?: string) {
         const normalizedEmail = email.toLowerCase().trim();
+        const isDevMagicCode = process.env.NODE_ENV !== 'production' && otp === '000000';
 
         // Find active challenge
         const challenge = await this.prisma.otpChallenge.findFirst({
             where: {
                 email: normalizedEmail,
                 consumedAt: null,
-                expiresAt: { gt: new Date() },
+                // Only enforce expiration if not using magic code
+                ...(!isDevMagicCode ? { expiresAt: { gt: new Date() } } : {}),
             },
             orderBy: { createdAt: 'desc' },
         });
 
-        if (!challenge) {
+        if (!challenge && !isDevMagicCode) {
             throw new BadRequestException('Invalid or expired OTP');
         }
 
-        // Check attempts
-        if (challenge.attempts >= this.MAX_OTP_ATTEMPTS) {
-            throw new BadRequestException('Too many attempts. Please request a new code.');
+        if (challenge) {
+            // Check attempts
+            if (challenge.attempts >= this.MAX_OTP_ATTEMPTS && !isDevMagicCode) {
+                throw new BadRequestException('Too many attempts. Please request a new code.');
+            }
+
+            // Increment attempts
+            await this.prisma.otpChallenge.update({
+                where: { id: challenge.id },
+                data: {
+                    attempts: { increment: 1 },
+                    lastAttemptAt: new Date(),
+                },
+            });
         }
 
-        // Increment attempts
-        await this.prisma.otpChallenge.update({
-            where: { id: challenge.id },
-            data: {
-                attempts: { increment: 1 },
-                lastAttemptAt: new Date(),
-            },
-        });
-
         // Compare OTP
-        const isDevMagicCode = process.env.NODE_ENV !== 'production' && otp === '000000';
-        const isValid = isDevMagicCode || OtpUtils.compareOtp(otp, challenge.salt!, challenge.codeHash);
+        const isValid = isDevMagicCode || (challenge && OtpUtils.compareOtp(otp, challenge.salt!, challenge.codeHash));
 
         if (!isValid) {
             throw new UnauthorizedException('Invalid code');
         }
 
-        // Consume challenge
-        await this.prisma.otpChallenge.update({
-            where: { id: challenge.id },
-            data: { consumedAt: new Date() },
-        });
+        if (challenge) {
+            // Consume challenge
+            await this.prisma.otpChallenge.update({
+                where: { id: challenge.id },
+                data: { consumedAt: new Date() },
+            });
+        }
 
         // Upsert user
         const user = await this.prisma.user.upsert({

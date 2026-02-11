@@ -16,29 +16,76 @@ let ProfileService = class ProfileService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    async getProfileByUserId(userId) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: { sellerProfile: true },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        return {
+            id: user.id,
+            email: user.email,
+            profile: user.sellerProfile ? this.transformProfile(user.sellerProfile) : null,
+        };
+    }
     async getProfile(sellerId) {
         const seller = await this.prisma.sellerProfile.findUnique({
             where: { id: sellerId },
+            include: { user: true },
         });
         if (!seller) {
             throw new common_1.NotFoundException('Profile not found');
         }
-        return this.transformProfile(seller);
+        return {
+            id: seller.user?.id || seller.id,
+            email: seller.user?.email || '',
+            profile: this.transformProfile(seller),
+        };
     }
-    async updateProfile(sellerId, dto) {
+    async updateProfile(userId, dto) {
+        const existingProfile = await this.prisma.sellerProfile.findUnique({
+            where: { userId },
+        });
         if (dto.handle) {
-            const existing = await this.prisma.sellerProfile.findUnique({
+            const handleOwner = await this.prisma.sellerProfile.findUnique({
                 where: { handle: dto.handle },
             });
-            if (existing && existing.id !== sellerId) {
+            if (handleOwner && handleOwner.userId !== userId) {
                 throw new common_1.ConflictException('Handle already taken');
             }
         }
-        const updated = await this.prisma.sellerProfile.update({
-            where: { id: sellerId },
-            data: dto,
-        });
-        return this.transformProfile(updated);
+        let updated;
+        if (existingProfile) {
+            updated = await this.prisma.sellerProfile.update({
+                where: { id: existingProfile.id },
+                data: { ...dto },
+                include: { user: true },
+            });
+        }
+        else {
+            if (!dto.handle || !dto.shopName) {
+                throw new common_1.BadRequestException('Handle and Shop Name are required for new profiles');
+            }
+            updated = await this.prisma.sellerProfile.create({
+                data: {
+                    ...dto,
+                    handle: dto.handle,
+                    shopName: dto.shopName,
+                    userId,
+                    locationCountry: dto.locationCountry || '',
+                    locationCity: dto.locationCity || '',
+                    paymentsAccepted: dto.paymentsAccepted || [],
+                },
+                include: { user: true },
+            });
+        }
+        return {
+            id: updated.user?.id || updated.id,
+            email: updated.user?.email || '',
+            profile: this.transformProfile(updated),
+        };
     }
     transformProfile(seller) {
         return {

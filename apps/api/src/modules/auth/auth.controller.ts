@@ -56,17 +56,3 @@ export class AuthController {
     }
 }
 
-@Controller('me')
-export class MeController {
-    @Get()
-    @UseGuards(SessionGuard)
-    async getMe(@Req() req: any) {
-        const user = req.user;
-        return {
-            id: user.id,
-            email: user.email,
-            createdAt: user.createdAt,
-            profile: user.sellerProfile,
-        };
-    }
-}

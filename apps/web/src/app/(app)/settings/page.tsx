@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { SellerProfile } from "@/lib/types";
+import { updateProfile } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,51 +14,114 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { AlertTriangle, CreditCard, LogOut, MapPin, RefreshCw, Save, Truck } from "lucide-react";
+import { AlertTriangle, CreditCard, LogOut, MapPin, Save, Truck, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-
 import { useAuth } from "@/components/auth-provider";
 
+const profileSchema = z.object({
+    shopName: z.string().min(1, "Shop name is required"),
+    handle: z.string().min(1, "Handle is required").regex(/^[a-z0-9-]+$/, "Handle can only contain lowercase letters, numbers, and hyphens"),
+    isActive: z.boolean(),
+    locationCountry: z.string().optional(),
+    locationCity: z.string().optional(),
+    paymentsAccepted: z.string().optional(),
+    meetupsEnabled: z.boolean(),
+    shippingEnabled: z.boolean(),
+    wishlistText: z.string().optional(),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
+
 export default function SettingsPage() {
-    const { user, logout: authLogout } = useAuth();
-    const [profile, setProfile] = useState<SellerProfile | null>(null);
+    const { user, logout: authLogout, refresh } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [isHandleDirty, setIsHandleDirty] = useState(false);
+
+    const {
+        register,
+        handleSubmit,
+        reset,
+        setValue,
+        watch,
+        formState: { errors },
+    } = useForm<ProfileFormValues>({
+        resolver: zodResolver(profileSchema),
+        defaultValues: {
+            shopName: "",
+            handle: "",
+            isActive: true,
+            locationCountry: "",
+            locationCity: "",
+            paymentsAccepted: "",
+            meetupsEnabled: false,
+            shippingEnabled: false,
+            wishlistText: "",
+        }
+    });
+
+    const shopName = watch("shopName");
+    const isActive = watch("isActive");
 
     useEffect(() => {
-        if (user) {
-            // Use user.profile as initial state, but it might be missing some fields from SellerProfile
-            // For now, let's keep it simple or fetch the full profile if needed
-            // But since getMe returns profile, we can use it.
-            if (user.profile) {
-                // @ts-ignore
-                setProfile(user.profile);
-            }
+        if (user?.profile) {
+            reset({
+                shopName: user.profile.shopName || "",
+                handle: user.profile.handle || "",
+                isActive: user.profile.isActive ?? true,
+                locationCountry: user.profile.locationCountry || "",
+                locationCity: user.profile.locationCity || "",
+                paymentsAccepted: user.profile.paymentsAccepted?.join(", ") || "",
+                meetupsEnabled: user.profile.meetupsEnabled ?? false,
+                shippingEnabled: user.profile.shippingEnabled ?? false,
+                wishlistText: user.profile.wishlistText || "",
+            });
+            setLoading(false);
+        } else if (user) {
             setLoading(false);
         }
-    }, [user]);
+    }, [user, reset]);
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!profile) return;
+    // Handle inference from shopName
+    useEffect(() => {
+        if (shopName && !isHandleDirty) {
+            const inferredHandle = shopName
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '');
+            setValue("handle", inferredHandle, { shouldValidate: true });
+        }
+    }, [shopName, setValue, isHandleDirty]);
+
+    const onSubmit = async (data: ProfileFormValues) => {
         setSaving(true);
         try {
-            // TODO: Implement real profile update in api.ts if needed
-            // await updateProfile(profile);
-            toast.success("Settings saved");
-        } catch (err) {
-            toast.error("Failed to save settings");
+            const payload = {
+                ...data,
+                paymentsAccepted: data.paymentsAccepted
+                    ? data.paymentsAccepted.split(",").map(p => p.trim()).filter(p => p !== "")
+                    : []
+            };
+            await updateProfile(payload);
+            await refresh();
+            toast.success("Settings saved successfully");
+        } catch (err: any) {
+            toast.error(err.message || "Failed to save settings");
         } finally {
             setSaving(false);
         }
     };
 
-
     const handleLogout = async () => {
         await authLogout();
     };
 
-    if (loading) return <div>Loading settings...</div>;
+    if (loading) return (
+        <div className="flex items-center justify-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+    );
 
     return (
         <div className="max-w-4xl space-y-8 pb-20">
@@ -63,34 +130,30 @@ export default function SettingsPage() {
                 <p className="text-muted-foreground">Manage your shop profile and application data.</p>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <Card className="overflow-hidden border-primary/20 bg-card shadow-sm">
                     <CardHeader className="border-b border-primary/10">
                         <div className="flex items-center justify-between">
                             <div>
-                                <CardTitle>Shop Profile</CardTitle>
+                                <CardTitle>{isActive ? 'Active' : 'Inactive'} Shop Profile</CardTitle>
                                 <CardDescription>Adjust your public identity and shop status.</CardDescription>
                             </div>
                             <div className={cn(
-                                "flex items-center space-x-2 px-3 py-1.5 rounded-full transition-colors",
-                                "dark:border dark:bg-card",
-                                profile?.isActive
-                                    ? "dark:bg-primary/5 dark:border-primary/10"
-                                    : "dark:bg-muted dark:border-muted-foreground/10"
+                                "flex items-center space-x-2 px-3 py-1.5 rounded-full transition-colors border",
+                                isActive
+                                    ? "bg-primary/5 border-primary/20 text-primary"
+                                    : "bg-muted border-muted-foreground/10 text-muted-foreground"
                             )}>
                                 <Label
                                     htmlFor="shop-active"
-                                    className={cn(
-                                        "text-sm font-medium cursor-pointer transition-colors",
-                                        !profile?.isActive && "text-muted-foreground"
-                                    )}
+                                    className="text-sm font-medium cursor-pointer"
                                 >
-                                    Shop is {profile?.isActive ? 'Active' : 'Inactive'}
+                                    Shop is {isActive ? 'Active' : 'Inactive'}
                                 </Label>
                                 <Switch
                                     id="shop-active"
-                                    checked={profile?.isActive}
-                                    onCheckedChange={checked => setProfile(p => p ? { ...p, isActive: checked } : null)}
+                                    checked={isActive}
+                                    onCheckedChange={checked => setValue("isActive", checked)}
                                     className="data-[state=unchecked]:bg-muted dark:data-[state=unchecked]:bg-input"
                                 />
                             </div>
@@ -99,25 +162,26 @@ export default function SettingsPage() {
                     <CardContent className="space-y-6 pt-6">
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <Label>Shop Name</Label>
+                                <Label className={cn(errors.shopName && "text-destructive")}>Shop Name *</Label>
                                 <Input
-                                    value={profile?.shopName}
-                                    onChange={e => setProfile(p => p ? { ...p, shopName: e.target.value } : null)}
+                                    {...register("shopName")}
                                     placeholder="e.g. Nami's Treasures"
-                                    className="bg-card shadow-sm"
+                                    className={cn("bg-card shadow-sm", errors.shopName && "border-destructive")}
                                 />
+                                {errors.shopName && <p className="text-xs text-destructive">{errors.shopName.message}</p>}
                             </div>
                             <div className="space-y-2">
-                                <Label>Handle</Label>
+                                <Label className={cn(errors.handle && "text-destructive")}>Handle *</Label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">@</span>
                                     <Input
-                                        className="pl-7 bg-card shadow-sm"
-                                        value={profile?.handle}
-                                        onChange={e => setProfile(p => p ? { ...p, handle: e.target.value } : null)}
+                                        className={cn("pl-7 bg-card shadow-sm", errors.handle && "border-destructive")}
+                                        {...register("handle")}
+                                        onKeyDown={() => setIsHandleDirty(true)}
                                         placeholder="nami-treasures"
                                     />
                                 </div>
+                                {errors.handle && <p className="text-xs text-destructive">{errors.handle.message}</p>}
                             </div>
                         </div>
 
@@ -128,8 +192,7 @@ export default function SettingsPage() {
                                     Location (Country)
                                 </Label>
                                 <Input
-                                    value={profile?.locationCountry}
-                                    onChange={e => setProfile(p => p ? { ...p, locationCountry: e.target.value } : null)}
+                                    {...register("locationCountry")}
                                     placeholder="Singapore"
                                     className="bg-card shadow-sm"
                                 />
@@ -140,8 +203,7 @@ export default function SettingsPage() {
                                     Location (City)
                                 </Label>
                                 <Input
-                                    value={profile?.locationCity}
-                                    onChange={e => setProfile(p => p ? { ...p, locationCity: e.target.value } : null)}
+                                    {...register("locationCity")}
                                     placeholder="Singapore City"
                                     className="bg-card shadow-sm"
                                 />
@@ -154,12 +216,7 @@ export default function SettingsPage() {
                                 Payments Accepted
                             </Label>
                             <Input
-                                value={profile?.paymentsAccepted.join(", ")}
-                                onChange={e => {
-                                    const val = e.target.value;
-                                    const payments = val.split(",").map(p => p.trim()).filter(p => p !== "");
-                                    setProfile(p => p ? { ...p, paymentsAccepted: payments } : null);
-                                }}
+                                {...register("paymentsAccepted")}
                                 placeholder="PayNow, Cash, PayPal, etc. (comma separated)"
                                 className="bg-card shadow-sm"
                             />
@@ -174,8 +231,8 @@ export default function SettingsPage() {
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
                                         id="shipping"
-                                        checked={profile?.shippingEnabled}
-                                        onCheckedChange={checked => setProfile(p => p ? { ...p, shippingEnabled: !!checked } : null)}
+                                        checked={watch("shippingEnabled")}
+                                        onCheckedChange={checked => setValue("shippingEnabled", !!checked)}
                                     />
                                     <Label htmlFor="shipping" className="text-sm font-normal cursor-pointer">
                                         Shipping Available
@@ -184,8 +241,8 @@ export default function SettingsPage() {
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
                                         id="meetups"
-                                        checked={profile?.meetupsEnabled}
-                                        onCheckedChange={checked => setProfile(p => p ? { ...p, meetupsEnabled: !!checked } : null)}
+                                        checked={watch("meetupsEnabled")}
+                                        onCheckedChange={checked => setValue("meetupsEnabled", !!checked)}
                                     />
                                     <Label htmlFor="meetups" className="text-sm font-normal cursor-pointer">
                                         Meetups Available
@@ -199,8 +256,7 @@ export default function SettingsPage() {
                             <Textarea
                                 placeholder="What cards are you looking for?"
                                 className="min-h-[100px] bg-card shadow-sm"
-                                value={profile?.wishlistText}
-                                onChange={e => setProfile(p => p ? { ...p, wishlistText: e.target.value } : null)}
+                                {...register("wishlistText")}
                             />
                         </div>
                     </CardContent>

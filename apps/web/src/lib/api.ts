@@ -1,5 +1,5 @@
 import { Grader } from "../../../api/src/modules/grading/types/grading.types";
-import { MarketPriceHistory, MarketProduct, MarketProductsResponse, MarketSet, InventoryItem } from "./types";
+import { MarketPriceHistory, MarketProduct, MarketProductsResponse, MarketSet, InventoryItem, SellerProfile } from "./types";
 
 export interface GradingLookupResult {
     grader: string;
@@ -261,3 +261,20 @@ export async function deleteFile(fileUrl: string): Promise<void> {
     }
 }
 
+
+export async function updateProfile(patch: any): Promise<SellerProfile> {
+    const url = getFullUrl('/v1/me');
+    const response = await fetch(url.toString(), {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(patch),
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update profile');
+    }
+    return response.json();
+}

@@ -76,36 +76,40 @@ let AuthService = AuthService_1 = class AuthService {
     }
     async verifyOtp(email, otp, userAgent, ip) {
         const normalizedEmail = email.toLowerCase().trim();
+        const isDevMagicCode = process.env.NODE_ENV !== 'production' && otp === '000000';
         const challenge = await this.prisma.otpChallenge.findFirst({
             where: {
                 email: normalizedEmail,
                 consumedAt: null,
-                expiresAt: { gt: new Date() },
+                ...(!isDevMagicCode ? { expiresAt: { gt: new Date() } } : {}),
             },
             orderBy: { createdAt: 'desc' },
         });
-        if (!challenge) {
+        if (!challenge && !isDevMagicCode) {
             throw new common_1.BadRequestException('Invalid or expired OTP');
         }
-        if (challenge.attempts >= this.MAX_OTP_ATTEMPTS) {
-            throw new common_1.BadRequestException('Too many attempts. Please request a new code.');
+        if (challenge) {
+            if (challenge.attempts >= this.MAX_OTP_ATTEMPTS && !isDevMagicCode) {
+                throw new common_1.BadRequestException('Too many attempts. Please request a new code.');
+            }
+            await this.prisma.otpChallenge.update({
+                where: { id: challenge.id },
+                data: {
+                    attempts: { increment: 1 },
+                    lastAttemptAt: new Date(),
+                },
+            });
         }
-        await this.prisma.otpChallenge.update({
-            where: { id: challenge.id },
-            data: {
-                attempts: { increment: 1 },
-                lastAttemptAt: new Date(),
-            },
-        });
-        const isDevMagicCode = process.env.NODE_ENV !== 'production' && otp === '000000';
-        const isValid = isDevMagicCode || otp_1.OtpUtils.compareOtp(otp, challenge.salt, challenge.codeHash);
+        const isValid = isDevMagicCode || (challenge && otp_1.OtpUtils.compareOtp(otp, challenge.salt, challenge.codeHash));
         if (!isValid) {
             throw new common_1.UnauthorizedException('Invalid code');
         }
-        await this.prisma.otpChallenge.update({
-            where: { id: challenge.id },
-            data: { consumedAt: new Date() },
-        });
+        if (challenge) {
+            await this.prisma.otpChallenge.update({
+                where: { id: challenge.id },
+                data: { consumedAt: new Date() },
+            });
+        }
         const user = await this.prisma.user.upsert({
             where: { email: normalizedEmail },
             create: {

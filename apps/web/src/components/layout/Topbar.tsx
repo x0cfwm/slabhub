@@ -15,7 +15,7 @@ export function Topbar() {
                 <h2 className="font-semibold">{profile?.shopName || "SlabHub"}</h2>
             </div>
             <div className="flex items-center gap-2">
-                {profile && (
+                {profile?.isActive && (
                     <Button asChild variant="outline" size="sm">
                         <Link href={`/vendor/${profile.handle}`} target="_blank">
                             View Public Page

@@ -21,30 +21,34 @@ let ProfileController = class ProfileController {
     constructor(profileService) {
         this.profileService = profileService;
     }
-    async getProfile(sellerId) {
-        if (!sellerId) {
-            throw new common_1.NotFoundException('No authenticated seller');
+    async getProfile(userId, sellerId) {
+        if (userId) {
+            return this.profileService.getProfileByUserId(userId);
         }
-        return this.profileService.getProfile(sellerId);
+        if (sellerId) {
+            return this.profileService.getProfile(sellerId);
+        }
+        throw new common_1.NotFoundException('No authenticated user or seller');
     }
-    async updateProfile(sellerId, dto) {
-        if (!sellerId) {
-            throw new common_1.NotFoundException('No authenticated seller');
+    async updateProfile(userId, dto) {
+        if (!userId) {
+            throw new common_1.NotFoundException('No authenticated user');
         }
-        return this.profileService.updateProfile(sellerId, dto);
+        return this.profileService.updateProfile(userId, dto);
     }
 };
 exports.ProfileController = ProfileController;
 __decorate([
     (0, common_1.Get)(),
-    __param(0, (0, auth_middleware_1.CurrentSellerId)()),
+    __param(0, (0, auth_middleware_1.CurrentUserId)()),
+    __param(1, (0, auth_middleware_1.CurrentSellerId)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], ProfileController.prototype, "getProfile", null);
 __decorate([
     (0, common_1.Patch)(),
-    __param(0, (0, auth_middleware_1.CurrentSellerId)()),
+    __param(0, (0, auth_middleware_1.CurrentUserId)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, update_profile_dto_1.UpdateProfileDto]),
