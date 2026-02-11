@@ -20,6 +20,7 @@ import { listInventory, getMe, getMarketProducts } from "@/lib/api";
 import { InventoryItem, MarketProduct, SellerProfile } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { MarketValueChart } from "@/components/dashboard/MarketValueChart";
 
 export default function DashboardPage() {
     const [items, setItems] = useState<InventoryItem[]>([]);
@@ -171,6 +172,8 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            <MarketValueChart />
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <Card className="col-span-4">

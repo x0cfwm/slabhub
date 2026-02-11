@@ -69,8 +69,8 @@
   --border: oklch(0.71 0.020 256 / 0.4);
   --input: #FBAC00;
   --ring: #FBAC00;
-  --chart-1: #00BE7E;
-  --chart-2: #FF2954;
+  --chart-1: oklch(0.91 0.168 98);
+  --chart-2: oklch(0.8 0.168 76);
   --chart-3: oklch(0.627 0.265 303.9);
   --chart-4: oklch(0.852 0.199 91.936);
   --chart-5: oklch(0.685 0.169 237.323);
