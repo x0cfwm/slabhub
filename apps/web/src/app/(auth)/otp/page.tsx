@@ -12,8 +12,8 @@ import {
     InputOTPSlot,
 } from "@/components/ui/input-otp";
 import Link from "next/link";
-import { Library, ArrowLeft } from "lucide-react";
-
+import { ArrowLeft } from "lucide-react";
+import { Logo } from "@/components/common/Logo";
 import { useAuth } from "@/components/auth-provider";
 
 function OtpContent() {
@@ -81,9 +81,7 @@ function OtpContent() {
             <Card className="w-full max-w-[400px] border-none shadow-none sm:border sm:shadow-sm">
                 <CardHeader className="space-y-4 pb-6 text-center">
                     <div className="flex justify-center">
-                        <div className="rounded-lg bg-primary/10 p-2">
-                            <Library className="h-6 w-6 text-primary" />
-                        </div>
+                        <Logo />
                     </div>
                     <div className="space-y-1">
                         <CardTitle className="text-2xl font-semibold tracking-tight">

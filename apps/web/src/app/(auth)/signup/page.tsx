@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { requestOtp } from "@/lib/api";
 import Link from "next/link";
-import { Library } from "lucide-react";
+import { Logo } from "@/components/common/Logo";
 
 export default function SignupPage() {
     const [email, setEmail] = useState("");
@@ -37,9 +37,7 @@ export default function SignupPage() {
             <Card className="w-full max-w-[400px] border-none shadow-none sm:border sm:shadow-sm">
                 <CardHeader className="space-y-4 pb-6 text-center">
                     <div className="flex justify-center">
-                        <div className="rounded-lg bg-primary/10 p-2">
-                            <Library className="h-6 w-6 text-primary" />
-                        </div>
+                        <Logo />
                     </div>
                     <div className="space-y-1">
                         <CardTitle className="text-2xl font-semibold tracking-tight">

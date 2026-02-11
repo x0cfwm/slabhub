@@ -23,6 +23,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { Logo } from "../common/Logo";
+
 const NAV_ITEMS = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Inventory", href: "/inventory", icon: Package },
@@ -37,10 +39,9 @@ export function Sidebar() {
     return (
         <div className="hidden md:flex h-full w-64 flex-col border-r bg-card">
             <div className="p-6">
-                <h1 className="text-xl font-bold tracking-tight text-primary flex items-center gap-2">
-                    <Package className="h-6 w-6" />
-                    SlabHub CRM
-                </h1>
+                <Link href="/dashboard" className="block">
+                    <Logo />
+                </Link>
             </div>
             <nav className="flex-1 space-y-2 px-4">
                 {NAV_ITEMS.map((item) => {

@@ -171,7 +171,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                 </div>
 
                 <SheetFooter className="mt-8 flex flex-col gap-3 px-0">
-                    <Button className="w-full h-12 text-md font-bold shadow-[0_0_20px_rgba(var(--primary),0.3)]" onClick={handleSave} disabled={loading}>
+                    <Button className="w-full h-12 text-md font-bold shadow-[0_0_20px] shadow-primary/30" onClick={handleSave} disabled={loading}>
                         <Save className="mr-2 h-5 w-5" />
                         Save Asset Changes
                     </Button>

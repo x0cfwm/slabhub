@@ -199,7 +199,7 @@ export default function AddItemPage() {
                             key={s}
                             className={cn(
                                 "h-2 w-12 rounded-full transition-all duration-300",
-                                step >= s ? "bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)]" : "bg-accent"
+                                step >= s ? "bg-primary shadow-lg shadow-primary/50" : "bg-accent"
                             )}
                         />
                     ))}
@@ -437,7 +437,7 @@ export default function AddItemPage() {
                                                             onChange={e => setFormData({ ...formData, certNumber: e.target.value })}
                                                         />
                                                         <Button
-                                                            className="h-12 px-6 bg-primary hover:bg-primary/90 shadow-[0_0_15px_rgba(var(--primary),0.3)]"
+                                                            className="h-12 px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30"
                                                             onClick={handleFetchDetails}
                                                             disabled={isFetching || !formData.gradeProvider || !formData.certNumber}
                                                         >
@@ -791,7 +791,7 @@ function TypeCard({ title, description, icon, selected, onClick }: { title: stri
             className={cn(
                 "relative group cursor-pointer p-6 rounded-3xl border-2 transition-all duration-300 hover:scale-[1.02]",
                 selected
-                    ? "border-primary bg-primary/10 shadow-[0_20px_40px_rgba(var(--primary),0.15)] ring-1 ring-primary/50"
+                    ? "border-primary bg-primary/10 shadow-2xl shadow-primary/15 ring-1 ring-primary/50"
                     : "border-border bg-card/50 hover:border-primary/30"
             )}
         >
