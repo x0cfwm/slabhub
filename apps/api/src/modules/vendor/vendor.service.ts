@@ -15,12 +15,24 @@ export class VendorService {
             throw new NotFoundException(`Vendor with handle "${handle}" not found`);
         }
 
+        console.log(`[VendorService] Found seller: ${seller.shopName} (ID: ${seller.id}, UserID: ${seller.userId})`);
+
         // Get items that are LISTED (for sale)
-        const forSaleItems = await this.prisma.inventoryItem.findMany({
-            where: {
-                sellerId: seller.id,
-                stage: 'LISTED',
-            },
+        const where: any = {
+            stage: 'LISTED',
+        };
+
+        if (seller.userId) {
+            where.OR = [
+                { sellerId: seller.id },
+                { userId: seller.userId }
+            ];
+        } else {
+            where.sellerId = seller.id;
+        }
+
+        const forSaleItems = await (this.prisma.inventoryItem.findMany as any)({
+            where,
             include: {
                 cardVariant: {
                     include: {
@@ -31,14 +43,60 @@ export class VendorService {
                         },
                     },
                 },
+                refPriceChartingProduct: {
+                    include: {
+                        set: true,
+                    },
+                },
             },
             orderBy: { createdAt: 'desc' },
         });
 
+        console.log(`[VendorService] Found ${forSaleItems.length} items for sale`);
+
         // Transform items for frontend consumption
-        const items = forSaleItems.map((item) => {
-            const cardProfile = item.cardVariant?.card;
-            const pricing = cardProfile?.pricingSnapshot;
+        const items = (forSaleItems as any[]).map((item) => {
+            // Build card info from variant OR PriceCharting product
+            let cardProfile = null;
+            let pricing = null;
+
+            if (item.cardVariant?.card) {
+                const card = item.cardVariant.card;
+                cardProfile = {
+                    id: card.id,
+                    name: card.name,
+                    set: card.set,
+                    rarity: card.rarity,
+                    cardNumber: card.cardNumber,
+                    imageUrl: card.imageUrl,
+                };
+                if (card.pricingSnapshot) {
+                    pricing = {
+                        rawPrice: Number(card.pricingSnapshot.rawPrice),
+                        sealedPrice: card.pricingSnapshot.sealedPrice
+                            ? Number(card.pricingSnapshot.sealedPrice)
+                            : null,
+                        source: card.pricingSnapshot.source,
+                        updatedAt: card.pricingSnapshot.updatedAt.toISOString(),
+                    };
+                }
+            } else if (item.refPriceChartingProduct) {
+                const ref = item.refPriceChartingProduct;
+                cardProfile = {
+                    id: ref.id,
+                    name: ref.title || 'Unknown',
+                    set: ref.set?.name || 'Unknown',
+                    rarity: '',
+                    cardNumber: ref.cardNumber || '',
+                    imageUrl: ref.imageUrl || '',
+                };
+                pricing = {
+                    rawPrice: ref.rawPrice ? Number(ref.rawPrice) : 0,
+                    sealedPrice: ref.sealedPrice ? Number(ref.sealedPrice) : 0,
+                    source: ref.priceSource || 'PriceCharting',
+                    updatedAt: ref.priceUpdatedAt?.toISOString() || item.updatedAt.toISOString(),
+                };
+            }
 
             const base = {
                 id: item.id,
@@ -49,64 +107,26 @@ export class VendorService {
                     ? Number(item.acquisitionPrice)
                     : null,
                 createdAt: item.createdAt.toISOString(),
+                cardVariantId: item.cardVariantId,
+                refPriceChartingProductId: item.refPriceChartingProductId,
+                cardProfile,
+                pricing,
             };
 
             if (item.itemType === 'SINGLE_CARD_RAW') {
                 return {
                     ...base,
                     type: 'SINGLE_CARD_RAW',
-                    cardVariantId: item.cardVariantId,
                     condition: item.condition,
-                    cardProfile: cardProfile
-                        ? {
-                            id: cardProfile.id,
-                            name: cardProfile.name,
-                            set: cardProfile.set,
-                            rarity: cardProfile.rarity,
-                            cardNumber: cardProfile.cardNumber,
-                            imageUrl: cardProfile.imageUrl,
-                        }
-                        : null,
-                    pricing: pricing
-                        ? {
-                            rawPrice: Number(pricing.rawPrice),
-                            sealedPrice: pricing.sealedPrice
-                                ? Number(pricing.sealedPrice)
-                                : null,
-                            source: pricing.source,
-                            updatedAt: pricing.updatedAt.toISOString(),
-                        }
-                        : null,
                 };
             } else if (item.itemType === 'SINGLE_CARD_GRADED') {
                 return {
                     ...base,
                     type: 'SINGLE_CARD_GRADED',
-                    cardVariantId: item.cardVariantId,
                     gradingCompany: item.gradeProvider,
                     grade: item.gradeValue,
                     certNumber: item.certNumber,
                     slabImages: item.slabImages || {},
-                    cardProfile: cardProfile
-                        ? {
-                            id: cardProfile.id,
-                            name: cardProfile.name,
-                            set: cardProfile.set,
-                            rarity: cardProfile.rarity,
-                            cardNumber: cardProfile.cardNumber,
-                            imageUrl: cardProfile.imageUrl,
-                        }
-                        : null,
-                    pricing: pricing
-                        ? {
-                            rawPrice: Number(pricing.rawPrice),
-                            sealedPrice: pricing.sealedPrice
-                                ? Number(pricing.sealedPrice)
-                                : null,
-                            source: pricing.source,
-                            updatedAt: pricing.updatedAt.toISOString(),
-                        }
-                        : null,
                 };
             } else if (item.itemType === 'SEALED_PRODUCT') {
                 return {

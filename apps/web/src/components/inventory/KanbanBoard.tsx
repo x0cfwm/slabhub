@@ -69,7 +69,7 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: K
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
         >
-            <div className="flex gap-4 p-4 md:px-8 pb-8 min-h-[calc(100vh-250px)]">
+            <div className="flex justify-start lg:justify-center gap-4 p-4 md:px-8 pb-8 min-h-[calc(100vh-250px)] max-w-[2000px] mx-auto">
                 {COLUMNS.map((column) => (
                     <StageColumn
                         key={column.id}
@@ -110,11 +110,15 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: K
                     const marketProduct = cards.find(p => p.id === vid) || activeItem.cardProfile;
 
                     return (
-                        <ItemCard
-                            item={activeItem}
-                            profile={marketProduct as any}
-                            isOverlay
-                        />
+                        <div className="w-40 md:w-44">
+                            <div className="p-3">
+                                <ItemCard
+                                    item={activeItem}
+                                    profile={marketProduct as any}
+                                    isOverlay
+                                />
+                            </div>
+                        </div>
                     );
                 })() : null}
             </DragOverlay>

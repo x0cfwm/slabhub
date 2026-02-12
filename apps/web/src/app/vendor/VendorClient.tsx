@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { listInventory, getMarketProducts, getMe } from "@/lib/api";
+import { getVendorPage } from "@/lib/api";
 import { InventoryItem, MarketProduct, SellerProfile } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,22 +31,46 @@ export default function VendorClient() {
     const [search, setSearch] = useState("");
 
     useEffect(() => {
+        if (!handle) {
+            setLoading(false);
+            return;
+        }
+
         const fetchData = async () => {
             try {
-                const [profRes, inv, market] = await Promise.all([
-                    getMe(),
-                    listInventory(),
-                    getMarketProducts({ page: 1, limit: 100 })
-                ]);
+                setLoading(true);
+                const data = await getVendorPage(handle);
 
-                // In real app, we would fetch by handle. Mock just gets current user.
-                setProfile(profRes?.profile || null);
-                setItems(inv.filter(i =>
-                    i.stage === "LISTED"
-                ));
-                setMarketProducts(market.items);
+                setProfile(data.profile);
+                setItems(data.items);
+
+                // Extract market products from items to satisfy existing logic
+                const extractedMarketProducts: MarketProduct[] = data.items
+                    .filter(i => (i as any).cardProfile)
+                    .map(i => {
+                        const cp = (i as any).cardProfile;
+                        const pr = (i as any).pricing;
+                        return {
+                            id: (i as any).cardVariantId || (i as any).refPriceChartingProductId,
+                            name: cp.name,
+                            number: cp.cardNumber || "",
+                            set: cp.set,
+                            rarity: cp.rarity,
+                            cardNumber: cp.cardNumber,
+                            imageUrl: cp.imageUrl,
+                            rawPrice: pr?.rawPrice || 0,
+                            sealedPrice: pr?.sealedPrice || 0,
+                            lastUpdated: pr?.updatedAt || new Date().toISOString(),
+                            source: pr?.source || "Unknown",
+                        } as MarketProduct;
+                    });
+
+                setMarketProducts(extractedMarketProducts);
             } catch (err) {
-                toast.error("Failed to load vendor page");
+                console.error("Vendor page error:", err);
+                setProfile(null);
+                setItems([]);
+                // No toast here as we show "Vendor not found" in UI
             } finally {
                 setLoading(false);
             }

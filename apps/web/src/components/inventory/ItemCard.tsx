@@ -70,7 +70,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
             }}
         >
             <div className="relative pointer-events-none">
-                <AspectRatio ratio={1 / 1}>
+                <AspectRatio ratio={2.5 / 3.5}>
                     <div className="flex items-center justify-center w-full h-full bg-accent/10 relative overflow-hidden">
                         <img
                             src={finalProfile?.imageUrl || `https://placehold.co/300x400?text=${isSealed ? 'Sealed' : 'Card'}`}
@@ -112,7 +112,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
                     )}
                 </div>
             </div>
-            <CardContent className="p-3 space-y-2 pointer-events-none">
+            <CardContent className="p-2.5 space-y-1.5 pointer-events-none">
                 <div className="min-w-0">
                     <h4 className="font-bold text-xs line-clamp-2 leading-tight h-8 mb-0.5">{displayName}</h4>
                     <p className="text-[9px] text-muted-foreground uppercase tracking-tight truncate">{displaySub}</p>

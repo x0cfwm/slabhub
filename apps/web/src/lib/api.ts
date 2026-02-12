@@ -278,3 +278,12 @@ export async function updateProfile(patch: any): Promise<SellerProfile> {
     }
     return response.json();
 }
+
+export async function getVendorPage(handle: string): Promise<{ profile: SellerProfile, items: InventoryItem[] }> {
+    const url = getFullUrl(`/v1/vendor/${handle}`);
+    const response = await fetch(url.toString(), { credentials: 'include' });
+    if (!response.ok) {
+        throw new Error('Failed to fetch vendor page');
+    }
+    return response.json();
+}

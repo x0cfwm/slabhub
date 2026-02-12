@@ -15,7 +15,7 @@ export function StageColumn({ id, label, count, children }: StageColumnProps) {
     });
 
     return (
-        <div className="min-w-[280px] flex flex-col gap-4">
+        <div className="w-40 md:w-44 shrink-0 flex flex-col gap-4">
             <div className="flex items-center justify-between px-2">
                 <h3 className="font-semibold text-sm flex items-center gap-2">
                     {label}
