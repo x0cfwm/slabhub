@@ -17,7 +17,7 @@ export function Topbar() {
             <div className="flex items-center gap-2">
                 {profile?.isActive && (
                     <Button asChild variant="outline" size="sm">
-                        <Link href={`/vendor/${profile.handle}`} target="_blank">
+                        <Link href={`/vendor?name=${profile.handle}`} target="_blank">
                             View Public Page
                             <ExternalLink className="ml-2 h-4 w-4" />
                         </Link>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { listInventory, getMarketProducts, getMe } from "@/lib/api";
 import { InventoryItem, MarketProduct, SellerProfile } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -21,8 +21,8 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function VendorClient() {
-    const params = useParams();
-    const handle = params.handle as string;
+    const searchParams = useSearchParams();
+    const handle = searchParams.get("handle") || searchParams.get("name") || "";
 
     const [profile, setProfile] = useState<SellerProfile | null>(null);
     const [items, setItems] = useState<InventoryItem[]>([]);
