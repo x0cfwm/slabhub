@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createInventoryItem, lookupGrading, GradingLookupResult, getMarketProducts, uploadFile, deleteFile } from "@/lib/api";
+import { createInventoryItem, getMarketProducts, uploadFile, deleteFile } from "@/lib/api";
 import {
     CardProfile,
     InventoryItem,
@@ -28,12 +28,12 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { Search, ChevronRight, ChevronLeft, Check, Package as PackageIcon, FileText, BadgeCheck, Box, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 type InventoryCategory = "SINGLE_CARD_RAW" | "SINGLE_CARD_GRADED" | "SEALED_PRODUCT";
 
@@ -44,9 +44,6 @@ export default function AddItemPage() {
     const [category, setCategory] = useState<InventoryCategory | null>(null);
     const [cards, setCards] = useState<MarketProduct[]>([]);
     const [search, setSearch] = useState("");
-    const [isFetching, setIsFetching] = useState(false);
-    const [lookupResult, setLookupResult] = useState<GradingLookupResult | null>(null);
-    const [manualEntry, setManualEntry] = useState(false);
     const [uploadingPhotos, setUploadingPhotos] = useState<Record<string, boolean>>({});
     const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
 
@@ -96,37 +93,6 @@ export default function AddItemPage() {
         const timer = setTimeout(fetchCards, 300);
         return () => clearTimeout(timer);
     }, [search, category]);
-
-    const handleFetchDetails = async () => {
-        if (!formData.gradeProvider || !formData.certNumber) {
-            toast.error("Please provide both Grader and Certification Number");
-            return;
-        }
-
-        setIsFetching(true);
-        setLookupResult(null);
-        try {
-            const result = await lookupGrading(formData.gradeProvider, formData.certNumber);
-            setLookupResult(result);
-            if (result.success && result.data) {
-                setFormData({
-                    ...formData,
-                    grade: result.data.gradeLabel,
-                    gradeValue: result.data.gradeValue,
-                    certNumber: result.certNumber,
-                    gradingMeta: result.data,
-                    // Optionally attempt to match card name
-                });
-                toast.success("Details fetched successfully");
-            } else {
-                toast.error(result.error || "Failed to parse certificate");
-            }
-        } catch (err: any) {
-            toast.error(err.message || "Failed to fetch details");
-        } finally {
-            setIsFetching(false);
-        }
-    };
 
     const handleSave = async () => {
         setLoading(true);
@@ -412,112 +378,66 @@ export default function AddItemPage() {
 
                                 {category === "SINGLE_CARD_GRADED" && (
                                     <div className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl bg-card border border-border/60 shadow-sm">
-                                            <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs font-bold uppercase tracking-wider">Grader</Label>
-                                                    <Select
-                                                        value={formData.gradeProvider}
-                                                        onValueChange={v => setFormData({ ...formData, gradeProvider: v as GradingCompany })}
+                                        <div className="space-y-4 p-6 rounded-2xl bg-card border border-border/60 shadow-sm">
+                                            <div className="space-y-3">
+                                                <Label className="text-xs font-bold uppercase tracking-wider">Grader</Label>
+                                                <RadioGroup
+                                                    value={formData.gradeProvider}
+                                                    onValueChange={v => setFormData({ ...formData, gradeProvider: v as GradingCompany, grade: undefined, gradeValue: undefined })}
+                                                    className="flex gap-4"
+                                                >
+                                                    <div className="flex items-center space-x-2">
+                                                        <RadioGroupItem value="PSA" id="psa" />
+                                                        <Label htmlFor="psa" className="cursor-pointer">PSA</Label>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <RadioGroupItem value="BGS" id="bgs" />
+                                                        <Label htmlFor="bgs" className="cursor-pointer">BGS</Label>
+                                                    </div>
+                                                </RadioGroup>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <Label className="text-xs font-bold uppercase tracking-wider">Certification Number</Label>
+                                                <Input
+                                                    placeholder="e.g. 112983707"
+                                                    className="h-12 font-mono text-lg border-primary/20"
+                                                    value={formData.certNumber || ""}
+                                                    onChange={e => setFormData({ ...formData, certNumber: e.target.value })}
+                                                />
+                                            </div>
+
+                                            {formData.gradeProvider && (
+                                                <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                                                    <Label className="text-xs font-bold uppercase tracking-wider">Grade</Label>
+                                                    <RadioGroup
+                                                        value={formData.grade}
+                                                        onValueChange={v => {
+                                                            const gradeValue = parseFloat(v.replace(/[^\d.]/g, ''));
+                                                            setFormData({ ...formData, grade: v, gradeValue });
+                                                        }}
+                                                        className="flex flex-wrap gap-2"
                                                     >
-                                                        <SelectTrigger className="h-12 border-primary/20"><SelectValue placeholder="Select Grader (PSA/BGS...)" /></SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="PSA">PSA</SelectItem>
-                                                            <SelectItem value="BGS">BGS</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs font-bold uppercase tracking-wider">Certification Number</Label>
-                                                    <div className="flex gap-2">
-                                                        <Input
-                                                            placeholder="e.g. 112983707"
-                                                            className="h-12 font-mono text-lg border-primary/20"
-                                                            value={formData.certNumber || ""}
-                                                            onChange={e => setFormData({ ...formData, certNumber: e.target.value })}
-                                                        />
-                                                        <Button
-                                                            className="h-12 px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30"
-                                                            onClick={handleFetchDetails}
-                                                            disabled={isFetching || !formData.gradeProvider || !formData.certNumber}
-                                                        >
-                                                            {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                                                            <span className="ml-2 hidden md:inline">Fetch details</span>
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex flex-col justify-center">
-                                                {isFetching ? (
-                                                    <div className="space-y-3 p-4 border rounded-xl bg-background/50 animate-pulse">
-                                                        <Skeleton className="h-4 w-3/4" />
-                                                        <Skeleton className="h-8 w-1/2" />
-                                                        <Skeleton className="h-4 w-2/3" />
-                                                    </div>
-                                                ) : lookupResult?.success && lookupResult.data ? (
-                                                    <div className="p-4 border border-primary/30 rounded-xl bg-primary/5 space-y-3 animate-in fade-in zoom-in-95">
-                                                        <div className="flex items-center justify-between">
-                                                            <Badge className="bg-primary text-primary-foreground">{lookupResult.data.gradeLabel}</Badge>
-                                                            <span className="text-[10px] font-mono opacity-60">#{lookupResult.certNumber}</span>
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold text-sm leading-tight">{lookupResult.data.cardName}</p>
-                                                            <p className="text-[10px] opacity-70 uppercase">{lookupResult.data.setName} {lookupResult.data.cardNumber && `• ${lookupResult.data.cardNumber}`}</p>
-                                                        </div>
-                                                        {lookupResult.data.images?.frontUrl && (
-                                                            <img src={lookupResult.data.images.frontUrl} className="h-16 rounded border bg-background" alt="Slab" />
+                                                        {formData.gradeProvider === "PSA" ? (
+                                                            <>
+                                                                {["PSA 10", "PSA 9", "PSA 8"].map((g) => (
+                                                                    <div key={g} className="flex items-center space-x-2">
+                                                                        <RadioGroupItem value={g} id={g} />
+                                                                        <Label htmlFor={g} className="cursor-pointer">{g}</Label>
+                                                                    </div>
+                                                                ))}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                {["BGS 10", "BGS 9.5"].map((g) => (
+                                                                    <div key={g} className="flex items-center space-x-2">
+                                                                        <RadioGroupItem value={g} id={g} />
+                                                                        <Label htmlFor={g} className="cursor-pointer">{g}</Label>
+                                                                    </div>
+                                                                ))}
+                                                            </>
                                                         )}
-                                                    </div>
-                                                ) : lookupResult && !lookupResult.success ? (
-                                                    <div className="p-4 border border-destructive/30 rounded-xl bg-destructive/5 flex flex-col items-center text-center space-y-2">
-                                                        <AlertCircle className="h-6 w-6 text-destructive" />
-                                                        <p className="text-xs font-bold text-destructive">Lookup Failed</p>
-                                                        <p className="text-[10px] text-destructive/70">{lookupResult.error}</p>
-                                                        <Button variant="outline" size="sm" className="h-7 text-[10px] mt-1" onClick={handleFetchDetails}>Retry</Button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="p-4 border border-dashed border-primary/20 rounded-xl flex flex-col items-center justify-center text-center opacity-40">
-                                                        <Search className="h-8 w-8 mb-2" />
-                                                        <p className="text-[10px] uppercase font-bold tracking-widest">Awaiting Input</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <div
-                                                className="flex items-center gap-2 cursor-pointer group"
-                                                onClick={() => setManualEntry(!manualEntry)}
-                                            >
-                                                <div className={cn(
-                                                    "h-4 w-4 rounded border flex items-center justify-center transition-colors",
-                                                    manualEntry ? "bg-primary border-primary" : "border-muted-foreground group-hover:border-primary"
-                                                )}>
-                                                    {manualEntry && <Check className="h-3 w-3 text-primary-foreground" />}
-                                                </div>
-                                                <span className="text-xs font-medium text-muted-foreground">Edit details manually</span>
-                                            </div>
-
-                                            {manualEntry && (
-                                                <div className="grid grid-cols-2 gap-4 p-4 border rounded-xl bg-accent/5 animate-in slide-in-from-top-2">
-                                                    <div className="space-y-2">
-                                                        <Label className="text-[10px] uppercase">Grade Label</Label>
-                                                        <Input
-                                                            placeholder="e.g. PSA 10"
-                                                            value={formData.grade || ""}
-                                                            onChange={e => setFormData({ ...formData, grade: e.target.value })}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label className="text-[10px] uppercase">Grade Value</Label>
-                                                        <Input
-                                                            type="number"
-                                                            placeholder="10"
-                                                            value={formData.gradeValue || ""}
-                                                            onChange={e => setFormData({ ...formData, gradeValue: e.target.value })}
-                                                        />
-                                                    </div>
+                                                    </RadioGroup>
                                                 </div>
                                             )}
                                         </div>
@@ -675,7 +595,13 @@ export default function AddItemPage() {
                             <ChevronLeft className="mr-2 h-4 w-4" />
                             Type Selection
                         </Button>
-                        <Button onClick={() => setStep(3)} disabled={category !== "SEALED_PRODUCT" && (!formData.baseCardId || !formData.variantType || !formData.language)}>
+                        <Button
+                            onClick={() => setStep(3)}
+                            disabled={
+                                (category !== "SEALED_PRODUCT" && (!formData.baseCardId || !formData.variantType || !formData.language)) ||
+                                (category === "SINGLE_CARD_GRADED" && (!formData.gradeProvider || !formData.grade || !formData.certNumber))
+                            }
+                        >
                             Next: Media Assets
                             <ChevronRight className="ml-2 h-4 w-4" />
                         </Button>
@@ -690,8 +616,11 @@ export default function AddItemPage() {
                         <CardDescription>Upload high-resolution scans or photos for listing verification.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {["Front Face", "Back Face", "Cert Corner", "Seal Proof"].map((label, idx) => (
+                        <div className={cn("grid grid-cols-2 gap-4", category === "SINGLE_CARD_GRADED" ? "md:grid-cols-4" : "md:grid-cols-2")}>
+                            {(category === "SINGLE_CARD_GRADED"
+                                ? ["Front Face", "Back Face", "Cert Corner", "Seal Proof"]
+                                : ["Front Face", "Back Face"]
+                            ).map((label, idx) => (
                                 <div
                                     key={label}
                                     className="relative group border-2 border-dashed border-primary/20 rounded-2xl aspect-square flex flex-col items-center justify-center bg-primary/5 hover:bg-primary/10 hover:border-primary/50 cursor-pointer transition-all overflow-hidden"
@@ -759,14 +688,16 @@ export default function AddItemPage() {
                                 </div>
                             ))}
                         </div>
-                        <div className="p-4 bg-primary/10 rounded-xl border border-primary/20 text-center">
-                            <p className="text-xs text-primary font-bold">
-                                {uploadedPhotos.length > 0 ? "ASSETS ATTACHED SUCCESSFULLY" : "PROFESSIONAL SCANNING READY"}
-                            </p>
-                            <p className="text-[10px] text-primary/60">
-                                {uploadedPhotos.length > 0 ? `Total ${uploadedPhotos.filter(Boolean).length} assets uploaded.` : "AI will automatically extract Cert Number and Grade from images."}
-                            </p>
-                        </div>
+                        {uploadedPhotos.filter(Boolean).length > 0 && (
+                            <div className="p-4 bg-primary/10 rounded-xl border border-primary/20 text-center">
+                                <p className="text-xs text-primary font-bold">
+                                    ASSETS ATTACHED SUCCESSFULLY
+                                </p>
+                                <p className="text-[10px] text-primary/60">
+                                    Total {uploadedPhotos.filter(Boolean).length} assets uploaded.
+                                </p>
+                            </div>
+                        )}
                     </CardContent>
                     <div className="p-6 border-t flex justify-between bg-card/50">
                         <Button variant="outline" onClick={() => setStep(2)}>
