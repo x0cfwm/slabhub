@@ -246,7 +246,7 @@ export default function VendorClient() {
                                                     </div>
                                                     <div className="text-right">
                                                         <span className="text-[10px] text-primary uppercase font-black block leading-none mb-0.5">Price</span>
-                                                        <span className="text-lg font-black tracking-tighter">${item.listingPrice?.toFixed(2) || (item.acquisitionPrice * 1.2).toFixed(2)}</span>
+                                                        <span className="text-lg font-black tracking-tighter">${item.listingPrice?.toFixed(2) || "0.00"}</span>
                                                     </div>
                                                 </div>
                                             </CardContent>

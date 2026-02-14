@@ -133,28 +133,6 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                             </Select>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Acquisition ($)</Label>
-                                <Input
-                                    type="number"
-                                    className="h-12 bg-background/50 border-primary/20"
-                                    value={formData.acquisitionPrice || ""}
-                                    onChange={e => setFormData({ ...formData, acquisitionPrice: parseFloat(e.target.value) })}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Inventory Qty</Label>
-                                <Input
-                                    type="number"
-                                    disabled={itType === "SINGLE_CARD_GRADED"}
-                                    className="h-12 bg-background/50 border-primary/20"
-                                    value={(formData as any).quantity || 1}
-                                    onChange={e => setFormData({ ...formData, quantity: parseInt(e.target.value) } as any)}
-                                />
-                            </div>
-                        </div>
-
                         <div className="flex items-center justify-between p-4 border border-primary/20 rounded-2xl bg-primary/5">
                             <div className="space-y-0.5">
                                 <Label className="font-bold">List for Sale</Label>
@@ -167,6 +145,19 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                 }}
                             />
                         </div>
+
+                        {formData.stage === "LISTED" && (
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Selling Price ($)</Label>
+                                <Input
+                                    type="number"
+                                    placeholder="0.00"
+                                    className="h-12 bg-background/50 border-primary/20 font-bold"
+                                    value={formData.listingPrice || ""}
+                                    onChange={e => setFormData({ ...formData, listingPrice: parseFloat(e.target.value) })}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 
