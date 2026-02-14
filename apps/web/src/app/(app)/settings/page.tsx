@@ -19,8 +19,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
 
 const profileSchema = z.object({
-    shopName: z.string().min(1, "Shop name is required"),
-    handle: z.string().min(1, "Handle is required").regex(/^[a-z0-9-]+$/, "Handle can only contain lowercase letters, numbers, and hyphens"),
+    shopName: z.string().optional(),
+    handle: z.string().optional(),
     isActive: z.boolean(),
     locationCountry: z.string().optional(),
     locationCity: z.string().optional(),
@@ -28,6 +28,29 @@ const profileSchema = z.object({
     meetupsEnabled: z.boolean(),
     shippingEnabled: z.boolean(),
     wishlistText: z.string().optional(),
+}).superRefine((data, ctx) => {
+    if (data.isActive) {
+        if (!data.shopName || data.shopName.trim() === "") {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Shop name is required",
+                path: ["shopName"],
+            });
+        }
+        if (!data.handle || data.handle.trim() === "") {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Handle is required",
+                path: ["handle"],
+            });
+        } else if (!/^[a-z0-9-]+$/.test(data.handle)) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Handle can only contain lowercase letters, numbers, and hyphens",
+                path: ["handle"],
+            });
+        }
+    }
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -162,7 +185,7 @@ export default function SettingsPage() {
                     <CardContent className="space-y-6 pt-6">
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <Label className={cn(errors.shopName && "text-destructive")}>Shop Name *</Label>
+                                <Label className={cn(errors.shopName && "text-destructive")}>Shop Name {isActive && "*"}</Label>
                                 <Input
                                     {...register("shopName")}
                                     placeholder="e.g. Nami's Treasures"
@@ -171,7 +194,7 @@ export default function SettingsPage() {
                                 {errors.shopName && <p className="text-xs text-destructive">{errors.shopName.message}</p>}
                             </div>
                             <div className="space-y-2">
-                                <Label className={cn(errors.handle && "text-destructive")}>Handle *</Label>
+                                <Label className={cn(errors.handle && "text-destructive")}>Handle {isActive && "*"}</Label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">@</span>
                                     <Input
