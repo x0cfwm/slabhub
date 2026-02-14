@@ -221,11 +221,13 @@ export default function VendorClient() {
                                             </div>
                                             <CardContent className="p-4 space-y-4">
                                                 <div>
-                                                    <h4 className="font-bold text-sm tracking-tight truncate group-hover:text-primary transition-colors">{displayName}</h4>
+                                                    <h4 className="font-bold text-sm tracking-tight group-hover:text-primary transition-colors">{displayName}</h4>
                                                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                                                        <Badge className="text-[9px] h-4 px-2 uppercase font-black bg-primary text-black">
-                                                            {item.quantity} In Stock
-                                                        </Badge>
+                                                        {item.quantity > 1 && (
+                                                            <Badge className="text-[9px] h-4 px-2 uppercase font-black bg-primary text-black">
+                                                                {item.quantity} In Stock
+                                                            </Badge>
+                                                        )}
                                                         {(item as any).grade && (
                                                             <Badge variant="outline" className="text-[9px] h-4 px-2 font-bold border-primary/20 bg-primary/5 text-primary">
                                                                 {(item as any).gradingCompany} {(item as any).grade}
@@ -239,12 +241,8 @@ export default function VendorClient() {
                                                     </div>
                                                 </div>
 
-                                                <div className="pt-3 border-t border-border flex items-end justify-between">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Market Avg</span>
-                                                        <span className="text-xs font-medium text-muted-foreground line-through">${marketPrice?.toFixed(2) || "0.00"}</span>
-                                                    </div>
-                                                    <div className="text-right">
+                                                <div className="pt-3 border-t border-border flex items-end">
+                                                    <div className="text-left">
                                                         <span className="text-[10px] text-primary uppercase font-black block leading-none mb-0.5">Price</span>
                                                         <span className="text-lg font-black tracking-tighter">${item.listingPrice?.toFixed(2) || "0.00"}</span>
                                                     </div>
