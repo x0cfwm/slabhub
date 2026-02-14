@@ -59,6 +59,7 @@ export interface InventoryBase {
     storageLocation?: string;
     stage: InventoryStage;
     notes?: string;
+    sellingDescription?: string;
     refPriceChartingProductId?: string;
     cardProfile?: CardProfile;
     createdAt: string;

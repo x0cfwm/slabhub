@@ -19,6 +19,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
+import { ShoppingCart, MessageSquare, Info } from "lucide-react";
 
 export default function VendorClient() {
     const searchParams = useSearchParams();
@@ -29,6 +38,7 @@ export default function VendorClient() {
     const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
 
     useEffect(() => {
         if (!handle) {
@@ -206,7 +216,7 @@ export default function VendorClient() {
                                 const displayName = isSealed ? (item as any).productName : marketProduct?.name || "Unknown Asset";
 
                                 return (
-                                    <div key={item.id} className="group relative">
+                                    <div key={item.id} className="group relative cursor-pointer" onClick={() => setSelectedItem(item)}>
                                         <div className="absolute -inset-0.5 bg-gradient-to-b from-primary/20 to-transparent rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
                                         <Card className="relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md border-primary/10 bg-card/50 backdrop-blur-md">
                                             <div className="aspect-[3/4] overflow-hidden relative bg-accent/5">
@@ -221,7 +231,7 @@ export default function VendorClient() {
                                             </div>
                                             <CardContent className="p-4 space-y-4">
                                                 <div>
-                                                    <h4 className="font-bold text-sm tracking-tight group-hover:text-primary transition-colors">{displayName}</h4>
+                                                    <h4 className="font-bold text-sm tracking-tight truncate group-hover:text-primary transition-colors">{displayName}</h4>
                                                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                                                         {item.quantity > 1 && (
                                                             <Badge className="text-[9px] h-4 px-2 uppercase font-black bg-primary text-black">
@@ -276,6 +286,90 @@ export default function VendorClient() {
                     </TabsContent>
                 </Tabs>
             </div>
+
+            <Sheet open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
+                <SheetContent className="sm:max-w-md overflow-y-auto bg-card/95 backdrop-blur-xl border-l-primary/10 p-0">
+                    {selectedItem && (() => {
+                        const vid = (selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId;
+                        const mp = marketProducts.find(p => p.id === vid);
+                        const isS = (selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED";
+                        const name = isS ? (selectedItem as any).productName : mp?.name || "Asset Details";
+
+                        return (
+                            <div className="flex flex-col h-full">
+                                <div className="p-10 space-y-6">
+                                    <SheetHeader className="px-0 text-left">
+                                        <SheetTitle className="font-bold text-2xl tracking-tight">{name}</SheetTitle>
+                                        <SheetDescription className="font-mono text-[10px] uppercase opacity-70">
+                                            {mp?.set || "TCG Asset"} — {isS ? 'Sealed' : 'Single Card'}
+                                        </SheetDescription>
+                                    </SheetHeader>
+
+                                    <div className="flex justify-center bg-accent/20 rounded-2xl p-6 border border-primary/5">
+                                        <img
+                                            src={mp?.imageUrl || `https://placehold.co/300x400?text=${isS ? 'Sealed' : 'Card'}`}
+                                            alt={name}
+                                            className="h-72 rounded-xl shadow-2xl object-contain"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10">
+                                            <span className="text-[10px] text-primary uppercase font-black block mb-1">Price</span>
+                                            <span className="text-2xl font-black">${selectedItem.listingPrice?.toFixed(2) || "0.00"}</span>
+                                        </div>
+                                        <div className="bg-muted/30 rounded-2xl p-4 border border-border/50">
+                                            <span className="text-[10px] text-muted-foreground uppercase font-black block mb-1">Market Avg</span>
+                                            <span className="text-lg font-bold text-muted-foreground">${(isS ? mp?.sealedPrice : mp?.rawPrice)?.toFixed(2) || "0.00"}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            {selectedItem.quantity > 1 && (
+                                                <Badge className="bg-primary text-black font-black uppercase text-[10px] py-1 px-3">
+                                                    {selectedItem.quantity} In Stock
+                                                </Badge>
+                                            )}
+                                            {(selectedItem as any).grade && (
+                                                <Badge variant="outline" className="font-bold border-primary/30 bg-primary/5 text-primary text-[10px] py-1 px-3">
+                                                    {(selectedItem as any).gradingCompany} {(selectedItem as any).grade}
+                                                </Badge>
+                                            )}
+                                            {(selectedItem as any).condition && !isS && (
+                                                <Badge variant="outline" className="font-bold border-border bg-muted/20 text-[10px] py-1 px-3">
+                                                    {(selectedItem as any).condition}
+                                                </Badge>
+                                            )}
+                                        </div>
+
+                                        {(selectedItem as any).sellingDescription && (
+                                            <div className="space-y-2 pt-4 border-t border-border/50">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1.5">
+                                                    <Info className="h-3 w-3" /> Seller's Description
+                                                </Label>
+                                                <div className="text-sm leading-relaxed text-muted-foreground bg-accent/5 p-4 rounded-xl border border-primary/5 italic">
+                                                    "{(selectedItem as any).sellingDescription}"
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="mt-auto p-8 bg-gradient-to-t from-background to-transparent border-t border-border/50">
+                                    <Button className="w-full h-14 text-md font-bold rounded-2xl shadow-xl shadow-primary/20 gap-2">
+                                        <MessageSquare className="h-5 w-5" />
+                                        Inquire about this item
+                                    </Button>
+                                    <p className="text-center text-[9px] text-muted-foreground font-medium uppercase tracking-widest mt-4">
+                                        Contact via {profile.shopName} socials for purchase
+                                    </p>
+                                </div>
+                            </div>
+                        );
+                    })()}
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }

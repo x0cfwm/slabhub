@@ -103,6 +103,7 @@ export class VendorService {
                 stage: item.stage,
                 quantity: item.quantity,
                 listingPrice: item.listingPrice ? Number(item.listingPrice) : null,
+                sellingDescription: item.sellingDescription,
                 acquisitionPrice: item.acquisitionPrice
                     ? Number(item.acquisitionPrice)
                     : null,

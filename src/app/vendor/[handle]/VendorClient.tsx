@@ -203,7 +203,7 @@ export default function VendorClient() {
                                             </div>
                                             <CardContent className="p-4 space-y-4">
                                                 <div>
-                                                    <h4 className="font-bold text-sm tracking-tight group-hover:text-primary transition-colors">{displayName}</h4>
+                                                    <h4 className="font-bold text-sm tracking-tight truncate group-hover:text-primary transition-colors">{displayName}</h4>
                                                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                                                         {item.quantity > 1 && (
                                                             <Badge className="text-[9px] h-4 px-2 uppercase font-black bg-primary text-black">

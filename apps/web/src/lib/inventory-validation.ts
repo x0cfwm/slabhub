@@ -41,6 +41,8 @@ const BaseInventorySchema = z.object({
     storageLocation: z.string().optional(),
     stage: InventoryStageEnum,
     notes: z.string().optional(),
+    listingPrice: z.number().min(0).optional(),
+    sellingDescription: z.string().optional(),
     createdAt: z.string().datetime().optional()
 });
 

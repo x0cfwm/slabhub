@@ -153,6 +153,7 @@ model InventoryItem {
   acquisitionSource         String?
   storageLocation           String?
   notes                     String?
+  sellingDescription        String?
   marketPriceSnapshot       Decimal?                 @db.Decimal(10, 2)
   photos                    Json                     @default("[]")
   createdAt                 DateTime                 @default(now())

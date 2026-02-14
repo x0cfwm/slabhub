@@ -103,6 +103,7 @@ export class InventoryService {
                     acquisitionSource: dto.acquisitionSource,
                     storageLocation: dto.storageLocation,
                     notes: dto.notes,
+                    sellingDescription: dto.sellingDescription,
                     photos: (dto.photos || []).filter(Boolean),
                 },
                 include: {
@@ -180,6 +181,7 @@ export class InventoryService {
                 acquisitionSource: dto.acquisitionSource,
                 storageLocation: dto.storageLocation,
                 notes: dto.notes,
+                sellingDescription: dto.sellingDescription,
                 photos: dto.photos,
             },
             include: {
@@ -314,6 +316,7 @@ export class InventoryService {
             acquisitionSource: item.acquisitionSource,
             storageLocation: item.storageLocation,
             notes: item.notes,
+            sellingDescription: item.sellingDescription,
             photos: item.photos || [],
             createdAt: item.createdAt.toISOString(),
             updatedAt: item.updatedAt.toISOString(),

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
     Select,
@@ -155,6 +156,18 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                     className="h-12 bg-background/50 border-primary/20 font-bold"
                                     value={formData.listingPrice || ""}
                                     onChange={e => setFormData({ ...formData, listingPrice: parseFloat(e.target.value) })}
+                                />
+                            </div>
+                        )}
+
+                        {formData.stage === "LISTED" && (
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300 delay-75">
+                                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Selling Description</Label>
+                                <Textarea
+                                    placeholder="Add details about the item's condition, unique features, or shipping info..."
+                                    className="min-h-[100px] bg-background/50 border-primary/20"
+                                    value={formData.sellingDescription || ""}
+                                    onChange={e => setFormData({ ...formData, sellingDescription: e.target.value })}
                                 />
                             </div>
                         )}

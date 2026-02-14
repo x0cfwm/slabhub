@@ -117,6 +117,10 @@ export class UpdateInventoryItemDto {
     notes?: string;
 
     @IsOptional()
+    @IsString()
+    sellingDescription?: string;
+
+    @IsOptional()
     @IsArray()
     photos?: string[];
 }

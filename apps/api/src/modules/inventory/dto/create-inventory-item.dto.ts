@@ -133,6 +133,10 @@ export class CreateInventoryItemDto {
     notes?: string;
 
     @IsOptional()
+    @IsString()
+    sellingDescription?: string;
+
+    @IsOptional()
     @IsArray()
     photos?: string[];
 }
