@@ -1,4 +1,5 @@
 import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -7,9 +8,10 @@ interface StageColumnProps {
     label: string;
     count: number;
     children: React.ReactNode;
+    itemIds: string[];
 }
 
-export function StageColumn({ id, label, count, children }: StageColumnProps) {
+export function StageColumn({ id, label, count, children, itemIds }: StageColumnProps) {
     const { isOver, setNodeRef } = useDroppable({
         id: id,
     });
@@ -32,7 +34,9 @@ export function StageColumn({ id, label, count, children }: StageColumnProps) {
                     isOver ? "bg-accent/50 border-primary/40" : "border-muted-foreground/20"
                 )}
             >
-                {children}
+                <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+                    {children}
+                </SortableContext>
                 {count === 0 && !isOver && (
                     <div className="h-20 flex items-center justify-center text-muted-foreground text-xs italic">
                         No items

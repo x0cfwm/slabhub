@@ -49,7 +49,7 @@ export class VendorService {
                     },
                 },
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         });
 
         console.log(`[VendorService] Found ${forSaleItems.length} items for sale`);

@@ -64,7 +64,12 @@ export default function InventoryPage() {
     const filteredItems = useMemo(() => {
         const s = search.toLowerCase();
         return items
-            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .sort((a, b) => {
+                const orderA = (a as any).sortOrder ?? 0;
+                const orderB = (b as any).sortOrder ?? 0;
+                if (orderA !== orderB) return orderA - orderB;
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            })
             .filter(item => {
                 const matchesSearch = !search || (() => {
                     const itType = (item as any).type || (item as any).itemType || "UNKNOWN";

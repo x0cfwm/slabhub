@@ -225,6 +225,22 @@ export async function deleteInventoryItem(id: string): Promise<void> {
     }
 }
 
+export async function reorderInventoryItems(items: { id: string; sortOrder: number; stage: string }[]): Promise<void> {
+    const url = getFullUrl('/v1/inventory/reorder');
+    const response = await fetch(url.toString(), {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(items),
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to reorder inventory items');
+    }
+}
+
 export async function uploadFile(file: File): Promise<{ url: string }> {
     const url = getFullUrl('/v1/media/upload');
     const formData = new FormData();

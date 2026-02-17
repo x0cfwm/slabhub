@@ -38,10 +38,10 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick }:
         const oldStage = item.stage;
 
         // Optimistic UI update
-        setItems(prev => prev.map(i => i.id === itemId ? { ...i, stage: newStage } : i));
+        setItems(prev => prev.map(i => i.id === itemId ? { ...i, stage: newStage, sortOrder: 0 } : i));
 
         try {
-            await updateInventoryItem(itemId, { stage: newStage });
+            await updateInventoryItem(itemId, { stage: newStage, sortOrder: 0 });
         } catch (err) {
             toast.error("Failed to update status");
             // Rollback

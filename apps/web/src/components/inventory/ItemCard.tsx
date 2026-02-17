@@ -6,7 +6,8 @@ import { CardProfile, InventoryItem, PricingSnapshot } from "@/lib/types";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { CreditCard, Tag } from "lucide-react";
 
-import { useDraggable } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 
 interface ItemCardProps {
@@ -18,7 +19,14 @@ interface ItemCardProps {
 }
 
 export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardProps) {
-    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({
         id: item.id,
         data: {
             item,
@@ -49,9 +57,10 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
     const typeLabel = itemType.replace("SINGLE_CARD_", "").replace("_PRODUCT", "");
 
     // Apply transform only if not in overlay (overlay handled by DndContext)
-    const style = transform ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-    } : undefined;
+    const style = {
+        transform: CSS.Translate.toString(transform),
+        transition,
+    };
 
     return (
         <Card

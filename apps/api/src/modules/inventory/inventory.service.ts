@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
-import { ItemType } from '@prisma/client';
+import { ItemType, InventoryStage } from '@prisma/client';
 
 @Injectable()
 export class InventoryService {
@@ -18,7 +18,7 @@ export class InventoryService {
     async listItems(userId: string) {
         const items = await this.prisma.inventoryItem.findMany({
             where: { userId },
-            orderBy: { createdAt: 'desc' },
+            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
             include: {
                 cardVariant: {
                     include: {
@@ -94,6 +94,7 @@ export class InventoryService {
                     slabImages: dto.slabImages as any,
                     condition: dto.condition,
                     quantity: dto.quantity || 1,
+                    sortOrder: dto.sortOrder || 0,
                     stage: dto.stage || 'ACQUIRED',
                     listingPrice: dto.listingPrice,
                     acquisitionPrice: dto.acquisitionPrice,
@@ -172,6 +173,7 @@ export class InventoryService {
                 slabImages: dto.slabImages as any,
                 condition: dto.condition,
                 quantity: dto.quantity,
+                sortOrder: dto.sortOrder,
                 stage: dto.stage,
                 listingPrice: dto.listingPrice,
                 acquisitionPrice: dto.acquisitionPrice,
@@ -219,6 +221,21 @@ export class InventoryService {
         });
 
         return { success: true };
+    }
+
+    async reorderItems(userId: string, items: { id: string; sortOrder: number; stage: InventoryStage }[]) {
+        // Use a transaction for bulk updates
+        return await this.prisma.$transaction(
+            items.map((item) =>
+                this.prisma.inventoryItem.updateMany({
+                    where: { id: item.id, userId },
+                    data: {
+                        sortOrder: item.sortOrder,
+                        stage: item.stage,
+                    },
+                }),
+            ),
+        );
     }
 
     private validateItemType(dto: CreateInventoryItemDto) {
@@ -321,6 +338,7 @@ export class InventoryService {
             createdAt: item.createdAt.toISOString(),
             updatedAt: item.updatedAt.toISOString(),
             quantity: item.quantity,
+            sortOrder: item.sortOrder,
         };
 
         if (item.itemType === 'SINGLE_CARD_RAW') {

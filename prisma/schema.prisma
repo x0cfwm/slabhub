@@ -9,14 +9,14 @@ datasource db {
 
 /// User account
 model User {
-  id              String         @id @default(cuid())
-  email           String         @unique
+  id              String          @id @default(cuid())
+  email           String          @unique
   emailVerifiedAt DateTime?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  inventoryItems  InventoryItem[]
   sellerProfile   SellerProfile?
   sessions        Session[]
-  inventoryItems  InventoryItem[]
 }
 
 /// OTP codes for email verification
@@ -127,7 +127,6 @@ model PricingSnapshot {
 /// Inventory items - belongs to a seller
 model InventoryItem {
   id                        String                   @id @default(cuid())
-  userId                    String
   sellerId                  String?
   itemType                  ItemType
   cardVariantId             String?
@@ -153,7 +152,6 @@ model InventoryItem {
   acquisitionSource         String?
   storageLocation           String?
   notes                     String?
-  sellingDescription        String?
   marketPriceSnapshot       Decimal?                 @db.Decimal(10, 2)
   photos                    Json                     @default("[]")
   createdAt                 DateTime                 @default(now())
@@ -161,6 +159,9 @@ model InventoryItem {
   certificationNumber       String?
   gradingMeta               Json?
   refPriceChartingProductId String?
+  userId                    String
+  sellingDescription        String?
+  sortOrder                 Int                      @default(0)
   cardVariant               CardVariant?             @relation(fields: [cardVariantId], references: [id])
   refPriceChartingProduct   RefPriceChartingProduct? @relation(fields: [refPriceChartingProductId], references: [id])
   seller                    SellerProfile?           @relation(fields: [sellerId], references: [id], onDelete: Cascade)
@@ -261,10 +262,10 @@ model RefPriceChartingProduct {
   grade8Price     Decimal?             @db.Decimal(10, 2)
   grade95Price    Decimal?             @db.Decimal(10, 2)
   grade9Price     Decimal?             @db.Decimal(10, 2)
+  priceSource     String?
   priceUpdatedAt  DateTime?
   rawPrice        Decimal?             @db.Decimal(10, 2)
   sealedPrice     Decimal?             @db.Decimal(10, 2)
-  priceSource     String?
   inventoryItems  InventoryItem[]
   set             RefPriceChartingSet? @relation(fields: [setId], references: [id])
 
@@ -309,6 +310,7 @@ model RefProduct {
   updatedAt        DateTime  @updatedAt
   tcgplayerId      String?
   justTcgData      Json?
+  priceSource      String?
   priceUpdatedAt   DateTime?
   rawPrice         Decimal?  @db.Decimal(10, 2)
   sealedPrice      Decimal?  @db.Decimal(10, 2)
@@ -317,7 +319,6 @@ model RefProduct {
   grade8Price      Decimal?  @db.Decimal(10, 2)
   grade95Price     Decimal?  @db.Decimal(10, 2)
   grade9Price      Decimal?  @db.Decimal(10, 2)
-  priceSource      String?
 
   @@index([externalId])
   @@index([setExternalId])

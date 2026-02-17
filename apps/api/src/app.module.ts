@@ -29,6 +29,12 @@ import { z } from 'zod';
         }),
         ConfigModule.forRoot({
             isGlobal: true,
+            envFilePath: [
+                join(process.cwd(), '.env'),
+                join(process.cwd(), '../../.env'),
+                '.env',
+                '../../.env',
+            ],
             validate: (config) => {
                 const schema = z.object({
                     DATABASE_URL: z.string().url(),
