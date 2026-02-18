@@ -1,24 +1,21 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { Sun, Terminal, Moon } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { Theme, getStoredTheme, setStoredTheme } from "@/lib/theme";
+import { Theme, applyTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { useTheme } from "next-themes";
 
 export function ThemeToggle() {
-    const [theme, setTheme] = useState<Theme>("light");
+    const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
-        const storedTheme = getStoredTheme();
-        setTheme(storedTheme);
     }, []);
 
     const updateTheme = (newTheme: Theme) => {
         setTheme(newTheme);
-        setStoredTheme(newTheme);
+        applyTheme(newTheme);
     };
 
     if (!mounted) {

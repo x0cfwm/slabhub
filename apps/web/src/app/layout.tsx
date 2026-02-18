@@ -39,6 +39,7 @@ export const metadata: Metadata = {
 };
 
 import { AuthProvider } from "@/components/auth-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 export default function RootLayout({
@@ -48,27 +49,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var theme = localStorage.getItem('slabhub-theme') || 'light';
-                  document.documentElement.classList.add('theme-' + theme);
-                } catch (e) {}
-              })();
-            `,
-          }}
-        />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${fraunces.variable} ${lora.variable} ${oxanium.variable} antialiased`}
       >
-        <AuthProvider>
-          {children}
-          <Toaster position="top-center" />
-        </AuthProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          storageKey="slabhub-theme"
+        >
+          <AuthProvider>
+            {children}
+            <Toaster position="top-center" />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
