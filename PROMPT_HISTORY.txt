@@ -2169,4 +2169,226 @@ DO NOT:
 
   <-- 10. FEATURE PROMPT -->
 
+
+You are extending an existing monorepo product:
+
+Backend:
+- NestJS + TypeScript
+- PostgreSQL + Prisma
+- Existing modules: inventory ingestion, pricecharting crawler/parser
+Frontend:
+- Next.js + TypeScript (inventory create flow includes image uploads)
+
+GOAL:
+Refactor file management into a safe, robust, best-practice file layer that stores binary files in an S3-compatible object storage.
+Target storage: DigitalOcean Spaces (S3-compatible).
+This layer must be used everywhere files are handled:
+1) User uploads while inventory is being created (front/back/extra images)
+2) Downloading and storing remote images during pricecharting parsing
+
+Hard constraints:
+- DO NOT hardcode any credentials in code or commits.
+- Credentials and endpoints must come from environment variables.
+- Filenames must be content-hash based (collision-resistant).
+- Persist file metadata in DB in a table named Media (or File).
+- Support CDN URLs (DigitalOcean Spaces CDN).
+
+------------------------------------------------------------
+A) CONFIG / ENV (MANDATORY)
+------------------------------------------------------------
+Add env vars (use ConfigModule validation):
+- S3_ENDPOINT                (e.g. https://nyc3.digitaloceanspaces.com)
+- S3_REGION                  (e.g. nyc3)
+- S3_BUCKET                  (e.g. slabhub-files-dev)
+- S3_ACCESS_KEY_ID
+- S3_SECRET_ACCESS_KEY
+- S3_PUBLIC_BASE_URL         (optional; base origin URL for public objects)
+- S3_CDN_BASE_URL            (optional; CDN base URL, if enabled)
+- S3_FORCE_PATH_STYLE        (boolean; likely true for S3-compatible endpoints if needed)
+- S3_UPLOAD_MAX_BYTES        (default e.g. 15MB)
+- S3_ALLOWED_MIME            (comma list: image/jpeg,image/png,image/webp)
+
+Rule:
+- Never log secret values.
+- Provide .env.example placeholders only.
+
+------------------------------------------------------------
+B) DATABASE (PRISMA) — Media table (MANDATORY)
+------------------------------------------------------------
+Create Prisma model Media (or File):
+
+model Media {
+  id            String   @id @default(cuid())
+  hash          String   @unique              // sha256 hex of content
+  ext           String?                        // "jpg", "png", "webp" (derived)
+  mimeType      String
+  sizeBytes     Int
+  bucket        String
+  key           String   @unique              // object key in bucket
+  etag          String?                       // returned by S3/Spaces
+  width         Int?                          // optional (images)
+  height        Int?                          // optional (images)
+  sourceUrl     String?                       // if ingested from remote (pricecharting)
+  ownerUserId   String?                       // optional link to user
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([ownerUserId])
+  @@index([createdAt])
+}
+
+Key decisions:
+- Object key must be derived from content hash to prevent collisions.
+- The same binary uploaded twice should NOT store a second object (dedupe by hash).
+
+------------------------------------------------------------
+C) STORAGE KEY STRATEGY (MANDATORY)
+------------------------------------------------------------
+Represent stored filenames as hashes:
+- hash = SHA-256(file bytes) in hex
+- key format:
+  "media/{hash[0..1]}/{hash[2..3]}/{hash}{extWithDot}"
+Example:
+  media/ab/cd/abcd....ef.png
+
+Benefits: even distribution, no collisions, easy CDN caching.
+
+------------------------------------------------------------
+D) BACKEND MODULE: MediaModule + S3 client (MANDATORY)
+------------------------------------------------------------
+Implement:
+
+apps/api/src/modules/media
+- media.module.ts
+- media.service.ts
+- media.controller.ts (optional; only if needed for presign or upload endpoints)
+- s3.client.ts
+- hashing.ts
+- image-meta.ts (optional: detect width/height)
+- dto/ (if exposing endpoints)
+
+Use AWS SDK v3:
+- @aws-sdk/client-s3
+- @aws-sdk/s3-request-presigner (optional)
+
+S3 client requirements:
+- endpoint + region + credentials from env
+- support path-style if configured
+- request timeouts + retries (default SDK retries ok)
+- set correct ContentType on putObject
+
+Core service functions (REQUIRED):
+1) putBuffer(params)
+   - input: buffer, mimeType, originalFilename?, ownerUserId?, sourceUrl?
+   - compute hash
+   - determine ext from mimeType
+   - compute key from hash
+   - if Media with hash exists: return existing (dedupe)
+   - else upload to S3 (PutObject)
+   - store Media row
+   - return Media row + publicUrl (computed)
+
+2) putFromRemoteUrl(url, options)
+   - download remote file safely:
+     - limit max bytes
+     - validate mimeType is allowed
+     - follow redirects safely (max 3)
+   - then call putBuffer
+   - store sourceUrl in Media row
+
+3) getPublicUrl(media, { preferCdn: boolean })
+   - if S3_CDN_BASE_URL exists and preferCdn: use it
+   - else use S3_PUBLIC_BASE_URL (or derive from endpoint/bucket)
+   - output must be stable and cacheable
+
+Security:
+- Validate mime types (images only for now)
+- Enforce max size
+- Reject SVG unless explicitly allowed
+- Do not trust file extensions from user
+
+------------------------------------------------------------
+E) FRONTEND UPLOAD FLOW (INVENTORY CREATE) — TWO OPTIONS
+------------------------------------------------------------
+Option 1 (recommended for MVP): Backend upload endpoint
+- Frontend uploads selected files to backend as multipart/form-data
+- Backend stores in S3 and returns Media IDs + URLs
+- Inventory create payload references Media IDs
+
+Implement endpoint:
+POST /v1/media/upload
+- multipart file
+- returns { mediaId, url, hash, mimeType, sizeBytes }
+
+Option 2 (more scalable): Pre-signed upload (optional)
+- Backend creates presigned PUT URL, frontend uploads directly to Spaces
+- Backend finalizes record
+This is optional; implement only if time permits.
+
+For MVP, implement Option 1.
+
+------------------------------------------------------------
+F) APPLY MEDIA LAYER IN TWO CONTEXTS (MANDATORY)
+------------------------------------------------------------
+1) Inventory creation uploads
+- Replace any local/objectURL or raw storage with Media records.
+- InventoryItem should reference media IDs instead of storing raw URLs.
+Suggested schema update:
+InventoryItem.photos becomes:
+photos: Json { frontMediaId, backMediaId, extraMediaIds[] } OR a join table InventoryItemMedia.
+Keep it minimal but normalized enough to evolve.
+
+2) PriceCharting parser image ingestion
+- Wherever the parser currently “downloads images”, replace with:
+  mediaService.putFromRemoteUrl(imageUrl, { ownerUserId: null, sourceUrl: imageUrl })
+- Store returned Media ID (and use computed CDN/public URL).
+
+------------------------------------------------------------
+G) CDN SUPPORT (MANDATORY)
+------------------------------------------------------------
+Support DO Spaces CDN:
+- If S3_CDN_BASE_URL is provided, generated URLs must use it
+- Ensure object keys are stable (hash-based) so CDN caching works well
+- Encourage long cache headers on objects:
+  - Cache-Control: public, max-age=31536000, immutable
+Set CacheControl on PutObject.
+
+------------------------------------------------------------
+H) ROBUSTNESS & BEST PRACTICES (MANDATORY)
+------------------------------------------------------------
+- Content hashing:
+  - compute SHA-256 streaming (do not load huge files in memory if possible)
+- Upload is atomic:
+  - upload first, then DB record, or use transaction with compensating delete on failure
+- Idempotency:
+  - if the same file uploads twice concurrently, handle unique constraint on hash/key gracefully
+- Logging:
+  - log mediaId, hash prefix, size, mimeType (no secrets)
+- Errors:
+  - meaningful 4xx for invalid mime/size
+  - 5xx for storage errors
+
+------------------------------------------------------------
+I) ACCEPTANCE CRITERIA
+------------------------------------------------------------
+1) User image uploads during inventory creation are stored in Spaces.
+2) Object keys are hash-based; duplicates dedupe to one stored object.
+3) Media metadata is stored in DB (hash, size, mime type, key, bucket).
+4) URLs returned use CDN base when configured.
+5) PriceCharting parser ingestion stores downloaded images via the same Media layer.
+6) No secrets are present in code or README; only env placeholders.
+
+------------------------------------------------------------
+J) OUTPUT REQUIRED
+------------------------------------------------------------
+Return:
+- Prisma schema changes + migration
+- New Media module code + S3 client
+- Upload endpoint implementation (Option 1)
+- Inventory schema update to reference Media IDs
+- PriceCharting parser updates to use putFromRemoteUrl
+- README: setup env vars, how to test locally, how CDN base URL works
+
+
+
   <-- 11. FEATURE PROMPT -->

@@ -1,18 +1,16 @@
 import {
     Controller,
     Post,
-    Delete,
-    Body,
-    UseInterceptors,
     UploadedFile,
+    UseInterceptors,
     BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { StorageService } from './storage.service';
+import { MediaService } from './media.service';
 
 @Controller('media')
 export class MediaController {
-    constructor(private readonly storageService: StorageService) { }
+    constructor(private readonly mediaService: MediaService) { }
 
     @Post('upload')
     @UseInterceptors(FileInterceptor('file'))
@@ -21,16 +19,18 @@ export class MediaController {
             throw new BadRequestException('No file uploaded');
         }
 
-        const url = await this.storageService.uploadFile(file, 'inventory');
-        return { url };
-    }
+        const media = await this.mediaService.putBuffer({
+            buffer: file.buffer,
+            mimeType: file.mimetype,
+            originalFilename: file.originalname,
+        });
 
-    @Delete()
-    async deleteFile(@Body('url') url: string) {
-        if (!url) {
-            throw new BadRequestException('URL is required');
-        }
-        await this.storageService.deleteFile(url);
-        return { success: true };
+        return {
+            mediaId: media.id,
+            url: this.mediaService.getPublicUrl(media, { preferCdn: true }),
+            hash: media.hash,
+            mimeType: media.mimeType,
+            sizeBytes: media.sizeBytes,
+        };
     }
 }

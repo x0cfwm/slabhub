@@ -9,11 +9,16 @@ import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
 import { ItemType, InventoryStage } from '@prisma/client';
 
+import { MediaService } from '../media/media.service';
+
 @Injectable()
 export class InventoryService {
     private readonly logger = new Logger(InventoryService.name);
 
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly mediaService: MediaService,
+    ) { }
 
     async listItems(userId: string) {
         const items = await this.prisma.inventoryItem.findMany({
@@ -30,7 +35,9 @@ export class InventoryService {
                         set: true,
                     },
                 },
-            },
+                frontMedia: true,
+                backMedia: true,
+            } as any,
         });
 
         return items.map((item) => this.transformItem(item));
@@ -53,7 +60,9 @@ export class InventoryService {
                         set: true,
                     },
                 },
-            },
+                frontMedia: true,
+                backMedia: true,
+            } as any,
         });
 
         if (!item) {
@@ -106,7 +115,13 @@ export class InventoryService {
                     notes: dto.notes,
                     sellingDescription: dto.sellingDescription,
                     photos: (dto.photos || []).filter(Boolean),
-                },
+                    frontMedia: dto.frontMediaId
+                        ? { connect: { id: dto.frontMediaId } }
+                        : undefined,
+                    backMedia: dto.backMediaId
+                        ? { connect: { id: dto.backMediaId } }
+                        : undefined,
+                } as any,
                 include: {
                     cardVariant: {
                         include: {
@@ -118,7 +133,9 @@ export class InventoryService {
                             set: true,
                         },
                     },
-                },
+                    frontMedia: true,
+                    backMedia: true,
+                } as any,
             });
 
             return this.transformItem(item);
@@ -185,7 +202,13 @@ export class InventoryService {
                 notes: dto.notes,
                 sellingDescription: dto.sellingDescription,
                 photos: dto.photos,
-            },
+                frontMedia: dto.frontMediaId !== undefined
+                    ? (dto.frontMediaId ? { connect: { id: dto.frontMediaId } } : { disconnect: true })
+                    : undefined,
+                backMedia: dto.backMediaId !== undefined
+                    ? (dto.backMediaId ? { connect: { id: dto.backMediaId } } : { disconnect: true })
+                    : undefined,
+            } as any,
             include: {
                 cardVariant: {
                     include: {
@@ -197,7 +220,9 @@ export class InventoryService {
                         set: true,
                     },
                 },
-            },
+                frontMedia: true,
+                backMedia: true,
+            } as any,
         });
 
         return this.transformItem(item);
@@ -339,6 +364,14 @@ export class InventoryService {
             updatedAt: item.updatedAt.toISOString(),
             quantity: item.quantity,
             sortOrder: item.sortOrder,
+            frontMediaId: item.frontMediaId,
+            backMediaId: item.backMediaId,
+            frontMediaUrl: item.frontMedia
+                ? this.mediaService.getPublicUrl(item.frontMedia, { preferCdn: true })
+                : null,
+            backMediaUrl: item.backMedia
+                ? this.mediaService.getPublicUrl(item.backMedia, { preferCdn: true })
+                : null,
         };
 
         if (item.itemType === 'SINGLE_CARD_RAW') {

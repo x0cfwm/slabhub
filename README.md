@@ -395,6 +395,28 @@ SlabHub uses a session-based authentication with email OTP (magic codes).
 
 Note: Facebook and Google login buttons are currently stubs for UI demonstration.
 
+## 🖼 Media Layer (S3-compatible)
+
+SlabHub stores binary files in DigitalOcean Spaces (or any S3-compatible storage) with content-hash based deduplication.
+
+### Setup Environment Variables
+Add these to your `.env`:
+```env
+S3_ENDPOINT=https://nyc3.digitaloceanspaces.com
+S3_REGION=nyc3
+S3_BUCKET=slabhub-files-dev
+S3_ACCESS_KEY_ID=your-access-key
+S3_SECRET_ACCESS_KEY=your-secret-key
+S3_PUBLIC_BASE_URL=https://slabhub-files-dev.nyc3.digitaloceanspaces.com # Public origin
+S3_CDN_BASE_URL=https://slabhub-files-dev.nyc3.cdn.digitaloceanspaces.com   # CDN origin
+S3_FORCE_PATH_STYLE=false
+```
+
+### Features:
+- **Deduplication**: Same photo uploaded twice only takes space once.
+- **CDN Support**: URLs automatically use the CDN base if configured.
+- **Robust Ingestion**: PriceCharting images are automatically stored in the media layer.
+
 ## 📜 License
 
 MIT

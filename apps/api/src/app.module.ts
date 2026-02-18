@@ -45,6 +45,24 @@ import { z } from 'zod';
                     BRIGHTDATA_ZONE: z.string().optional(),
                     BRIGHTDATA_TOKEN: z.string().optional(),
                     PORT: z.string().default('3001'),
+                    S3_ENDPOINT: z.string().url(),
+                    S3_REGION: z.string().min(1),
+                    S3_BUCKET: z.string().min(1),
+                    S3_ACCESS_KEY_ID: z.string().min(1),
+                    S3_SECRET_ACCESS_KEY: z.string().min(1),
+                    S3_PUBLIC_BASE_URL: z.string().url().optional().or(z.literal('')).transform(v => v === '' ? undefined : v),
+                    S3_CDN_BASE_URL: z.string().url().optional().or(z.literal('')).transform(v => v === '' ? undefined : v),
+                    S3_FORCE_PATH_STYLE: z
+                        .string()
+                        .default('false')
+                        .transform((v) => v === 'true'),
+                    S3_UPLOAD_MAX_BYTES: z
+                        .string()
+                        .default('15728640')
+                        .transform((v) => parseInt(v, 10)),
+                    S3_ALLOWED_MIME: z
+                        .string()
+                        .default('image/jpeg,image/png,image/webp'),
                 });
                 return schema.parse(config);
             },

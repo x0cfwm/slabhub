@@ -153,7 +153,7 @@ model InventoryItem {
   storageLocation           String?
   notes                     String?
   marketPriceSnapshot       Decimal?                 @db.Decimal(10, 2)
-  photos                    Json                     @default("[]")
+  photos                    Json                     @default("[]") // Still used for backward compatibility or multiple media IDs
   createdAt                 DateTime                 @default(now())
   updatedAt                 DateTime                 @updatedAt
   certificationNumber       String?
@@ -166,6 +166,12 @@ model InventoryItem {
   refPriceChartingProduct   RefPriceChartingProduct? @relation(fields: [refPriceChartingProductId], references: [id])
   seller                    SellerProfile?           @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   user                      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Media references
+  frontMediaId String?
+  backMediaId  String?
+  frontMedia   Media?  @relation("FrontMedia", fields: [frontMediaId], references: [id])
+  backMedia    Media?  @relation("BackMedia", fields: [backMediaId], references: [id])
 
   @@index([sellerId])
   @@index([userId])
@@ -405,4 +411,27 @@ enum VariantType {
 enum Language {
   JP
   EN
+}
+
+model Media {
+  id          String   @id @default(cuid())
+  hash        String   @unique // sha256 hex of content
+  ext         String? // "jpg", "png", "webp" (derived)
+  mimeType    String
+  sizeBytes   Int
+  bucket      String
+  key         String   @unique // object key in bucket
+  etag        String? // returned by S3/Spaces
+  width       Int? // optional (images)
+  height      Int? // optional (images)
+  sourceUrl   String? // if ingested from remote (pricecharting)
+  ownerUserId String? // optional link to user
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  frontInventoryItems InventoryItem[] @relation("FrontMedia")
+  backInventoryItems  InventoryItem[] @relation("BackMedia")
+
+  @@index([ownerUserId])
+  @@index([createdAt])
 }

@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter, Fraunces, Lora } from "next/font/google";
+import { Geist, Geist_Mono, Inter, Fraunces, Lora, Oxanium } from "next/font/google";
+
+const oxanium = Oxanium({
+  variable: "--font-display",
+  subsets: ["latin"],
+});
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -57,7 +63,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${fraunces.variable} ${lora.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${fraunces.variable} ${lora.variable} ${oxanium.variable} antialiased`}
       >
         <AuthProvider>
           {children}

@@ -1,16 +1,14 @@
 import { Module } from '@nestjs/common';
 import { MediaController } from './media.controller';
-import { StorageService } from './storage.service';
-import { LocalStorageService } from './local-storage.service';
+import { MediaService } from './media.service';
+import { S3ClientService } from './s3.client';
 
 @Module({
     controllers: [MediaController],
     providers: [
-        {
-            provide: StorageService,
-            useClass: LocalStorageService,
-        },
+        S3ClientService,
+        MediaService,
     ],
-    exports: [StorageService],
+    exports: [MediaService],
 })
 export class MediaModule { }

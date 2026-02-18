@@ -144,4 +144,17 @@ export class CreateInventoryItemDto {
     @IsOptional()
     @IsArray()
     photos?: string[];
+
+    @IsOptional()
+    @IsString()
+    frontMediaId?: string;
+
+    @IsOptional()
+    @IsString()
+    backMediaId?: string;
+
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    extraMediaIds?: string[];
 }

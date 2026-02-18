@@ -6,6 +6,8 @@ import { PriceChartingCrawlOptions, ParsedProductDetails } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import { MediaService } from '../media/media.service';
+
 @Injectable()
 export class PriceChartingIngestService {
     private readonly logger = new Logger(PriceChartingIngestService.name);
@@ -15,6 +17,7 @@ export class PriceChartingIngestService {
         private readonly prisma: PrismaService,
         private readonly client: PriceChartingClient,
         private readonly parser: PriceChartingParser,
+        private readonly mediaService: MediaService,
     ) { }
 
     async crawlOnePieceCards(options: PriceChartingCrawlOptions = {}) {
@@ -210,7 +213,12 @@ export class PriceChartingIngestService {
 
         if (parsed.imageUrl) {
             try {
-                parsed.localImagePath = await this.downloadImage(parsed.imageUrl, parsed.productSlug || 'unknown');
+                const media = await this.mediaService.putFromRemoteUrl(parsed.imageUrl, {
+                    sourceUrl: parsed.productUrl,
+                });
+                parsed.imageUrl = this.mediaService.getPublicUrl(media, { preferCdn: true });
+                // We'll store the public URL in localImagePath as well for now or keep it blank
+                parsed.localImagePath = parsed.imageUrl;
             } catch (error) {
                 this.logger.error(`Failed to download image for ${url}: ${error.message}`);
             }
