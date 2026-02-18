@@ -218,21 +218,52 @@ export class MarketPricingService {
 
             // Store sales in DB for future "greedy" access
             if (sales.length > 0) {
-                await this.prisma.priceChartingSales.deleteMany({
-                    where: { productId }
+                // Archival Logic: Don't delete old sales, just add new unique ones
+                const existingSales = await (this.prisma.priceChartingSales as any).findMany({
+                    where: { productId },
+                    select: { id: true, date: true, title: true, price: true, grade: true }
                 });
 
-                await this.prisma.priceChartingSales.createMany({
-                    data: sales.map(s => ({
-                        productId,
-                        date: new Date(s.date),
-                        title: s.title,
-                        price: s.price,
-                        source: s.source,
-                        link: s.link,
-                        grade: s.grade,
-                    }))
-                });
+                const seenIds: string[] = [];
+                const newSales: any[] = [];
+
+                for (const s of sales) {
+                    const saleDate = new Date(s.date);
+                    const existing = existingSales.find((e: any) =>
+                        e.date.getTime() === saleDate.getTime() &&
+                        e.title === s.title &&
+                        Number(e.price) === s.price &&
+                        e.grade === (s.grade || null)
+                    );
+
+                    if (existing) {
+                        seenIds.push(existing.id);
+                    } else {
+                        newSales.push({
+                            productId,
+                            date: saleDate,
+                            title: s.title,
+                            price: s.price,
+                            source: s.source,
+                            link: s.link,
+                            grade: s.grade,
+                            lastSeenAt: new Date(),
+                        });
+                    }
+                }
+
+                if (seenIds.length > 0) {
+                    await (this.prisma.priceChartingSales as any).updateMany({
+                        where: { id: { in: seenIds } },
+                        data: { lastSeenAt: new Date() }
+                    });
+                }
+
+                if (newSales.length > 0) {
+                    await (this.prisma.priceChartingSales as any).createMany({
+                        data: newSales
+                    });
+                }
             }
 
             // Sync to RefProduct if linked by tcgPlayerId

@@ -1,0 +1,1 @@
+This repository uses **Prisma + PostgreSQL**. Any change to `prisma/schema.prisma` **must** be accompanied by a corresponding **Prisma migration** (or an explicitly documented exception).

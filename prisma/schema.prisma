@@ -293,6 +293,7 @@ model PriceChartingSales {
   link            String?
   grade           String?
   createdAt       DateTime                @default(now())
+  lastSeenAt      DateTime                @default(now())
   product         RefPriceChartingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
