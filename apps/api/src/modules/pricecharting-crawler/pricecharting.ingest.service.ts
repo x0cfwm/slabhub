@@ -271,7 +271,7 @@ export class PriceChartingIngestService {
             setId = set.id;
         }
 
-        await this.prisma.refPriceChartingProduct.upsert({
+        const product = await this.prisma.refPriceChartingProduct.upsert({
             where: { productUrl: data.productUrl },
             update: {
                 tcgPlayerId: data.tcgPlayerId,
@@ -280,7 +280,7 @@ export class PriceChartingIngestService {
                 details: data.details as any,
                 categorySlug: data.categorySlug,
                 setSlug: data.setSlug,
-                setId: setId,
+                set: setId ? { connect: { id: setId } } : undefined,
                 title: data.title,
                 productSlug: data.productSlug,
                 localImagePath: data.localImagePath,
@@ -293,10 +293,9 @@ export class PriceChartingIngestService {
                 grade9Price: data.grade9Price,
                 grade95Price: data.grade95Price,
                 grade10Price: data.grade10Price,
-                priceSource: 'PriceCharting',
-                priceUpdatedAt: new Date(),
                 scrapedAt: new Date(),
-            },
+                lastParsedAt: new Date(),
+            } as any,
             create: {
                 productUrl: data.productUrl,
                 tcgPlayerId: data.tcgPlayerId,
@@ -305,7 +304,7 @@ export class PriceChartingIngestService {
                 details: data.details as any,
                 categorySlug: data.categorySlug,
                 setSlug: data.setSlug,
-                setId: setId,
+                set: setId ? { connect: { id: setId } } : undefined,
                 title: data.title,
                 productSlug: data.productSlug,
                 localImagePath: data.localImagePath,
@@ -320,8 +319,29 @@ export class PriceChartingIngestService {
                 grade10Price: data.grade10Price,
                 priceSource: 'PriceCharting',
                 priceUpdatedAt: new Date(),
-            },
+                lastParsedAt: new Date(),
+            } as any,
         });
+
+        // Store sales
+        if (data.sales && data.sales.length > 0) {
+            // Clear old sales for this product to avoid duplicates
+            await this.prisma.priceChartingSales.deleteMany({
+                where: { productId: product.id }
+            });
+
+            await this.prisma.priceChartingSales.createMany({
+                data: data.sales.map(sale => ({
+                    productId: product.id,
+                    date: new Date(sale.date),
+                    title: sale.title,
+                    price: sale.price,
+                    source: sale.source,
+                    link: sale.link,
+                    grade: sale.grade,
+                }))
+            });
+        }
     }
 
     private async linkToRefProduct(tcgPlayerId: number, productUrl: string) {
@@ -339,15 +359,15 @@ export class PriceChartingIngestService {
                 tcgplayerId: tcgplayerIdStr
             },
             data: {
-                rawPrice: pcProduct.rawPrice,
-                sealedPrice: pcProduct.sealedPrice,
-                grade7Price: pcProduct.grade7Price,
-                grade8Price: pcProduct.grade8Price,
-                grade9Price: pcProduct.grade9Price,
-                grade95Price: pcProduct.grade95Price,
-                grade10Price: pcProduct.grade10Price,
+                rawPrice: (pcProduct as any).rawPrice,
+                sealedPrice: (pcProduct as any).sealedPrice,
+                grade7Price: (pcProduct as any).grade7Price,
+                grade8Price: (pcProduct as any).grade8Price,
+                grade9Price: (pcProduct as any).grade9Price,
+                grade95Price: (pcProduct as any).grade95Price,
+                grade10Price: (pcProduct as any).grade10Price,
                 priceSource: 'PriceCharting',
-                priceUpdatedAt: pcProduct.priceUpdatedAt,
+                priceUpdatedAt: (pcProduct as any).priceUpdatedAt,
             }
         });
     }

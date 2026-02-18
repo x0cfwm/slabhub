@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as cheerio from 'cheerio';
-import { ParsedProductDetails, PriceChartingProductType } from './types';
+import { ParsedProductDetails, PriceChartingProductType, PriceChartingSaleEntry } from './types';
 import { canonicalizeUrl, extractSlug } from './utils/url';
 
 @Injectable()
@@ -111,7 +111,109 @@ export class PriceChartingParser {
             imageUrl: imageUrl ? (imageUrl.startsWith('http') ? imageUrl : `https://www.pricecharting.com${imageUrl}`) : undefined,
             productType,
             ...this.parsePricesFromTable($),
+            sales: this.parseSalesFromPage($),
         };
+    }
+
+    private parseSalesFromPage($: cheerio.CheerioAPI): PriceChartingSaleEntry[] {
+        const sales: PriceChartingSaleEntry[] = [];
+        const gradeMappings = [
+            { selector: '#used, .completed-auctions-used', label: 'Raw' },
+            { selector: '#graded-10, .completed-auctions-manual-only', label: 'PSA 10' },
+            { selector: '#graded-9-5, #graded-95, .completed-auctions-box-only', label: 'Grade 9.5' },
+            { selector: '#graded-9, .completed-auctions-graded', label: 'Grade 9' },
+            { selector: '#graded-8, .completed-auctions-new', label: 'Grade 8' },
+            { selector: '#graded-7, .completed-auctions-cib', label: 'Grade 7' },
+        ];
+
+        let foundSales = false;
+        for (const mapping of gradeMappings) {
+            const elements = $(mapping.selector);
+            elements.each((_, el) => {
+                const section = $(el);
+                if (section.hasClass('tab')) return;
+                const table = section.find('table.hoverable-rows');
+                const rows = table.length > 0 ? table.find('tbody tr') : section.find('tbody tr');
+                if (rows.length > 0) {
+                    this.processRows($, rows, sales, mapping.label);
+                    foundSales = true;
+                    return false;
+                }
+            });
+        }
+
+        if (!foundSales) {
+            let table = $('#completed_sales_table');
+            if (table.length === 0) table = $('.js-completed-sales-table');
+            if (table.length === 0) {
+                $('table').each((_, el) => {
+                    const text = $(el).text();
+                    if (text.includes('Date') && text.includes('Price') && (text.includes('Title') || text.includes('Sale'))) {
+                        table = $(el);
+                        return false;
+                    }
+                });
+            }
+            const rows = table.find('tbody tr');
+            if (rows.length > 0) {
+                this.processRows($, rows, sales, 'Raw');
+            }
+        }
+        return sales;
+    }
+
+    private processRows($: cheerio.CheerioAPI, rows: cheerio.Cheerio<any>, entries: PriceChartingSaleEntry[], grade: string) {
+        rows.each((_, el) => {
+            const gradeSalesCount = entries.filter(e => e.grade === grade).length;
+            if (gradeSalesCount >= 10) return;
+
+            const dateTd = $(el).find('td.date');
+            const titleTd = $(el).find('td.title');
+            const priceTd = $(el).find('td.price, td.numeric');
+
+            const dateStr = dateTd.text().trim();
+            const titleLink = titleTd.find('a');
+            const titleText = titleLink.text().replace(/\s+/g, ' ').trim();
+            const fullTitleCellText = titleTd.text().trim();
+            const link = titleLink.attr('href');
+
+            let priceStr = priceTd.find('.js-price').text().trim();
+            if (!priceStr) priceStr = priceTd.text().trim();
+
+            if (!dateStr || !titleText || !priceStr) return;
+
+            const price = this.parsePrice(priceStr);
+            if (price === undefined) return;
+
+            const date = this.normalizeDate(dateStr);
+            const source = this.inferSource(fullTitleCellText);
+
+            entries.push({
+                date,
+                title: titleText,
+                price,
+                source,
+                link: link ? (link.startsWith('http') ? link : `https://www.pricecharting.com${link}`) : undefined,
+                grade,
+            });
+        });
+    }
+
+    private normalizeDate(dateStr: string): string {
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toISOString().split('T')[0];
+        } catch {
+            return dateStr;
+        }
+    }
+
+    private inferSource(text: string): string {
+        const lower = text.toLowerCase();
+        if (lower.includes('ebay')) return 'eBay';
+        if (lower.includes('tcgplayer')) return 'TCGPlayer';
+        return 'Unknown';
     }
 
     private parsePricesFromTable($: cheerio.CheerioAPI): Partial<ParsedProductDetails> {

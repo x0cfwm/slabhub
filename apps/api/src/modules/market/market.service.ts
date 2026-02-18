@@ -138,7 +138,42 @@ export class MarketPricingService {
             throw new NotFoundException('PriceCharting URL not found for this product.');
         }
 
-        // Check cache
+        // Greedy Scheme: Check stored data first if not refreshing
+        if (!refresh) {
+            const storedSales = await this.prisma.priceChartingSales.findMany({
+                where: { productId },
+                orderBy: { date: 'desc' },
+                take: 10,
+            });
+
+            if (storedSales.length > 0) {
+                return {
+                    productId,
+                    mode: 'stored' as const,
+                    parseError: null,
+                    prices: storedSales.map(s => ({
+                        date: s.date.toISOString().split('T')[0],
+                        title: s.title,
+                        price: Number(s.price),
+                        source: s.source as any,
+                        link: s.link,
+                        grade: s.grade,
+                    })),
+                    summary: {
+                        ungraded: (product as any).rawPrice ? Number((product as any).rawPrice) : undefined,
+                        grade7: (product as any).grade7Price ? Number((product as any).grade7Price) : undefined,
+                        grade8: (product as any).grade8Price ? Number((product as any).grade8Price) : undefined,
+                        grade9: (product as any).grade9Price ? Number((product as any).grade9Price) : undefined,
+                        grade95: (product as any).grade95Price ? Number((product as any).grade95Price) : undefined,
+                        psa10: (product as any).grade10Price ? Number((product as any).grade10Price) : undefined,
+                    },
+                    updatedRawPrice: (product as any).rawPrice ? Number((product as any).rawPrice) : null,
+                };
+            }
+        }
+
+        // Fallback to parsing (or forced refresh)
+        // Check cache for non-refresh requests to avoid hitting proxy too often if multiple people open drawer
         const cached = this.cache.get(productId);
         if (!refresh && cached && cached.expires > Date.now()) {
             return cached.data;
@@ -173,12 +208,32 @@ export class MarketPricingService {
                 grade10Price: summary.psa10, // Note: psa10 in summary maps to grade10Price in DB
                 priceSource: recentSales[0]?.source || 'PriceCharting',
                 priceUpdatedAt: new Date(),
+                lastParsedAt: new Date(),
             };
 
             await this.prisma.refPriceChartingProduct.update({
                 where: { id: productId },
                 data: updateData
             });
+
+            // Store sales in DB for future "greedy" access
+            if (sales.length > 0) {
+                await this.prisma.priceChartingSales.deleteMany({
+                    where: { productId }
+                });
+
+                await this.prisma.priceChartingSales.createMany({
+                    data: sales.map(s => ({
+                        productId,
+                        date: new Date(s.date),
+                        title: s.title,
+                        price: s.price,
+                        source: s.source,
+                        link: s.link,
+                        grade: s.grade,
+                    }))
+                });
+            }
 
             // Sync to RefProduct if linked by tcgPlayerId
             if (product.tcgPlayerId) {

@@ -1,5 +1,14 @@
 export type PriceChartingProductType = 'SINGLE_CARD' | 'SEALED_PACK' | 'SEALED_BOX' | 'SEALED_OTHER';
 
+export interface PriceChartingSaleEntry {
+    date: string;
+    title: string;
+    price: number;
+    source: string;
+    link?: string;
+    grade?: string;
+}
+
 export interface ParsedProductDetails {
     productUrl: string;
     tcgPlayerId?: number;
@@ -21,6 +30,7 @@ export interface ParsedProductDetails {
     grade9Price?: number;
     grade95Price?: number;
     grade10Price?: number;
+    sales: PriceChartingSaleEntry[];
 }
 
 export interface PriceChartingCrawlOptions {

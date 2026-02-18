@@ -263,6 +263,8 @@ model RefPriceChartingProduct {
   setId           String?
   productType     String?
   title           String?
+  rawPrice        Decimal?             @db.Decimal(10, 2)
+  sealedPrice     Decimal?             @db.Decimal(10, 2)
   grade10Price    Decimal?             @db.Decimal(10, 2)
   grade7Price     Decimal?             @db.Decimal(10, 2)
   grade8Price     Decimal?             @db.Decimal(10, 2)
@@ -270,15 +272,31 @@ model RefPriceChartingProduct {
   grade9Price     Decimal?             @db.Decimal(10, 2)
   priceSource     String?
   priceUpdatedAt  DateTime?
-  rawPrice        Decimal?             @db.Decimal(10, 2)
-  sealedPrice     Decimal?             @db.Decimal(10, 2)
+  lastParsedAt   DateTime?
   inventoryItems  InventoryItem[]
+  sales           PriceChartingSales[]
   set             RefPriceChartingSet? @relation(fields: [setId], references: [id])
 
   @@index([tcgPlayerId])
   @@index([priceChartingId])
   @@index([cardNumber])
   @@index([setId])
+}
+
+model PriceChartingSales {
+  id              String                  @id @default(cuid())
+  productId       String
+  date            DateTime
+  title           String
+  price           Decimal                 @db.Decimal(10, 2)
+  source          String
+  link            String?
+  grade           String?
+  createdAt       DateTime                @default(now())
+  product         RefPriceChartingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([date])
 }
 
 model RefPriceChartingSet {
