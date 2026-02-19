@@ -9,7 +9,7 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 export class PriceChartingClient {
     private readonly logger = new Logger(PriceChartingClient.name);
     private lastRequestTime = 0;
-    private readonly minRequestInterval = 1000; // 1 second rate limit
+    private readonly minRequestInterval = 100; // Reduced from 1000 to 100ms
     private readonly proxyAgent?: HttpsProxyAgent<string>;
 
     constructor(
@@ -49,7 +49,6 @@ export class PriceChartingClient {
                     timeout: 30000,
                 }),
             );
-            this.lastRequestTime = Date.now();
             return response.data;
         } catch (error) {
             if (retries > 0 && this.shouldRetry(error)) {
@@ -80,7 +79,6 @@ export class PriceChartingClient {
                     responseType: 'arraybuffer',
                 }),
             );
-            this.lastRequestTime = Date.now();
             return Buffer.from(response.data);
         } catch (error) {
             if (retries > 0 && this.shouldRetry(error)) {
@@ -101,6 +99,7 @@ export class PriceChartingClient {
             const wait = this.minRequestInterval - elapsed;
             await new Promise((resolve) => setTimeout(resolve, wait));
         }
+        this.lastRequestTime = Date.now(); // Update after wait
     }
 
     private shouldRetry(error: any): boolean {

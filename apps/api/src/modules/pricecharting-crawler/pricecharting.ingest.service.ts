@@ -28,6 +28,7 @@ export class PriceChartingIngestService {
         this.visitedUrls.clear();
         let productCount = 0;
         const { fresh = false, dryRun = false } = options;
+        const concurrencyLimit = 15;
 
         // Handle interruption signals to update status instead of leaving it as "RUNNING"
         let isShuttingDown = false;
@@ -76,6 +77,8 @@ export class PriceChartingIngestService {
             this.logger.log(`Found ${setUrls.length} sets. Crawling sets...`);
 
             for (let setIdx = resumeSetIndex; setIdx < setUrls.length; setIdx++) {
+                if (isShuttingDown) break;
+
                 const setUrl = setUrls[setIdx];
                 if (options.onlySetSlug && !setUrl.includes(options.onlySetSlug)) {
                     continue;
@@ -84,10 +87,11 @@ export class PriceChartingIngestService {
                 this.logger.log(`Crawling set [${setIdx + 1}/${setUrls.length}]: ${setUrl}`);
                 const productUrls = await this.crawlSetPages(setUrl);
 
+                // Filter products for resume logic
+                const productsToProcess = [];
                 for (const productUrl of productUrls) {
                     if (this.visitedUrls.has(productUrl)) continue;
 
-                    // Skip until we find the resume product if it was set
                     if (!foundResumeProduct) {
                         if (productUrl === resumeProductUrl) {
                             this.logger.log(`Found resume product ${productUrl}. Resuming from next...`);
@@ -95,64 +99,58 @@ export class PriceChartingIngestService {
                         }
                         continue;
                     }
-
-                    if (options.maxProducts && productCount >= options.maxProducts) {
-                        this.logger.log(`Reached maxProducts limit (${options.maxProducts}). Stopping.`);
-                        return;
-                    }
-
-                    try {
-                        await this.crawlAndIngestProduct(productUrl, options);
-                        this.visitedUrls.add(productUrl);
-                        productCount++;
-                        totalProcessed++;
-
-                        if (!dryRun) {
-                            // Update progress after each product
-                            await this.prisma.refSyncProgress.upsert({
-                                where: { mappingName },
-                                update: {
-                                    page: setIdx + 1, // 1-indexed set
-                                    cursor: productUrl,
-                                    processedItems: totalProcessed,
-                                    status: 'RUNNING',
-                                    lastSyncAt: new Date(),
-                                },
-                                create: {
-                                    mappingName,
-                                    page: setIdx + 1,
-                                    cursor: productUrl,
-                                    processedItems: totalProcessed,
-                                    status: 'RUNNING',
-                                }
-                            });
-                        }
-
-                        if (productCount % 10 === 0) {
-                            this.logger.log(`Progress: ${productCount} products ingested...`);
-                        }
-                    } catch (error) {
-                        this.logger.error(`Error ingesting product ${productUrl}: ${error.message}`);
-                        // Update progress even on error to avoid infinite retry on same failing product
-                        if (!dryRun) {
-                            await this.prisma.refSyncProgress.update({
-                                where: { mappingName },
-                                data: {
-                                    cursor: productUrl,
-                                    lastError: error.message,
-                                    updatedAt: new Date(),
-                                }
-                            });
-                        }
-                    }
+                    productsToProcess.push(productUrl);
                 }
 
-                // Set foundResumeProduct to true after finishing the set we were resuming in 
-                // so we don't skip products in subsequent sets
-                foundResumeProduct = true;
+                // Process products in parallel chunks
+                for (let i = 0; i < productsToProcess.length; i += concurrencyLimit) {
+                    if (isShuttingDown) break;
+                    if (options.maxProducts && productCount >= options.maxProducts) break;
+
+                    const chunk = productsToProcess.slice(i, i + concurrencyLimit);
+                    await Promise.all(chunk.map(async (productUrl) => {
+                        if (isShuttingDown) return;
+                        if (options.maxProducts && productCount >= options.maxProducts) return;
+
+                        try {
+                            await this.crawlAndIngestProduct(productUrl, options);
+                            this.visitedUrls.add(productUrl);
+                            productCount++;
+                            totalProcessed++;
+                        } catch (error) {
+                            this.logger.error(`Error ingesting product ${productUrl}: ${error.message}`);
+                        }
+                    }));
+
+                    // Update progress after each chunk to reduce DB pressure
+                    if (!dryRun && chunk.length > 0) {
+                        const lastProductUrl = chunk[chunk.length - 1];
+                        await this.prisma.refSyncProgress.upsert({
+                            where: { mappingName },
+                            update: {
+                                page: setIdx + 1,
+                                cursor: lastProductUrl,
+                                processedItems: totalProcessed,
+                                status: 'RUNNING',
+                                lastSyncAt: new Date(),
+                            },
+                            create: {
+                                mappingName,
+                                page: setIdx + 1,
+                                cursor: lastProductUrl,
+                                processedItems: totalProcessed,
+                                status: 'RUNNING',
+                            }
+                        });
+                    }
+
+                    this.logger.log(`Progress: ${productCount} products processed in this session (${totalProcessed} total)`);
+                }
+
+                foundResumeProduct = true; // Finished the set we were resuming in
             }
 
-            if (!dryRun) {
+            if (!dryRun && !isShuttingDown) {
                 await this.prisma.refSyncProgress.upsert({
                     where: { mappingName },
                     update: { status: 'COMPLETED', lastSyncAt: new Date() },
@@ -179,34 +177,51 @@ export class PriceChartingIngestService {
 
     private async crawlSetPages(setUrl: string): Promise<string[]> {
         const allProductUrls: string[] = [];
-        const queuedPages = [setUrl];
         const visitedPages = new Set<string>();
+        const queuedPages = [setUrl];
 
+        // Breadth-first search for products across paginated pages
         while (queuedPages.length > 0) {
-            const currentUrl = queuedPages.shift()!;
-            if (visitedPages.has(currentUrl)) continue;
-            visitedPages.add(currentUrl);
+            const batch = queuedPages.splice(0, 5); // Process up to 5 paginated pages in parallel
+            await Promise.all(batch.map(async (currentUrl) => {
+                if (visitedPages.has(currentUrl)) return;
+                visitedPages.add(currentUrl);
 
-            try {
-                const html = await this.client.fetch(currentUrl);
-                const { productUrls, nextPages } = this.parser.parseSetPage(html, 'https://www.pricecharting.com');
+                try {
+                    const html = await this.client.fetch(currentUrl);
+                    const { productUrls, nextPages } = this.parser.parseSetPage(html, 'https://www.pricecharting.com');
 
-                allProductUrls.push(...productUrls);
+                    synchronizedPush(allProductUrls, ...productUrls);
 
-                for (const nextPage of nextPages) {
-                    if (!visitedPages.has(nextPage)) {
-                        queuedPages.push(nextPage);
+                    for (const nextPage of nextPages) {
+                        if (!visitedPages.has(nextPage)) {
+                            queuedPages.push(nextPage);
+                        }
                     }
+                } catch (error) {
+                    this.logger.error(`Error crawling set page ${currentUrl}: ${error.message}`);
                 }
-            } catch (error) {
-                this.logger.error(`Error crawling set page ${currentUrl}: ${error.message}`);
-            }
+            }));
         }
 
         return [...new Set(allProductUrls)];
     }
 
     private async crawlAndIngestProduct(url: string, options: PriceChartingCrawlOptions) {
+        // Optimization: Check if we already processed this product recently
+        if (!options.fresh) {
+            const existing = await this.prisma.refPriceChartingProduct.findUnique({
+                where: { productUrl: url },
+                select: { lastParsedAt: true } as any
+            }) as any;
+
+            // If parsed in the last 12 hours, skip (unless it's a fresh crawl)
+            if (existing?.lastParsedAt && (Date.now() - new Date(existing.lastParsedAt).getTime() < 12 * 60 * 60 * 1000)) {
+                this.logger.debug(`Skipping ${url}, already parsed recently.`);
+                return;
+            }
+        }
+
         const html = await this.client.fetch(url);
         const parsed = this.parser.parseProductPage(html, url);
         parsed.categorySlug = 'one-piece-cards';
@@ -217,7 +232,6 @@ export class PriceChartingIngestService {
                     sourceUrl: parsed.productUrl,
                 });
                 parsed.imageUrl = this.mediaService.getPublicUrl(media, { preferCdn: true });
-                // We'll store the public URL in localImagePath as well for now or keep it blank
                 parsed.localImagePath = parsed.imageUrl;
             } catch (error) {
                 this.logger.error(`Failed to download image for ${url}: ${error.message}`);
@@ -403,4 +417,8 @@ export class PriceChartingIngestService {
             }
         });
     }
+}
+
+function synchronizedPush<T>(array: T[], ...items: T[]) {
+    array.push(...items);
 }
