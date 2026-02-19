@@ -20,8 +20,7 @@ import { SlabHubTourCarousel } from "@/components/landing/slabhub-tour-carousel"
 import { HeroWaitlistForm } from "@/components/landing/hero-waitlist-form";
 import { ValueSection } from "@/components/landing/value-section";
 import { WaitlistCTASection } from "@/components/landing/waitlist-cta-section";
-import { getMe } from "@/lib/api";
-import { SellerProfile } from "@/lib/types";
+import { useAuth } from "@/components/auth-provider";
 
 import { useTheme } from "next-themes";
 
@@ -54,7 +53,8 @@ function ThemeToggle() {
 }
 
 /* ─────────────── Navbar ─────────────── */
-function Navbar({ profile, loading }: { profile: SellerProfile | null; loading: boolean }) {
+function Navbar() {
+  const { user, loading } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -93,7 +93,7 @@ function Navbar({ profile, loading }: { profile: SellerProfile | null; loading: 
         {/* Desktop actions */}
         <div className="hidden items-center gap-3 md:flex">
           <ThemeToggle />
-          {!loading && profile ? (
+          {!loading && user ? (
             <Button
               size="sm"
               className="rounded-full bg-[#FBAC00] px-6 text-[#030303] shadow-[0_0_20px_rgba(251,172,0,0.15)] transition-all hover:bg-[#FBAC00]/90 hover:shadow-[0_0_28px_rgba(251,172,0,0.25)] focus-visible:ring-2 focus-visible:ring-[#FBAC00]/50"
@@ -133,7 +133,7 @@ function Navbar({ profile, loading }: { profile: SellerProfile | null; loading: 
       {mobileOpen && (
         <div className="border-t border-border bg-background px-4 pb-4 md:hidden">
           <div className="flex flex-col gap-3 pt-3">
-            {!loading && profile ? (
+            {!loading && user ? (
               <Button
                 className="w-full rounded-full bg-[#FBAC00] px-4 text-[#030303] shadow-[0_0_20px_rgba(251,172,0,0.15)] transition-all hover:bg-[#FBAC00]/90 hover:shadow-[0_0_28px_rgba(251,172,0,0.25)] focus-visible:ring-2 focus-visible:ring-[#FBAC00]/50"
                 asChild
@@ -291,19 +291,9 @@ function Footer() {
 
 /* ─────────────── Page ─────────────── */
 export default function LandingPage() {
-  const [profile, setProfile] = useState<SellerProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getMe()
-      .then(res => setProfile(res?.profile || null))
-      .catch(() => setProfile(null))
-      .finally(() => setLoading(false));
-  }, []);
-
   return (
     <div className="min-h-screen">
-      <Navbar profile={profile} loading={loading} />
+      <Navbar />
       <main>
         <Hero />
         <ValueSection />

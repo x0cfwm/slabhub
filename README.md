@@ -372,7 +372,7 @@ curl http://localhost:3001/v1/vendor/nami-treasures
 SlabHub uses a session-based authentication with email OTP (magic codes).
 
 ### How it works:
-1.  **Request OTP**: User enters email on `/signup`.
+1.  **Request OTP**: User enters email on `/login`.
 2.  **Generate & Store**: Backend generates a 6-digit code, hashes it, and stores it in the `OtpChallenge` table.
 3.  **Send**: In development, the OTP is printed to the server console.
 4.  **Verify**: User enters the code on `/otp`.
@@ -387,7 +387,7 @@ SlabHub uses a session-based authentication with email OTP (magic codes).
     OTP_SECRET=dev-secret
     ```
 2.  Start the API and Web app.
-3.  Navigate to `http://localhost:3000/signup`.
+3.  Navigate to `http://localhost:3000/login`.
 4.  Enter any email.
 5.  Check the API terminal output for the OTP code.
 6.  Enter the code on the OTP page.

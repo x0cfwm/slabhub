@@ -28,7 +28,7 @@ function OtpContent() {
 
     useEffect(() => {
         if (!email) {
-            router.push("/signup");
+            router.push("/login");
         }
     }, [email, router]);
 
@@ -89,7 +89,7 @@ function OtpContent() {
                         </CardTitle>
                         <CardDescription className="text-sm text-muted-foreground flex flex-col items-center gap-1">
                             <span>We sent a 6-digit code to {maskedEmail}</span>
-                            <Link href="/signup" className="text-foreground flex items-center gap-1 hover:opacity-80 transition-opacity">
+                            <Link href="/login" className="text-foreground flex items-center gap-1 hover:opacity-80 transition-opacity">
                                 <ArrowLeft className="h-3 w-3" /> Change email
                             </Link>
                         </CardDescription>

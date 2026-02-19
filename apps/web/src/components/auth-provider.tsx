@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             await apiLogout();
             setUser(null);
-            router.push("/signup");
+            router.push("/login");
         } catch (error) {
             console.error("Logout failed:", error);
         }
@@ -59,11 +59,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (loading) return;
 
-        const isAuthPage = pathname.startsWith("/signup") || pathname.startsWith("/otp") || pathname === "/auth";
+        const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/otp") || pathname === "/auth";
         const isPublicPage = pathname === "/" || pathname.startsWith("/vendor");
 
         if (!user && !isAuthPage && !isPublicPage) {
-            router.push("/signup");
+            router.push("/login");
         } else if (user && isAuthPage) {
             router.push("/dashboard");
         }

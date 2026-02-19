@@ -2,15 +2,18 @@
 
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { useAuth } from "@/components/auth-provider";
 
 export function WaitlistCTASection() {
+    const { user, loading } = useAuth();
     const [email, setEmail] = useState("");
     const [submitted, setSubmitted] = useState(false);
 
     function handleSubmit(e: FormEvent) {
         e.preventDefault();
         if (!email.trim()) return;
-        console.log("Waitlist signup:", email);
+        console.log("Waitlist registration:", email);
         setSubmitted(true);
     }
 
@@ -28,14 +31,24 @@ export function WaitlistCTASection() {
             <div className="relative mx-auto max-w-2xl text-center">
                 {/* Headline */}
                 <h2 className="font-display text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-                    Join the waitlist and
+                    {user ? "Revisit your shop" : "Join the waitlist and"}
                     <br />
-                    get early access
+                    {user ? "Manage your inventory" : "get early access"}
                 </h2>
 
                 {/* Form */}
                 <div className="mx-auto mt-10 max-w-lg">
-                    {submitted ? (
+                    {loading ? (
+                        <div className="h-[58px]" />
+                    ) : user ? (
+                        <Button
+                            size="lg"
+                            className="rounded-full bg-[#FBAC00] px-10 py-7 text-lg font-bold text-[#030303] shadow-[0_0_20px_rgba(251,172,0,0.15)] transition-all hover:bg-[#FBAC00]/90 hover:shadow-[0_0_32px_rgba(251,172,0,0.3)] focus-visible:ring-2 focus-visible:ring-[#FBAC00]/50"
+                            asChild
+                        >
+                            <Link href="/dashboard">Go to Dashboard</Link>
+                        </Button>
+                    ) : submitted ? (
                         <p className="text-base font-medium text-primary">
                             {"You're on the list."}
                         </p>

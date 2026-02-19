@@ -11,7 +11,7 @@ import { requestOtp } from "@/lib/api";
 import Link from "next/link";
 import { Logo } from "@/components/common/Logo";
 
-export default function SignupPage() {
+export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
@@ -44,10 +44,7 @@ export default function SignupPage() {
                             Welcome to SlabHub
                         </CardTitle>
                         <CardDescription className="text-sm text-muted-foreground">
-                            Already have an account?{" "}
-                            <Link href="/auth" className="text-foreground underline underline-offset-4 hover:opacity-80">
-                                Sign in
-                            </Link>
+                            Enter your email to continue to SlabHub
                         </CardDescription>
                     </div>
                 </CardHeader>
@@ -58,7 +55,7 @@ export default function SignupPage() {
                             <Input
                                 id="email"
                                 type="email"
-                                placeholder="m@example.com"
+                                placeholder="name@example.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -67,7 +64,7 @@ export default function SignupPage() {
                             />
                         </div>
                         <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
-                            {loading ? "Sending..." : "Create Account"}
+                            {loading ? "Sending..." : "Continue"}
                         </Button>
                     </form>
 
