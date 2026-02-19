@@ -4,17 +4,27 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/components/auth-provider";
+import { joinWaitlist } from "@/lib/api";
 
 export function WaitlistCTASection() {
     const { user, loading } = useAuth();
     const [email, setEmail] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
 
-    function handleSubmit(e: FormEvent) {
+    async function handleSubmit(e: FormEvent) {
         e.preventDefault();
-        if (!email.trim()) return;
-        console.log("Waitlist registration:", email);
-        setSubmitted(true);
+        if (!email.trim() || isSubmitting) return;
+
+        setIsSubmitting(true);
+        try {
+            await joinWaitlist(email);
+            setSubmitted(true);
+        } catch (error) {
+            console.error("Failed to join waitlist:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     return (
@@ -64,17 +74,19 @@ export function WaitlistCTASection() {
                                 id="waitlist-email"
                                 type="email"
                                 required
+                                disabled={isSubmitting}
                                 placeholder="Email Address..."
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="min-w-0 flex-1 border-0 bg-transparent py-2 pl-3 pr-2 text-sm outline-none sm:pl-4 sm:text-base text-[#0C0C0C] placeholder:text-[#9CA3AF] dark:text-foreground dark:placeholder:text-muted-foreground"
+                                className="min-w-0 flex-1 border-0 bg-transparent py-2 pl-3 pr-2 text-sm outline-none sm:pl-4 sm:text-base text-[#0C0C0C] placeholder:text-[#9CA3AF] dark:text-foreground dark:placeholder:text-muted-foreground disabled:opacity-50"
                                 aria-label="Email Address"
                             />
                             <Button
                                 type="submit"
-                                className="shrink-0 rounded-full bg-[#FBAC00] px-5 py-2.5 text-sm font-semibold text-[#030303] shadow-[0_0_20px_rgba(251,172,0,0.15)] transition-all hover:bg-[#FBAC00]/90 hover:shadow-[0_0_32px_rgba(251,172,0,0.3)] focus-visible:ring-2 focus-visible:ring-[#FBAC00]/50 sm:px-6"
+                                disabled={isSubmitting}
+                                className="shrink-0 rounded-full bg-[#FBAC00] px-5 py-2.5 text-sm font-semibold text-[#030303] shadow-[0_0_20px_rgba(251,172,0,0.15)] transition-all hover:bg-[#FBAC00]/90 hover:shadow-[0_0_32px_rgba(251,172,0,0.3)] focus-visible:ring-2 focus-visible:ring-[#FBAC00]/50 sm:px-6 disabled:opacity-50"
                             >
-                                Get Early Access
+                                {isSubmitting ? "Joining..." : "Get Early Access"}
                             </Button>
                         </form>
                     )}

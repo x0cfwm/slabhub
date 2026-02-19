@@ -23,7 +23,7 @@ import { ResendMailerService } from './mail/resend-mailer.service';
             },
         },
     ],
-    exports: [AuthService, AuthMiddleware],
+    exports: [AuthService, AuthMiddleware, MailerService],
 })
 export class AuthModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {

@@ -454,3 +454,12 @@ model Media {
   @@index([ownerUserId])
   @@index([createdAt])
 }
+
+model WaitlistParticipant {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}

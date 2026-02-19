@@ -16,6 +16,7 @@ import { GradingModule } from './modules/grading/grading.module';
 import { MarketModule } from './modules/market/market.module';
 import { PriceChartingCrawlerModule } from './modules/pricecharting-crawler/pricecharting-crawler.module';
 import { MediaModule } from './modules/media/media.module';
+import { WaitlistModule } from './modules/waitlist/waitlist.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { z } from 'zod';
@@ -82,6 +83,7 @@ import { z } from 'zod';
         MarketModule,
         PriceChartingCrawlerModule,
         MediaModule,
+        WaitlistModule,
     ],
     providers: [
         {

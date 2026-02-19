@@ -303,3 +303,22 @@ export async function getVendorPage(handle: string): Promise<{ profile: SellerPr
     }
     return response.json();
 }
+
+export async function joinWaitlist(email: string, name?: string) {
+    const url = getFullUrl('/v1/waitlist');
+    const response = await fetch(url.toString(), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, name }),
+        credentials: 'include',
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to join waitlist');
+    }
+
+    return response.json();
+}
