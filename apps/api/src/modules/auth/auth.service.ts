@@ -42,7 +42,7 @@ export class AuthService {
 
     async verifyOtp(email: string, otp: string, userAgent?: string, ip?: string) {
         const normalizedEmail = email.toLowerCase().trim();
-        const isDevMagicCode = process.env.NODE_ENV !== 'production' && otp === '000000';
+        const isDevMagicCode = process.env.NODE_ENV === 'local' && otp === '000000';
 
         // Find active challenge
         const challenge = await this.prisma.otpChallenge.findFirst({
