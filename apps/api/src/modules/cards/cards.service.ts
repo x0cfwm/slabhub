@@ -1,9 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+import { MediaService } from '../media/media.service';
+
 @Injectable()
 export class CardsService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly mediaService: MediaService,
+    ) { }
 
     async listCards(query?: string) {
         const where = query
@@ -54,7 +59,7 @@ export class CardsService {
             cardId: v.cardId,
             variantType: v.variantType,
             language: v.language,
-            imageUrl: v.imageUrl,
+            imageUrl: this.mediaService.ensureCdnUrl(v.imageUrl),
             name: v.name,
             setName: v.setName,
             setNumber: v.setNumber,
@@ -68,12 +73,12 @@ export class CardsService {
             set: card.set,
             rarity: card.rarity,
             cardNumber: card.cardNumber,
-            imageUrl: card.imageUrl,
+            imageUrl: this.mediaService.ensureCdnUrl(card.imageUrl),
             variants: card.cardVariants?.map((v: any) => ({
                 id: v.id,
                 variantType: v.variantType,
                 language: v.language,
-                imageUrl: v.imageUrl,
+                imageUrl: this.mediaService.ensureCdnUrl(v.imageUrl),
             })),
             pricing: card.pricingSnapshot
                 ? {

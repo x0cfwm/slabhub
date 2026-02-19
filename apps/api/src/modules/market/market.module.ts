@@ -4,8 +4,10 @@ import { MarketPricingService } from './market.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PriceChartingParser } from './parsers/pricecharting.parser';
 
+import { MediaModule } from '../media/media.module';
+
 @Module({
-    imports: [PrismaModule],
+    imports: [PrismaModule, MediaModule],
     controllers: [MarketPricingController],
     providers: [MarketPricingService, PriceChartingParser],
     exports: [MarketPricingService],

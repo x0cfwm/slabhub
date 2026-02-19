@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadGatewayException, Logger } from '@nes
 import { PrismaService } from '../prisma/prisma.service';
 import { GetMarketProductsDto } from './dto/market-products.dto';
 import { PriceChartingParser } from './parsers/pricecharting.parser';
+import { MediaService } from '../media/media.service';
 
 @Injectable()
 export class MarketPricingService {
@@ -12,7 +13,8 @@ export class MarketPricingService {
 
     constructor(
         private readonly prisma: PrismaService,
-        private readonly parser: PriceChartingParser
+        private readonly parser: PriceChartingParser,
+        private readonly mediaService: MediaService,
     ) { }
 
     async listProducts(query: GetMarketProductsDto, userId?: string) {
@@ -105,7 +107,7 @@ export class MarketPricingService {
             id: product.id,
             name: product.title || 'Unknown Product',
             number: product.cardNumber,
-            imageUrl: product.imageUrl,
+            imageUrl: this.mediaService.ensureCdnUrl(product.imageUrl),
             set: product.set?.name || 'Unknown Set',
             productType: product.productType,
             priceChartingUrl: product.productUrl,

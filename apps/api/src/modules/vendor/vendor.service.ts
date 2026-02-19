@@ -1,9 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+import { MediaService } from '../media/media.service';
+
 @Injectable()
 export class VendorService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly mediaService: MediaService,
+    ) { }
 
     async getVendorPage(handle: string) {
         // Get seller profile by handle
@@ -68,7 +73,7 @@ export class VendorService {
                     set: card.set,
                     rarity: card.rarity,
                     cardNumber: card.cardNumber,
-                    imageUrl: card.imageUrl,
+                    imageUrl: this.mediaService.ensureCdnUrl(card.imageUrl),
                 };
                 if (card.pricingSnapshot) {
                     pricing = {
@@ -88,7 +93,7 @@ export class VendorService {
                     set: ref.set?.name || 'Unknown',
                     rarity: '',
                     cardNumber: ref.cardNumber || '',
-                    imageUrl: ref.imageUrl || '',
+                    imageUrl: this.mediaService.ensureCdnUrl(ref.imageUrl) || '',
                 };
                 pricing = {
                     rawPrice: ref.rawPrice ? Number(ref.rawPrice) : 0,

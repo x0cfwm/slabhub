@@ -336,7 +336,7 @@ export class InventoryService {
                 set: item.refPriceChartingProduct.set?.name || 'Unknown',
                 rarity: '',
                 cardNumber: item.refPriceChartingProduct.cardNumber || '',
-                imageUrl: item.refPriceChartingProduct.imageUrl || '',
+                imageUrl: this.mediaService.ensureCdnUrl(item.refPriceChartingProduct.imageUrl) || '',
                 rawPrice: item.refPriceChartingProduct.rawPrice ? Number(item.refPriceChartingProduct.rawPrice) : null,
                 sealedPrice: item.refPriceChartingProduct.sealedPrice ? Number(item.refPriceChartingProduct.sealedPrice) : null,
             };

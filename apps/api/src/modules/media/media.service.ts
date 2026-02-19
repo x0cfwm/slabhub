@@ -152,7 +152,10 @@ export class MediaService {
         const cdnBase = this.configService.get<string>('S3_CDN_BASE_URL');
         const publicBase = this.configService.get<string>('S3_PUBLIC_BASE_URL');
 
-        if (options.preferCdn && cdnBase) {
+        // Use CDN if requested OR if CDN is configured and no explicit preference against it
+        const useCdn = options.preferCdn !== undefined ? options.preferCdn : !!cdnBase;
+
+        if (useCdn && cdnBase) {
             return `${cdnBase.replace(/\/$/, '')}/${media.key}`;
         }
 
@@ -172,5 +175,27 @@ export class MediaService {
             const url = new URL(endpoint);
             return `${url.protocol}//${bucket}.${url.host}/${media.key}`;
         }
+    }
+
+    /**
+     * Replaces the public S3 base URL with the CDN base URL if configured.
+     * Useful for strings stored in the database that might contain the full S3 URL.
+     */
+    ensureCdnUrl(url: string | null | undefined): string | null | undefined {
+        if (!url) return url;
+
+        const cdnBase = this.configService.get<string>('S3_CDN_BASE_URL');
+        const publicBase = this.configService.get<string>('S3_PUBLIC_BASE_URL');
+
+        if (!cdnBase || !publicBase) return url;
+
+        const normalizedPublicBase = publicBase.replace(/\/$/, '');
+        const normalizedCdnBase = cdnBase.replace(/\/$/, '');
+
+        if (url.startsWith(normalizedPublicBase)) {
+            return url.replace(normalizedPublicBase, normalizedCdnBase);
+        }
+
+        return url;
     }
 }
