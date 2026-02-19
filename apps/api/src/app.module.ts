@@ -30,12 +30,12 @@ import { z } from 'zod';
         ConfigModule.forRoot({
             isGlobal: true,
             envFilePath: [
-                join(process.cwd(), '.env'),
-                join(process.cwd(), '.env.production.defaults'),
-                join(process.cwd(), '../../.env'),
                 '.env',
                 '.env.production.defaults',
+                'apps/api/.env',
+                'apps/api/.env.production.defaults',
                 '../../.env',
+                '../../.env.production.defaults',
             ],
             validate: (config) => {
                 const schema = z.object({
