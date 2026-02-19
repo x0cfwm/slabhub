@@ -4,6 +4,8 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { MailerService, MailerConsoleService } from './mail/mailer.service';
+import { ResendMailerService } from './mail/resend-mailer.service';
+
 
 @Module({
     imports: [PrismaModule],
@@ -13,7 +15,12 @@ import { MailerService, MailerConsoleService } from './mail/mailer.service';
         AuthMiddleware,
         {
             provide: MailerService,
-            useClass: MailerConsoleService,
+            useFactory: () => {
+                if (process.env.RESEND_API_KEY) {
+                    return new ResendMailerService();
+                }
+                return new MailerConsoleService();
+            },
         },
     ],
     exports: [AuthService, AuthMiddleware],

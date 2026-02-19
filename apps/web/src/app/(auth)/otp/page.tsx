@@ -104,6 +104,7 @@ function OtpContent() {
                             if (val.length === 6) handleVerify(val);
                         }}
                         disabled={loading}
+                        autoFocus
                     >
                         <InputOTPGroup>
                             <InputOTPSlot index={0} className="h-12 w-12 text-lg" />
