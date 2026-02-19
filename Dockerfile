@@ -11,7 +11,7 @@ RUN npm install -g pnpm@9.15.0
 WORKDIR /app
 
 # Копируем файлы зависимостей
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .env.production.defaults ./
 COPY apps/api/package.json ./apps/api/
 
 # Устанавливаем зависимости

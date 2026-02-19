@@ -31,8 +31,10 @@ import { z } from 'zod';
             isGlobal: true,
             envFilePath: [
                 join(process.cwd(), '.env'),
+                join(process.cwd(), '.env.production.defaults'),
                 join(process.cwd(), '../../.env'),
                 '.env',
+                '.env.production.defaults',
                 '../../.env',
             ],
             validate: (config) => {
