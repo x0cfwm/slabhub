@@ -25,6 +25,7 @@ function OtpContent() {
     const { refresh } = useAuth();
     const searchParams = useSearchParams();
     const email = searchParams.get("email") || "";
+    const inviteToken = searchParams.get("invite") || "";
 
     useEffect(() => {
         if (!email) {
@@ -44,7 +45,7 @@ function OtpContent() {
 
         setLoading(true);
         try {
-            await verifyOtp(email, value);
+            await verifyOtp(email, value, inviteToken || undefined);
             toast.success("Welcome back!");
             await refresh();
             // AuthProvider will handle redirect to /dashboard since we're on an isAuthPage
@@ -61,7 +62,7 @@ function OtpContent() {
 
         setResending(true);
         try {
-            await requestOtp(email);
+            await requestOtp(email, inviteToken || undefined);
             toast.success("New code sent!");
             setCooldown(30);
         } catch (error: any) {
@@ -89,7 +90,10 @@ function OtpContent() {
                         </CardTitle>
                         <CardDescription className="text-sm text-muted-foreground flex flex-col items-center gap-1">
                             <span>We sent a 6-digit code to {maskedEmail}</span>
-                            <Link href="/login" className="text-foreground flex items-center gap-1 hover:opacity-80 transition-opacity">
+                            <Link
+                                href={inviteToken ? `/login?invite=${inviteToken}` : "/login"}
+                                className="text-foreground flex items-center gap-1 hover:opacity-80 transition-opacity"
+                            >
                                 <ArrowLeft className="h-3 w-3" /> Change email
                             </Link>
                         </CardDescription>

@@ -212,3 +212,19 @@ export interface MarketSet {
     name: string;
     code?: string | null;
 }
+
+export interface Invite {
+    id: string;
+    tokenHash: string;
+    token?: string; // Original token if just created/retrieved
+    createdAt: string;
+    expiresAt: string;
+    revokedAt: string | null;
+    maxUses: number;
+    usedCount: number;
+}
+
+export interface InviteAcceptance {
+    acceptedAt: string;
+    invitedEmailMasked: string;
+}

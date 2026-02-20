@@ -34,14 +34,14 @@ function getFullUrl(path: string) {
     return new URL(`${API_BASE_URL}${path}`, base);
 }
 
-export async function requestOtp(email: string) {
+export async function requestOtp(email: string, inviteToken?: string) {
     const url = getFullUrl('/v1/auth/email/request-otp');
     const response = await fetch(url.toString(), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, inviteToken }),
         credentials: 'include',
     });
 
@@ -53,14 +53,14 @@ export async function requestOtp(email: string) {
     return response.json();
 }
 
-export async function verifyOtp(email: string, otp: string) {
+export async function verifyOtp(email: string, otp: string, inviteToken?: string) {
     const url = getFullUrl('/v1/auth/email/verify-otp');
     const response = await fetch(url.toString(), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, otp }),
+        body: JSON.stringify({ email, otp, inviteToken }),
         credentials: 'include',
     });
 
@@ -320,5 +320,26 @@ export async function joinWaitlist(email: string, name?: string) {
         throw new Error(errorData.message || 'Failed to join waitlist');
     }
 
+    return response.json();
+}
+
+export async function getMyInvite() {
+    const url = getFullUrl('/v1/invites/me');
+    const response = await fetch(url.toString(), { credentials: 'include' });
+    if (!response.ok) throw new Error('Failed to fetch invite');
+    return response.json();
+}
+
+export async function getAcceptedInvites() {
+    const url = getFullUrl('/v1/invites/accepted');
+    const response = await fetch(url.toString(), { credentials: 'include' });
+    if (!response.ok) throw new Error('Failed to fetch accepted invites');
+    return response.json();
+}
+
+export async function getInvitePreview(token: string) {
+    const url = getFullUrl(`/v1/invites/preview/${token}`);
+    const response = await fetch(url.toString());
+    if (!response.ok) throw new Error('Invite invalid or expired');
     return response.json();
 }

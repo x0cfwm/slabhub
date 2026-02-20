@@ -9,8 +9,8 @@ export class OauthFacebookController {
     constructor(private readonly facebookService: OauthFacebookService) { }
 
     @Get()
-    login(@Res() res: Response) {
-        const url = this.facebookService.getLoginUrl();
+    login(@Res() res: Response, @Query('invite') inviteToken?: string) {
+        const url = this.facebookService.getLoginUrl(inviteToken);
         res.redirect(url);
     }
 
@@ -18,6 +18,7 @@ export class OauthFacebookController {
     async callback(
         @Query('code') code: string,
         @Query('error') error: string,
+        @Query('state') state: string,
         @Req() req: Request,
         @Res() res: Response,
     ) {
@@ -30,7 +31,7 @@ export class OauthFacebookController {
         const ip = req.ip;
         const token = req.cookies[process.env.SESSION_COOKIE_NAME || 'slabhub_session'];
 
-        return this.facebookService.handleCallback(code, res, token, userAgent, ip);
+        return this.facebookService.handleCallback(code, res, state, token, userAgent, ip);
     }
 
     @Delete()

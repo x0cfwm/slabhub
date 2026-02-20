@@ -19,6 +19,8 @@ model User {
   sellerProfile      SellerProfile?
   sessions           Session[]
   oauthIdentities    OAuthIdentity[]
+  invites            Invite[]
+  acceptedInvites    InviteAcceptance[]
 }
 
 /// OTP codes for email verification
@@ -482,4 +484,37 @@ model OAuthIdentity {
 
   @@unique([provider, providerUserId])
   @@index([userId])
+}
+
+model Invite {
+  id            String   @id @default(cuid())
+  inviterUserId String
+  inviter       User     @relation(fields: [inviterUserId], references: [id], onDelete: Cascade)
+
+  tokenHash     String   @unique
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  maxUses       Int      @default(1)
+  usedCount     Int      @default(0)
+
+  acceptedUsers InviteAcceptance[]
+
+  @@index([inviterUserId])
+  @@index([expiresAt])
+}
+
+model InviteAcceptance {
+  id         String   @id @default(cuid())
+  inviteId   String
+  invite     Invite   @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+
+  invitedUserId String
+  invitedUser   User     @relation(fields: [invitedUserId], references: [id], onDelete: Cascade)
+
+  acceptedAt DateTime @default(now())
+  invitedEmailMasked String?
+
+  @@unique([inviteId, invitedUserId])
+  @@index([invitedUserId])
 }

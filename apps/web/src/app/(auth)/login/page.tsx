@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,21 +11,22 @@ import { requestOtp } from "@/lib/api";
 import Link from "next/link";
 import { Logo } from "@/components/common/Logo";
 
-export default function LoginPage() {
+function LoginForm() {
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const inviteToken = searchParams.get("invite");
 
     useEffect(() => {
-        if (typeof window !== "undefined") {
-            const params = new URLSearchParams(window.location.search);
-            const error = params.get("error");
-            if (error) {
-                toast.error(`Login failed: ${error.replace(/_/g, " ")}`);
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
+        const error = searchParams.get("error");
+        if (error) {
+            toast.error(`Login failed: ${error.replace(/_/g, " ")}`);
+            const token = searchParams.get("invite");
+            const newUrl = token ? `/login?invite=${token}` : "/login";
+            window.history.replaceState({}, document.title, newUrl);
         }
-    }, []);
+    }, [searchParams]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -33,9 +34,12 @@ export default function LoginPage() {
 
         setLoading(true);
         try {
-            await requestOtp(email);
+            await requestOtp(email, inviteToken || undefined);
             toast.success("Check your email for the magic code!");
-            router.push(`/otp?email=${encodeURIComponent(email)}`);
+            const otpUrl = inviteToken
+                ? `/otp?email=${encodeURIComponent(email)}&invite=${inviteToken}`
+                : `/otp?email=${encodeURIComponent(email)}`;
+            router.push(otpUrl);
         } catch (error: any) {
             toast.error(error.message || "Failed to send code. Please try again.");
         } finally {
@@ -55,10 +59,21 @@ export default function LoginPage() {
                             Welcome to SlabHub
                         </CardTitle>
                         <CardDescription className="text-sm text-muted-foreground">
-                            Enter your email to continue to SlabHub
+                            {inviteToken
+                                ? "You've been invited! Enter your email to join SlabHub."
+                                : "Enter your email to continue to SlabHub"
+                            }
                         </CardDescription>
                     </div>
                 </CardHeader>
+                {inviteToken && (
+                    <div className="px-6 pb-2">
+                        <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 text-xs text-primary flex items-start gap-2">
+                            <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">!</div>
+                            <p>You are using a priority registration link. After signing up, you will get immediate access.</p>
+                        </div>
+                    </div>
+                )}
                 <CardContent className="space-y-4">
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
@@ -103,7 +118,11 @@ export default function LoginPage() {
                                             variant="outline"
                                             className="h-11 font-medium"
                                             onClick={() => {
-                                                window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/v1/auth/facebook`;
+                                                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+                                                const fbUrl = inviteToken
+                                                    ? `${baseUrl}/v1/auth/facebook?invite=${inviteToken}`
+                                                    : `${baseUrl}/v1/auth/facebook`;
+                                                window.location.href = fbUrl;
                                             }}
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-facebook mr-2 h-4 w-4"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
@@ -142,5 +161,17 @@ export default function LoginPage() {
                 </CardFooter>
             </Card>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="animate-pulse text-muted-foreground">Loading...</div>
+            </div>
+        }>
+            <LoginForm />
+        </Suspense>
     );
 }

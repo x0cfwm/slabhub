@@ -8,7 +8,8 @@ import {
     Package,
     Tag,
     Settings,
-    ExternalLink
+    ExternalLink,
+    Send
 } from "lucide-react";
 
 import { ThemeToggle } from "../common/ThemeToggle";
@@ -92,6 +93,12 @@ export function Sidebar() {
                                     Settings
                                 </Link>
                             </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="/invites" className="cursor-pointer">
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Invites
+                                </Link>
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                                 className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
@@ -107,4 +114,3 @@ export function Sidebar() {
         </div>
     );
 }
-

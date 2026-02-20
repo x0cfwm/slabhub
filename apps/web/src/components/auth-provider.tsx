@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (loading) return;
 
         const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/otp") || pathname === "/auth";
-        const isPublicPage = pathname === "/" || pathname.startsWith("/vendor");
+        const isPublicPage = pathname === "/" || pathname.startsWith("/vendor") || pathname.startsWith("/invite");
 
         if (!user && !isAuthPage && !isPublicPage) {
             router.push("/login");

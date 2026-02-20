@@ -21,7 +21,7 @@ export class AuthController {
 
     @Post('email/request-otp')
     async requestOtp(@Body() dto: RequestOtpDto) {
-        return this.authService.requestOtp(dto.email);
+        return this.authService.requestOtp(dto.email, dto.inviteToken);
     }
 
     @Post('email/verify-otp')
@@ -37,7 +37,8 @@ export class AuthController {
             dto.email,
             dto.otp,
             userAgent,
-            ip
+            ip,
+            dto.inviteToken
         );
 
         CookieUtils.setSessionCookie(res, sessionToken);
@@ -55,4 +56,3 @@ export class AuthController {
         return { ok: true };
     }
 }
-

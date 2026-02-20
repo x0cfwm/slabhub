@@ -18,7 +18,7 @@ export class OauthFacebookService {
         private readonly httpService: HttpService,
     ) { }
 
-    getLoginUrl(): string {
+    getLoginUrl(inviteToken?: string): string {
         const clientId = this.configService.get<string>('FACEBOOK_APP_ID');
         const apiUrl = this.configService.get<string>('NEXT_PUBLIC_API_URL') || `http://localhost:${this.configService.get<string>('PORT')}`;
         const redirectUri = `${apiUrl}/v1/auth/facebook/callback`;
@@ -27,23 +27,39 @@ export class OauthFacebookService {
             throw new BadRequestException('Facebook OAuth is not configured');
         }
 
+        const statePayload: any = {};
+        if (inviteToken) {
+            statePayload.inviteToken = inviteToken;
+        }
+        const state = Buffer.from(JSON.stringify(statePayload)).toString('base64');
+
         const params = new URLSearchParams({
             client_id: clientId,
             redirect_uri: redirectUri,
             scope: 'email,public_profile',
             response_type: 'code',
-            // state: '', // Could add CSRF validation
+            state,
         });
 
         return `https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`;
     }
 
-    async handleCallback(code: string, res: Response, existingSessionToken?: string, userAgent?: string, ip?: string) {
+    async handleCallback(code: string, res: Response, state?: string, existingSessionToken?: string, userAgent?: string, ip?: string) {
         const clientId = this.configService.get<string>('FACEBOOK_APP_ID');
         const clientSecret = this.configService.get<string>('FACEBOOK_APP_SECRET');
         const apiUrl = this.configService.get<string>('NEXT_PUBLIC_API_URL') || `http://localhost:${this.configService.get<string>('PORT')}`;
         const redirectUri = `${apiUrl}/v1/auth/facebook/callback`;
         const webOrigin = this.configService.get<string>('WEB_ORIGIN');
+
+        let inviteToken: string | undefined;
+        if (state) {
+            try {
+                const statePayload = JSON.parse(Buffer.from(state, 'base64').toString());
+                inviteToken = statePayload.inviteToken;
+            } catch (e) {
+                // Ignore invalid state
+            }
+        }
 
         if (!clientId || !clientSecret) {
             return res.redirect(`${webOrigin}/login?error=facebook_not_configured`);
@@ -165,7 +181,20 @@ export class OauthFacebookService {
                             },
                         });
                     } else {
-                        // Create new user
+                        // Create new user (ENFORCE INVITE)
+                        if (!inviteToken) {
+                            return res.redirect(`${webOrigin}/login?error=invitation_required`);
+                        }
+
+                        // Validate invite
+                        const invite = await this.prisma.invite.findUnique({
+                            where: { tokenHash: inviteToken, revokedAt: null },
+                        });
+
+                        if (!invite || invite.expiresAt < new Date()) {
+                            return res.redirect(`${webOrigin}/login?error=invite_invalid_or_expired`);
+                        }
+
                         user = await this.prisma.user.create({
                             data: {
                                 email,
@@ -182,6 +211,20 @@ export class OauthFacebookService {
                                 profileUrl,
                                 profileData: profile,
                             }
+                        });
+
+                        // Record acceptance
+                        await this.prisma.inviteAcceptance.create({
+                            data: {
+                                inviteId: invite.id,
+                                invitedUserId: user.id,
+                                invitedEmailMasked: this.maskEmail(email),
+                            }
+                        });
+
+                        await this.prisma.invite.update({
+                            where: { id: invite.id },
+                            data: { usedCount: { increment: 1 } }
                         });
                     }
                 } else {
@@ -217,5 +260,12 @@ export class OauthFacebookService {
         });
 
         return { ok: true };
+    }
+
+    private maskEmail(email: string): string {
+        const [local, domain] = email.split("@");
+        if (!local || !domain) return email;
+        if (local.length <= 1) return `${local}***@${domain}`;
+        return `${local[0]}***@${domain}`;
     }
 }
