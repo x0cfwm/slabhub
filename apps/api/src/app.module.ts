@@ -71,6 +71,10 @@ import { z } from 'zod';
                     FACEBOOK_APP_ID: z.string().optional(),
                     FACEBOOK_APP_SECRET: z.string().optional(),
                     WEB_ORIGIN: z.string().url().default('http://localhost:3000'),
+                    INVITE_ONLY_REGISTRATION: z
+                        .string()
+                        .default('true')
+                        .transform((v) => v === 'true'),
                 });
                 return schema.parse(config);
             },

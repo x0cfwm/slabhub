@@ -181,18 +181,28 @@ export class OauthFacebookService {
                             },
                         });
                     } else {
-                        // Create new user (ENFORCE INVITE)
-                        if (!inviteToken) {
-                            return res.redirect(`${webOrigin}/login?error=invitation_required`);
-                        }
+                        // Create new user (Respect INVITE_ONLY_REGISTRATION)
+                        const isInviteOnly = this.configService.get<boolean>('INVITE_ONLY_REGISTRATION');
+                        let invite = null;
 
-                        // Validate invite
-                        const invite = await this.prisma.invite.findUnique({
-                            where: { tokenHash: inviteToken, revokedAt: null },
-                        });
+                        if (isInviteOnly) {
+                            if (!inviteToken) {
+                                return res.redirect(`${webOrigin}/login?error=invitation_required`);
+                            }
 
-                        if (!invite || invite.expiresAt < new Date()) {
-                            return res.redirect(`${webOrigin}/login?error=invite_invalid_or_expired`);
+                            // Validate invite
+                            invite = await this.prisma.invite.findUnique({
+                                where: { tokenHash: inviteToken, revokedAt: null },
+                            });
+
+                            if (!invite || invite.expiresAt < new Date()) {
+                                return res.redirect(`${webOrigin}/login?error=invite_invalid_or_expired`);
+                            }
+                        } else if (inviteToken) {
+                            // If not invite only, but token provided, try to find it to record acceptance
+                            invite = await this.prisma.invite.findUnique({
+                                where: { tokenHash: inviteToken, revokedAt: null },
+                            });
                         }
 
                         user = await this.prisma.user.create({
@@ -202,6 +212,7 @@ export class OauthFacebookService {
                                 facebookVerifiedAt: new Date(),
                             }
                         });
+
                         await this.prisma.oAuthIdentity.create({
                             data: {
                                 provider: 'facebook',
@@ -213,19 +224,21 @@ export class OauthFacebookService {
                             }
                         });
 
-                        // Record acceptance
-                        await this.prisma.inviteAcceptance.create({
-                            data: {
-                                inviteId: invite.id,
-                                invitedUserId: user.id,
-                                invitedEmailMasked: this.maskEmail(email),
-                            }
-                        });
+                        // Record acceptance if invite found
+                        if (invite) {
+                            await this.prisma.inviteAcceptance.create({
+                                data: {
+                                    inviteId: invite.id,
+                                    invitedUserId: user.id,
+                                    invitedEmailMasked: this.maskEmail(email),
+                                }
+                            });
 
-                        await this.prisma.invite.update({
-                            where: { id: invite.id },
-                            data: { usedCount: { increment: 1 } }
-                        });
+                            await this.prisma.invite.update({
+                                where: { id: invite.id },
+                                data: { usedCount: { increment: 1 } }
+                            });
+                        }
                     }
                 } else {
                     return res.redirect(`${webOrigin}/login?error=facebook_email_required`);

@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { OtpUtils } from './utils/otp';
 import { MailerService } from './mail/mailer.service';
@@ -13,6 +14,7 @@ export class AuthService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly mailer: MailerService,
+        private readonly configService: ConfigService,
     ) { }
 
     async requestOtp(email: string, inviteToken?: string) {
@@ -25,17 +27,21 @@ export class AuthService {
 
         if (!user) {
             // New user registration attempt
-            if (!inviteToken) {
-                throw new BadRequestException('Invitation required for new accounts');
-            }
+            const isInviteOnly = this.configService.get<boolean>('INVITE_ONLY_REGISTRATION');
 
-            // Validate invite
-            const invite = await this.prisma.invite.findUnique({
-                where: { tokenHash: inviteToken, revokedAt: null },
-            });
+            if (isInviteOnly) {
+                if (!inviteToken) {
+                    throw new BadRequestException('Invitation required for new accounts');
+                }
 
-            if (!invite || invite.expiresAt < new Date()) {
-                throw new BadRequestException('Invalid or expired invitation');
+                // Validate invite
+                const invite = await this.prisma.invite.findUnique({
+                    where: { tokenHash: inviteToken, revokedAt: null },
+                });
+
+                if (!invite || invite.expiresAt < new Date()) {
+                    throw new BadRequestException('Invalid or expired invitation');
+                }
             }
         }
 

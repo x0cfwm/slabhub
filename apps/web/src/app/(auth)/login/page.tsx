@@ -61,7 +61,9 @@ function LoginForm() {
                         <CardDescription className="text-sm text-muted-foreground">
                             {inviteToken
                                 ? "You've been invited! Enter your email to join SlabHub."
-                                : "Enter your email to continue to SlabHub"
+                                : process.env.NEXT_PUBLIC_INVITE_ONLY_REGISTRATION === "true"
+                                    ? "Invitation required to join SlabHub."
+                                    : "Enter your email to continue to SlabHub"
                             }
                         </CardDescription>
                     </div>
