@@ -1,0 +1,37 @@
+PRIVACY POLICY
+
+Last Updated: February 20, 2026
+
+1. INTRODUCTION
+LLC Slabhub ("we," "us," or "our") respects your privacy and is committed to protecting your personal data. This Privacy Policy explains how we collect, use, and safeguard your information when you use Slabhub.
+
+2. INFORMATION WE COLLECT
+- Personal Information: Email address, name, and any other information you provide when creating an account.
+- Usage Data: Information about how you use our Service, including IP addresses, browser types, and pages visited.
+- Third-Party Data: If you link your account with third-party services (e.g., Facebook, Google), we may receive information from those services.
+
+3. HOW WE USE YOUR INFORMATION
+We use your information to:
+- Provide and maintain our Service.
+- Notify you about changes to our Service.
+- Provide customer support.
+- Monitor usage and improve the Service.
+- Detect, prevent, and address technical issues.
+
+4. DATA SECURITY
+We implement appropriate technical and organizational measures to protect your personal data against unauthorized access, alteration, disclosure, or destruction.
+
+5. DATA SHARING
+We do not sell your personal data to third parties. We may share your information with service providers who assist us in operating our Service, or if required by law.
+
+6. YOUR RIGHTS
+You have the right to access, correct, or delete your personal data. You may also object to or restrict certain processing of your data.
+
+7. COOKIES
+We use cookies and similar tracking technologies to track activity on our Service and hold certain information. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent.
+
+8. CHANGES TO THIS POLICY
+We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.
+
+9. CONTACT US
+If you have any questions about this Privacy Policy, please contact us at privacy@slabhub.com.
