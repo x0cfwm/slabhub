@@ -91,6 +91,62 @@ export class ProfileService {
         };
     }
 
+    async deleteAccount(userId: string) {
+        // 1. Force logout by deleting sessions
+        await this.prisma.session.deleteMany({
+            where: { userId },
+        });
+
+        // 2. Count existing removed accounts to get the next number
+        // We look for emails matching the pattern removed-<number>@slabhub.gg
+        const removedUsers = await this.prisma.user.findMany({
+            where: {
+                email: {
+                    startsWith: 'removed-',
+                    endsWith: '@slabhub.gg'
+                }
+            },
+            select: { email: true }
+        });
+
+        let nextNumber = 1;
+        if (removedUsers.length > 0) {
+            const numbers = removedUsers
+                .map(u => {
+                    const match = u.email.match(/removed-(\d+)@slabhub\.gg/);
+                    return match ? parseInt(match[1], 10) : 0;
+                })
+                .filter(n => !isNaN(n));
+
+            if (numbers.length > 0) {
+                nextNumber = Math.max(...numbers) + 1;
+            }
+        }
+
+        const placeholderEmail = `removed-${nextNumber}@slabhub.gg`;
+
+        // 3. Delete the seller profile if it exists (cascade will handle inventory if configured, 
+        // but we'll also delete inventory items explicitly to be safe as user wants to "delete whole profile")
+        await this.prisma.inventoryItem.deleteMany({
+            where: { userId }
+        });
+
+        await this.prisma.sellerProfile.deleteMany({
+            where: { userId }
+        });
+
+        // 4. Update the user to anonymized state
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: {
+                email: placeholderEmail,
+                emailVerifiedAt: null,
+            },
+        });
+
+        return { success: true };
+    }
+
     private transformProfile(seller: any) {
         return {
             id: seller.id,

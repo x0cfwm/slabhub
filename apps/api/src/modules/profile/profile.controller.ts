@@ -3,6 +3,7 @@ import {
     Get,
     Patch,
     Body,
+    Delete,
     NotFoundException,
 } from '@nestjs/common';
 import { ProfileService } from './profile.service';
@@ -36,5 +37,15 @@ export class ProfileController {
             throw new NotFoundException('No authenticated user');
         }
         return this.profileService.updateProfile(userId, dto);
+    }
+
+    @Delete()
+    async deleteAccount(
+        @CurrentUserId() userId: string | undefined,
+    ) {
+        if (!userId) {
+            throw new NotFoundException('No authenticated user');
+        }
+        return this.profileService.deleteAccount(userId);
     }
 }

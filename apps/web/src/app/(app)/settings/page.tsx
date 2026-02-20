@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { SellerProfile } from "@/lib/types";
-import { updateProfile } from "@/lib/api";
+import { updateProfile, deleteAccount } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,7 @@ export default function SettingsPage() {
     const { user, logout: authLogout, refresh } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [isHandleDirty, setIsHandleDirty] = useState(false);
 
     const {
@@ -138,6 +139,24 @@ export default function SettingsPage() {
 
     const handleLogout = async () => {
         await authLogout();
+    };
+
+    const handleDeleteAccount = async () => {
+        if (!window.confirm("ARE YOU SURE? This will permanently delete your inventory, profile and cannot be reversed.")) {
+            return;
+        }
+
+        setDeleting(true);
+        try {
+            await deleteAccount();
+            toast.success("Account deleted. Redirecting...");
+            setTimeout(() => {
+                window.location.href = "/login";
+            }, 2000);
+        } catch (err: any) {
+            toast.error(err.message || "Failed to delete account");
+            setDeleting(false);
+        }
     };
 
     if (loading) return (
@@ -313,6 +332,27 @@ export default function SettingsPage() {
                     </CardContent>
                 </Card>
 
+                <Card className="border-destructive/20 bg-destructive/5 shadow-sm">
+                    <CardHeader>
+                        <CardTitle className="text-destructive flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5" />
+                            Danger Zone
+                        </CardTitle>
+                        <CardDescription>
+                            Permanently delete your account and all associated data. This action cannot be undone.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={handleDeleteAccount}
+                            disabled={deleting}
+                        >
+                            {deleting ? "Deleting..." : "Delete Account"}
+                        </Button>
+                    </CardContent>
+                </Card>
             </form>
         </div>
     );
