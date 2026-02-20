@@ -164,6 +164,12 @@ export default function VendorClient() {
                                 <Badge variant="outline" className="border-border bg-muted/50">
                                     <CreditCard className="h-3 w-3 mr-1" /> {profile.paymentsAccepted.join(", ")}
                                 </Badge>
+                                {(profile as any).facebookVerifiedAt && (
+                                    <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border-blue-500/20 cursor-pointer" onClick={() => window.open((profile as any).facebookProfileUrl, '_blank')}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-facebook mr-1.5 h-3 w-3"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
+                                        Verified profile by Facebook
+                                    </Badge>
+                                )}
                             </div>
                         </div>
                         <div className="flex gap-2 w-full md:w-auto pt-4 md:pt-0">

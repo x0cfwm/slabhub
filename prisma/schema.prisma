@@ -9,14 +9,16 @@ datasource db {
 
 /// User account
 model User {
-  id              String          @id @default(cuid())
-  email           String          @unique
-  emailVerifiedAt DateTime?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  inventoryItems  InventoryItem[]
-  sellerProfile   SellerProfile?
-  sessions        Session[]
+  id                 String          @id @default(cuid())
+  email              String          @unique
+  emailVerifiedAt    DateTime?
+  facebookVerifiedAt DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  inventoryItems     InventoryItem[]
+  sellerProfile      SellerProfile?
+  sessions           Session[]
+  oauthIdentities    OAuthIdentity[]
 }
 
 /// OTP codes for email verification
@@ -272,7 +274,7 @@ model RefPriceChartingProduct {
   grade9Price     Decimal?             @db.Decimal(10, 2)
   priceSource     String?
   priceUpdatedAt  DateTime?
-  lastParsedAt   DateTime?
+  lastParsedAt    DateTime?
   inventoryItems  InventoryItem[]
   sales           PriceChartingSales[]
   set             RefPriceChartingSet? @relation(fields: [setId], references: [id])
@@ -284,17 +286,17 @@ model RefPriceChartingProduct {
 }
 
 model PriceChartingSales {
-  id              String                  @id @default(cuid())
-  productId       String
-  date            DateTime
-  title           String
-  price           Decimal                 @db.Decimal(10, 2)
-  source          String
-  link            String?
-  grade           String?
-  createdAt       DateTime                @default(now())
-  lastSeenAt      DateTime                @default(now())
-  product         RefPriceChartingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id         String                  @id @default(cuid())
+  productId  String
+  date       DateTime
+  title      String
+  price      Decimal                 @db.Decimal(10, 2)
+  source     String
+  link       String?
+  grade      String?
+  createdAt  DateTime                @default(now())
+  lastSeenAt DateTime                @default(now())
+  product    RefPriceChartingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
   @@index([date])
@@ -462,4 +464,22 @@ model WaitlistParticipant {
   createdAt DateTime @default(now())
 
   @@index([email])
+}
+
+/// External OAuth identities (Facebook, etc.)
+model OAuthIdentity {
+  id             String @id @default(cuid())
+  provider       String // e.g., "facebook"
+  providerUserId String // Provider-specific user id (e.g., Facebook user id)
+  userId         String
+  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  email       String? // email returned by provider (normalized)
+  profileUrl  String? // Social profile link to show publicly
+  profileData Json // any useful fields returned from provider
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
 }

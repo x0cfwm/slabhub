@@ -14,6 +14,7 @@ export class VendorService {
         // Get seller profile by handle
         const seller = await this.prisma.sellerProfile.findUnique({
             where: { handle },
+            include: { user: { include: { oauthIdentities: true } } },
         });
 
         if (!seller) {
@@ -151,6 +152,8 @@ export class VendorService {
             return base;
         });
 
+        const facebookIdentity = seller.user?.oauthIdentities?.find(i => i.provider === 'facebook');
+
         return {
             profile: {
                 handle: seller.handle,
@@ -163,6 +166,8 @@ export class VendorService {
                 shippingEnabled: seller.shippingEnabled,
                 socials: seller.socials,
                 wishlistText: seller.wishlistText,
+                facebookVerifiedAt: seller.user?.facebookVerifiedAt?.toISOString() || null,
+                facebookProfileUrl: facebookIdentity?.profileUrl || null,
             },
             items,
             itemCount: items.length,

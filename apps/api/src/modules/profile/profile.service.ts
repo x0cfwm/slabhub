@@ -9,16 +9,20 @@ export class ProfileService {
     async getProfileByUserId(userId: string) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
-            include: { sellerProfile: true },
+            include: { sellerProfile: true, oauthIdentities: true },
         });
 
         if (!user) {
             throw new NotFoundException('User not found');
         }
 
+        const facebookIdentity = user.oauthIdentities?.find(i => i.provider === 'facebook');
+
         return {
             id: user.id,
             email: user.email,
+            facebookVerifiedAt: user.facebookVerifiedAt?.toISOString() || null,
+            facebookProfileUrl: facebookIdentity?.profileUrl || null,
             profile: user.sellerProfile ? this.transformProfile(user.sellerProfile) : null,
         };
     }
@@ -26,7 +30,7 @@ export class ProfileService {
     async getProfile(sellerId: string) {
         const seller = await this.prisma.sellerProfile.findUnique({
             where: { id: sellerId },
-            include: { user: true },
+            include: { user: { include: { oauthIdentities: true } } },
         });
 
         if (!seller) {
@@ -34,9 +38,13 @@ export class ProfileService {
             throw new NotFoundException('Profile not found');
         }
 
+        const facebookIdentity = seller.user?.oauthIdentities?.find(i => i.provider === 'facebook');
+
         return {
             id: seller.user?.id || seller.id,
             email: seller.user?.email || '',
+            facebookVerifiedAt: seller.user?.facebookVerifiedAt?.toISOString() || null,
+            facebookProfileUrl: facebookIdentity?.profileUrl || null,
             profile: this.transformProfile(seller),
         };
     }

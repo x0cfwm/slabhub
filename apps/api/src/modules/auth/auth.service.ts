@@ -103,19 +103,7 @@ export class AuthService {
         });
 
         // Create session
-        const sessionToken = crypto.randomBytes(32).toString('hex');
-        const sessionTokenHash = crypto.createHash('sha256').update(sessionToken).digest('hex');
-        const sessionExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-
-        await this.prisma.session.create({
-            data: {
-                userId: user.id,
-                sessionTokenHash,
-                expiresAt: sessionExpiresAt,
-                userAgent,
-                ip,
-            },
-        });
+        const sessionToken = await this.createSession(user.id, userAgent, ip);
 
         return {
             sessionToken,
@@ -139,6 +127,24 @@ export class AuthService {
         }
 
         return session.user;
+    }
+
+    async createSession(userId: string, userAgent?: string, ip?: string) {
+        const sessionToken = crypto.randomBytes(32).toString('hex');
+        const sessionTokenHash = crypto.createHash('sha256').update(sessionToken).digest('hex');
+        const sessionExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+        await this.prisma.session.create({
+            data: {
+                userId,
+                sessionTokenHash,
+                expiresAt: sessionExpiresAt,
+                userAgent,
+                ip,
+            },
+        });
+
+        return sessionToken;
     }
 
     async logout(token: string) {

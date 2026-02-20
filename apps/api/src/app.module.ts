@@ -17,6 +17,7 @@ import { MarketModule } from './modules/market/market.module';
 import { PriceChartingCrawlerModule } from './modules/pricecharting-crawler/pricecharting-crawler.module';
 import { MediaModule } from './modules/media/media.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
+import { OauthFacebookModule } from './modules/oauth-facebook/oauth-facebook.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { z } from 'zod';
@@ -66,6 +67,9 @@ import { z } from 'zod';
                     S3_ALLOWED_MIME: z
                         .string()
                         .default('image/jpeg,image/png,image/webp'),
+                    FACEBOOK_APP_ID: z.string().optional(),
+                    FACEBOOK_APP_SECRET: z.string().optional(),
+                    WEB_ORIGIN: z.string().url().default('http://localhost:3000'),
                 });
                 return schema.parse(config);
             },
@@ -84,6 +88,7 @@ import { z } from 'zod';
         PriceChartingCrawlerModule,
         MediaModule,
         WaitlistModule,
+        OauthFacebookModule,
     ],
     providers: [
         {
