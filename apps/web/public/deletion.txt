@@ -1,0 +1,21 @@
+DATA DELETION INSTRUCTIONS
+
+Last Updated: February 20, 2026
+
+If you wish to delete your Slabhub account and associated data, please follow these steps:
+
+1. Log in to your account at https://slabhub.gg/login
+2. Navigate to the "Settings" page (https://slabhub.gg/settings)
+3. Scroll down to the "Danger Zone" section.
+4. Click on the "Delete Account" button.
+5. Confirm your decision in the popup dialog.
+
+Alternatively, you can request data deletion by contacting us via email:
+
+Email: privacy@slabhub.com
+Subject: Data Deletion Request
+
+Upon receiving your request via email, we will verify your identity and process the deletion within 30 days.
+
+Note on Data Retention:
+When you delete your account, your personal information (name, email, etc.) will be permanently erased or anonymized. Some non-personal data may be retained for analytical purposes or as required by law.

@@ -295,6 +295,18 @@ export async function updateProfile(patch: any): Promise<SellerProfile> {
     return response.json();
 }
 
+export async function deleteAccount(): Promise<void> {
+    const url = getFullUrl('/v1/me');
+    const response = await fetch(url.toString(), {
+        method: 'DELETE',
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete account');
+    }
+}
+
 export async function getVendorPage(handle: string): Promise<{ profile: SellerProfile, items: InventoryItem[] }> {
     const url = getFullUrl(`/v1/vendor/${handle}`);
     const response = await fetch(url.toString(), { credentials: 'include' });
