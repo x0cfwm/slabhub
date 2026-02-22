@@ -20,7 +20,7 @@ export class OauthFacebookService {
 
     getLoginUrl(inviteToken?: string): string {
         const clientId = this.configService.get<string>('FACEBOOK_APP_ID');
-        const apiUrl = this.configService.get<string>('NEXT_PUBLIC_API_URL') || `http://localhost:${this.configService.get<string>('PORT')}`;
+        const apiUrl = this.getApiUrl();
         const redirectUri = `${apiUrl}/v1/auth/facebook/callback`;
 
         if (!clientId) {
@@ -47,7 +47,7 @@ export class OauthFacebookService {
     async handleCallback(code: string, res: Response, state?: string, existingSessionToken?: string, userAgent?: string, ip?: string) {
         const clientId = this.configService.get<string>('FACEBOOK_APP_ID');
         const clientSecret = this.configService.get<string>('FACEBOOK_APP_SECRET');
-        const apiUrl = this.configService.get<string>('NEXT_PUBLIC_API_URL') || `http://localhost:${this.configService.get<string>('PORT')}`;
+        const apiUrl = this.getApiUrl();
         const redirectUri = `${apiUrl}/v1/auth/facebook/callback`;
         const webOrigin = this.configService.get<string>('WEB_ORIGIN');
 
@@ -273,6 +273,10 @@ export class OauthFacebookService {
         });
 
         return { ok: true };
+    }
+
+    private getApiUrl(): string {
+        return this.configService.get<string>('NEXT_PUBLIC_API_URL') || `http://localhost:${this.configService.get<string>('PORT') || 3001}`;
     }
 
     private maskEmail(email: string): string {

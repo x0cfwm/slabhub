@@ -71,6 +71,7 @@ import { z } from 'zod';
                     FACEBOOK_APP_ID: z.string().optional(),
                     FACEBOOK_APP_SECRET: z.string().optional(),
                     WEB_ORIGIN: z.string().url().default('http://localhost:3000'),
+                    NEXT_PUBLIC_API_URL: z.string().url().optional(),
                     INVITE_ONLY_REGISTRATION: z
                         .string()
                         .default('true')
