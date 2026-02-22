@@ -60,6 +60,7 @@ export interface InventoryBase {
     stage: InventoryStage;
     sortOrder: number;
     notes?: string;
+    photos?: string[];
     sellingDescription?: string;
     refPriceChartingProductId?: string;
     cardProfile?: CardProfile;

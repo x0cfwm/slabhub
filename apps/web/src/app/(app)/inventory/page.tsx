@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { listInventory, getMarketProducts } from "@/lib/api";
 import { InventoryItem, MarketProduct, InventoryStage } from "@/lib/types";
 import { ItemCard } from "@/components/inventory/ItemCard";
@@ -34,6 +35,25 @@ export default function InventoryPage() {
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
 
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+
+    const openItem = (item: InventoryItem) => {
+        setSelectedItem(item);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("itemId", item.id);
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    };
+
+    const closeItem = () => {
+        setSelectedItem(null);
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("itemId");
+        params.delete("tab");
+        router.push(pathname, { scroll: false });
+    };
+
     const fetchData = async () => {
         try {
             const [inv, market] = await Promise.all([
@@ -54,6 +74,16 @@ export default function InventoryPage() {
         const savedView = localStorage.getItem("inventory_view_mode") as "kanban" | "list";
         if (savedView) setViewMode(savedView);
     }, []);
+
+    useEffect(() => {
+        if (!loading && items.length > 0) {
+            const itemId = searchParams.get("itemId");
+            if (itemId) {
+                const item = items.find(i => i.id === itemId);
+                if (item) setSelectedItem(item);
+            }
+        }
+    }, [loading, items, searchParams]);
 
     const handleViewChange = (val: string) => {
         const mode = val as "kanban" | "list";
@@ -155,7 +185,7 @@ export default function InventoryPage() {
                         setItems={setItems}
                         cards={marketProducts as any}
                         onUpdate={fetchData}
-                        onItemClick={setSelectedItem}
+                        onItemClick={openItem}
                     />
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
@@ -166,7 +196,7 @@ export default function InventoryPage() {
                         setItems={setItems}
                         cards={marketProducts as any}
                         onUpdate={fetchData}
-                        onItemClick={setSelectedItem}
+                        onItemClick={openItem}
                     />
                 </div>
             )}
@@ -178,7 +208,7 @@ export default function InventoryPage() {
                     const vid = (selectedItem as any)?.cardVariantId || (selectedItem as any)?.cardProfileId || selectedItem?.refPriceChartingProductId;
                     return c.id === vid;
                 }) as any}
-                onClose={() => setSelectedItem(null)}
+                onClose={closeItem}
                 onUpdate={fetchData}
             />
         </div>
