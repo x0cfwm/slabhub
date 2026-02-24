@@ -23,8 +23,9 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { InventoryItem, CardProfile, InventoryStage, GradingCompany, Condition } from "@/lib/types";
-import { Trash2, Save, Info, ShoppingCart, Award, Calendar, DollarSign, StickyNote, Layers, Plus, Loader2, Check } from "lucide-react";
+import { Trash2, Save, Info, ShoppingCart, Award, Calendar, DollarSign, StickyNote, Layers, Plus, Loader2, Check, ArrowLeft } from "lucide-react";
 import { updateInventoryItem, deleteInventoryItem, uploadFile, deleteFile } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,7 @@ const STAGES: { value: InventoryStage; label: string }[] = [
     { value: "SOLD", label: "Sold" },
 ];
 
-const GRADING_COMPANIES: GradingCompany[] = ["PSA", "BGS", "CGC", "ARS", "SGC"];
+const GRADING_COMPANIES: GradingCompany[] = ["PSA", "BGS"];
 const CONDITIONS: { value: Condition; label: string }[] = [
     { value: "NM", label: "Near Mint" },
     { value: "LP", label: "Lightly Played" },
@@ -92,12 +93,16 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                 createdAt,
                 updatedAt,
                 type,
-                itemType,
                 cardProfile,
                 marketPriceSnapshot,
                 marketPrice,
                 frontMediaUrl,
                 backMediaUrl,
+                // Exclude transformed fields that are not in the backend DTO
+                gradingCompany,
+                grade,
+                gradingMeta,
+                previousCertNumbers,
                 // These are fields that might need special handling or are currently not supported by backend
                 ...patchData
             } = formData as any;
@@ -213,7 +218,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                             />
                                         </div>
 
-                                        {!isSealed && ((formData as any).itemType === "SINGLE_CARD_RAW" || (formData as any).type === "SINGLE_CARD_RAW") && (
+                                        {!isSealed && (formData as any).itemType === "SINGLE_CARD_RAW" && (
                                             <div className="space-y-2 col-span-2">
                                                 <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Condition</Label>
                                                 <Select
@@ -397,50 +402,99 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                 <TabsContent value="grading" className="space-y-6 mt-0">
                                     {((formData as any).itemType === "SINGLE_CARD_GRADED" || (formData as any).type === "SINGLE_CARD_GRADED") ? (
                                         <div className="space-y-6">
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Grading Company</Label>
-                                                    <Select
+                                            {(item as any).type === "SINGLE_CARD_RAW" && (
+                                                <div className="flex items-center justify-between bg-primary/5 rounded-xl p-3 border border-primary/10">
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-xs font-bold text-primary">Conversion Pending</p>
+                                                        <p className="text-[10px] text-muted-foreground italic">Save changes to finalize</p>
+                                                    </div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 text-[10px] font-bold gap-1.5 hover:bg-primary/10"
+                                                        onClick={() => {
+                                                            setFormData({
+                                                                ...formData,
+                                                                itemType: "SINGLE_CARD_RAW" as any,
+                                                                gradeProvider: undefined,
+                                                                gradeValue: undefined,
+                                                                certNumber: undefined
+                                                            } as any);
+                                                        }}
+                                                    >
+                                                        <ArrowLeft className="h-3.5 w-3.5" />
+                                                        Return to Raw
+                                                    </Button>
+                                                </div>
+                                            )}
+                                            <div className="space-y-10">
+                                                <div className="space-y-4">
+                                                    <Label className="text-xs font-bold uppercase tracking-wider">Grader</Label>
+                                                    <RadioGroup
                                                         value={(formData as any).gradeProvider}
                                                         onValueChange={(v) => setFormData({ ...formData, gradeProvider: v as GradingCompany } as any)}
+                                                        className="flex flex-wrap gap-6"
                                                     >
-                                                        <SelectTrigger className="h-11 bg-background/50 border-primary/10">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {GRADING_COMPANIES.map(comp => (
-                                                                <SelectItem key={comp} value={comp}>{comp}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
+                                                        {GRADING_COMPANIES.map(comp => (
+                                                            <div key={comp} className="flex items-center space-x-2">
+                                                                <RadioGroupItem value={comp} id={`grader-${comp}`} />
+                                                                <Label htmlFor={`grader-${comp}`} className="cursor-pointer text-sm font-bold">{comp}</Label>
+                                                            </div>
+                                                        ))}
+                                                    </RadioGroup>
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Grade</Label>
+
+                                                <div className="space-y-4">
+                                                    <Label className="text-xs font-bold uppercase tracking-wider">Certification Number</Label>
                                                     <Input
-                                                        placeholder="e.g. 10"
-                                                        className="h-11 bg-background/50 border-primary/10 font-bold"
-                                                        value={(formData as any).gradeValue || ""}
-                                                        onChange={e => setFormData({ ...formData, gradeValue: e.target.value } as any)}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2 col-span-2">
-                                                    <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Certification Number</Label>
-                                                    <Input
-                                                        placeholder="Enter cert number..."
-                                                        className="h-11 bg-background/50 border-primary/10 font-mono"
+                                                        placeholder="e.g. 112983707"
+                                                        className="h-12 bg-background/50 border-primary/20 font-mono text-lg shadow-sm"
                                                         value={(formData as any).certNumber || ""}
                                                         onChange={e => setFormData({ ...formData, certNumber: e.target.value } as any)}
                                                     />
                                                 </div>
+
+                                                {((formData as any).gradeProvider === "PSA" || (formData as any).gradeProvider === "BGS") && (
+                                                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                                        <Label className="text-xs font-bold uppercase tracking-wider">Grade</Label>
+                                                        <RadioGroup
+                                                            value={(formData as any).gradeValue}
+                                                            onValueChange={(v) => setFormData({ ...formData, gradeValue: v } as any)}
+                                                            className="flex flex-wrap gap-6"
+                                                        >
+                                                            {((formData as any).gradeProvider === "PSA" ? ["10", "9", "8"] : ["10", "9.5", "9"]).map((g) => (
+                                                                <div key={g} className="flex items-center space-x-2">
+                                                                    <RadioGroupItem value={g} id={`grade-${g}`} />
+                                                                    <Label htmlFor={`grade-${g}`} className="cursor-pointer text-sm font-bold">
+                                                                        {(formData as any).gradeProvider} {g}
+                                                                    </Label>
+                                                                </div>
+                                                            ))}
+                                                        </RadioGroup>
+                                                    </div>
+                                                )}
+
+                                                {/* Fallback for other graders or custom input */}
+                                                {(formData as any).gradeProvider && !["PSA", "BGS"].includes((formData as any).gradeProvider) && (
+                                                    <div className="space-y-3">
+                                                        <Label className="text-xs font-bold uppercase tracking-wider">Grade</Label>
+                                                        <Input
+                                                            placeholder="e.g. 10"
+                                                            className="h-11 bg-background/50 border-primary/20 font-bold"
+                                                            value={(formData as any).gradeValue || ""}
+                                                            onChange={e => setFormData({ ...formData, gradeValue: e.target.value } as any)}
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="border border-dashed border-primary/20 rounded-2xl p-8 flex flex-col items-center justify-center text-center space-y-3 bg-primary/5">
                                                 <Layers className="h-8 w-8 text-primary/40" />
                                                 <div className="space-y-1">
-                                                    <p className="font-bold text-sm">Grading Meta & Images</p>
-                                                    <p className="text-xs text-muted-foreground px-4">Upload high-resolution scans of your slab to display on the marketplace.</p>
+                                                    <p className="font-bold text-sm">Grading Images</p>
+                                                    <p className="text-xs text-muted-foreground px-4">Grading proof images are available in the Images tab.</p>
                                                 </div>
-                                                <Button variant="outline" size="sm" className="mt-2" disabled>Upload Scans (Soon)</Button>
+                                                {/** <Button variant="outline" size="sm" className="mt-2" disabled>Upload Scans (Soon)</Button> */}
                                             </div>
                                         </div>
                                     ) : (

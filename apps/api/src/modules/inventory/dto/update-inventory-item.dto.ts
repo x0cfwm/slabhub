@@ -12,9 +12,14 @@ import {
     GradeProvider,
     Condition,
     SealedIntegrity,
+    ItemType,
 } from '@prisma/client';
 
 export class UpdateInventoryItemDto {
+    @IsOptional()
+    @IsEnum(ItemType)
+    itemType?: ItemType;
+
     // For single cards
     @IsOptional()
     @IsString()

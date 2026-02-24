@@ -177,6 +177,7 @@ export class InventoryService {
                         ? { connect: { id: dto.refPriceChartingProductId } }
                         : { disconnect: true }
                 }),
+                itemType: dto.itemType,
                 productName: dto.productName,
                 language: dto.language,
                 setName: dto.setName,
@@ -392,6 +393,8 @@ export class InventoryService {
                 refPriceChartingProductId: item.refPriceChartingProductId,
                 gradingCompany: item.gradeProvider,
                 grade: item.gradeValue,
+                gradeProvider: item.gradeProvider,
+                gradeValue: item.gradeValue,
                 certNumber: item.certNumber,
                 gradingCost: item.gradingCost ? Number(item.gradingCost) : null,
                 slabImages: item.slabImages || {},
