@@ -227,7 +227,7 @@ export default function VendorClient() {
                                         <Card className="relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md border-primary/10 bg-card/50 backdrop-blur-md">
                                             <div className="aspect-[3/4] overflow-hidden relative bg-accent/5">
                                                 <img
-                                                    src={marketProduct?.imageUrl || "https://placehold.co/300x400?text=Asset"}
+                                                    src={item.photos?.[0] || (item as any).frontMediaUrl || marketProduct?.imageUrl || "https://placehold.co/300x400?text=Asset"}
                                                     className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-110 p-4"
                                                     alt={displayName}
                                                 />
@@ -313,7 +313,7 @@ export default function VendorClient() {
 
                                     <div className="flex justify-center bg-accent/20 rounded-2xl p-6 border border-primary/5">
                                         <img
-                                            src={mp?.imageUrl || `https://placehold.co/300x400?text=${isS ? 'Sealed' : 'Card'}`}
+                                            src={selectedItem.photos?.[0] || (selectedItem as any).frontMediaUrl || mp?.imageUrl || `https://placehold.co/300x400?text=${isS ? 'Sealed' : 'Card'}`}
                                             alt={name}
                                             className="h-72 rounded-xl shadow-2xl object-contain"
                                         />

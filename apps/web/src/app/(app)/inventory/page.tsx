@@ -52,6 +52,7 @@ function InventoryContent() {
         params.delete("itemId");
         params.delete("tab");
         router.push(pathname, { scroll: false });
+        fetchData();
     };
 
     const fetchData = async () => {

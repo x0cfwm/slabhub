@@ -104,8 +104,6 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
 
             await updateInventoryItem(item.id, patchData);
             toast.success("Item updated");
-            onUpdate();
-            onClose();
         } catch (err) {
             console.error("Update failed:", err);
             toast.error("Failed to update item");

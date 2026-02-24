@@ -82,7 +82,7 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick }:
                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                     <div className="w-12 h-16 rounded-lg overflow-hidden border bg-accent/20 flex items-center justify-center">
                                         <img
-                                            src={marketProduct?.imageUrl || `https://placehold.co/100x150?text=${isSealed ? '📦' : '🎴'}`}
+                                            src={item.photos?.[0] || (item as any).frontMediaUrl || (marketProduct as any)?.imageUrl || `https://placehold.co/100x150?text=${isSealed ? '📦' : '🎴'}`}
                                             alt={displayName}
                                             className="w-full h-full object-contain p-1"
                                         />

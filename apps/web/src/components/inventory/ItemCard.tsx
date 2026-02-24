@@ -82,7 +82,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
                 <AspectRatio ratio={2.5 / 3.5}>
                     <div className="flex items-center justify-center w-full h-full bg-accent/10 relative overflow-hidden">
                         <img
-                            src={finalProfile?.imageUrl || `https://placehold.co/300x400?text=${isSealed ? 'Sealed' : 'Card'}`}
+                            src={item.photos?.[0] || (item as any).frontMediaUrl || finalProfile?.imageUrl || `https://placehold.co/300x400?text=${isSealed ? 'Sealed' : 'Card'}`}
                             alt={displayName}
                             className={cn(
                                 "object-contain w-full h-full transition-all duration-500 group-hover:scale-110 p-2",

@@ -54,6 +54,8 @@ export class VendorService {
                         set: true,
                     },
                 },
+                frontMedia: true,
+                backMedia: true,
             },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         });
@@ -118,6 +120,13 @@ export class VendorService {
                 refPriceChartingProductId: item.refPriceChartingProductId,
                 cardProfile,
                 pricing,
+                photos: item.photos || [],
+                frontMediaUrl: item.frontMedia
+                    ? this.mediaService.getPublicUrl(item.frontMedia, { preferCdn: true })
+                    : null,
+                backMediaUrl: item.backMedia
+                    ? this.mediaService.getPublicUrl(item.backMedia, { preferCdn: true })
+                    : null,
             };
 
             if (item.itemType === 'SINGLE_CARD_RAW') {
