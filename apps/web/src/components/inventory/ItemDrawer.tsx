@@ -109,6 +109,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
 
             await updateInventoryItem(item.id, patchData);
             toast.success("Item updated");
+            await onUpdate();
         } catch (err) {
             console.error("Update failed:", err);
             toast.error("Failed to update item");
@@ -564,6 +565,38 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                             >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Remove From Portfolio
+                            </Button>
+                        )}
+                        {activeTab === "grading" && (item as any).type === "SINGLE_CARD_GRADED" && (
+                            <Button
+                                variant="ghost"
+                                className="w-full h-12 text-sm font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                onClick={async () => {
+                                    if (!item) return;
+                                    if (window.confirm("Are you sure you want to revert this asset to Raw? Certification history and grading images will be lost.")) {
+                                        setLoading(true);
+                                        try {
+                                            await updateInventoryItem(item.id, {
+                                                itemType: "SINGLE_CARD_RAW",
+                                                gradeProvider: null,
+                                                gradeValue: null,
+                                                certNumber: null,
+                                                gradingCost: null,
+                                                slabImages: {}
+                                            });
+                                            toast.success("Asset reverted to Raw");
+                                            await onUpdate();
+                                        } catch (err: any) {
+                                            toast.error(err.message || "Failed to revert asset");
+                                        } finally {
+                                            setLoading(false);
+                                        }
+                                    }
+                                }}
+                                disabled={loading}
+                            >
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Revert Asset to Raw
                             </Button>
                         )}
                     </SheetFooter>
