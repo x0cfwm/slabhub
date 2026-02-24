@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { Suspense, useEffect, useState, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { listInventory, getMarketProducts } from "@/lib/api";
 import { InventoryItem, MarketProduct, InventoryStage } from "@/lib/types";
@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { COLUMNS } from "@/components/inventory/dnd";
 
-export default function InventoryPage() {
+function InventoryContent() {
     const [items, setItems] = useState<InventoryItem[]>([]);
     const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
     const [loading, setLoading] = useState(true);
@@ -123,19 +123,7 @@ export default function InventoryPage() {
     }, [items, marketProducts, search, stageFilter]);
 
     if (loading) {
-        return (
-            <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                    <Skeleton className="h-10 w-64" />
-                    <Skeleton className="h-10 w-32" />
-                </div>
-                <div className="grid grid-cols-6 gap-4 h-[600px]">
-                    {[...Array(6)].map((_, i) => (
-                        <Skeleton key={i} className="h-full w-full rounded-xl" />
-                    ))}
-                </div>
-            </div>
-        );
+        return <InventorySkeleton />;
     }
 
     return (
@@ -214,3 +202,28 @@ export default function InventoryPage() {
         </div>
     );
 }
+
+function InventorySkeleton() {
+    return (
+        <div className="space-y-4">
+            <div className="flex justify-between items-center">
+                <Skeleton className="h-10 w-64" />
+                <Skeleton className="h-10 w-32" />
+            </div>
+            <div className="grid grid-cols-6 gap-4 h-[600px]">
+                {[...Array(6)].map((_, i) => (
+                    <Skeleton key={i} className="h-full w-full rounded-xl" />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+export default function InventoryPage() {
+    return (
+        <Suspense fallback={<InventorySkeleton />}>
+            <InventoryContent />
+        </Suspense>
+    );
+}
+
