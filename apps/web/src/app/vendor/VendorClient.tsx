@@ -27,7 +27,8 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, MessageSquare, Info } from "lucide-react";
+import { ShoppingCart, MessageSquare, Info, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function VendorClient() {
     const searchParams = useSearchParams();
@@ -39,6 +40,36 @@ export default function VendorClient() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+    const [activePhoto, setActivePhoto] = useState<string | null>(null);
+
+    const allPhotos = useMemo(() => {
+        if (!selectedItem) return [];
+        const uploadedPhotos = selectedItem.photos?.filter(Boolean) || [];
+
+        if (uploadedPhotos.length > 0) {
+            return uploadedPhotos;
+        }
+
+        // Fallback to default imagery only if no custom photos are uploaded
+        const front = (selectedItem as any).frontMediaUrl;
+        const vid = (selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId;
+        const mp = marketProducts.find(p => p.id === vid);
+        const bProfileImage = mp?.imageUrl;
+
+        const res = [];
+        if (front) res.push(front);
+        if (bProfileImage && !res.includes(bProfileImage)) res.push(bProfileImage);
+
+        return res;
+    }, [selectedItem, marketProducts]);
+
+    useEffect(() => {
+        if (allPhotos.length > 0) {
+            setActivePhoto(allPhotos[0]);
+        } else {
+            setActivePhoto(null);
+        }
+    }, [allPhotos]);
 
     useEffect(() => {
         if (!handle) {
@@ -228,25 +259,20 @@ export default function VendorClient() {
                                             <div className="aspect-[3/4] overflow-hidden relative bg-accent/5">
                                                 <img
                                                     src={item.photos?.[0] || (item as any).frontMediaUrl || marketProduct?.imageUrl || "https://placehold.co/300x400?text=Asset"}
-                                                    className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-110 p-4"
+                                                    className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-110"
                                                     alt={displayName}
                                                 />
-                                                <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black via-black/50 to-transparent">
-                                                    <p className="text-[10px] text-primary font-black uppercase tracking-[0.2em] truncate">{marketProduct?.set || "TCG Asset"}</p>
+                                                <div className="absolute inset-x-0 bottom-0 px-3 py-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+                                                    <p className="text-[9px] text-primary font-black uppercase tracking-[0.2em] truncate">{marketProduct?.set || "TCG Asset"}</p>
                                                 </div>
                                             </div>
-                                            <CardContent className="p-4 space-y-4">
+                                            <CardContent className="p-3 space-y-3">
                                                 <div>
-                                                    <h4 className="font-bold text-sm tracking-tight truncate group-hover:text-primary transition-colors">{displayName}</h4>
-                                                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                                                    <h4 className="font-bold text-[13px] tracking-tight group-hover:text-primary transition-colors leading-tight">{displayName}</h4>
+                                                    <div className="flex items-center gap-1 mt-1.5 flex-wrap">
                                                         {item.quantity > 1 && (
                                                             <Badge className="text-[9px] h-4 px-2 uppercase font-black bg-primary text-black">
                                                                 {item.quantity} In Stock
-                                                            </Badge>
-                                                        )}
-                                                        {(item as any).grade && (
-                                                            <Badge variant="outline" className="text-[9px] h-4 px-2 font-bold border-primary/20 bg-primary/5 text-primary">
-                                                                {(item as any).gradingCompany} {(item as any).grade}
                                                             </Badge>
                                                         )}
                                                         {(item as any).condition && !isSealed && (
@@ -257,11 +283,16 @@ export default function VendorClient() {
                                                     </div>
                                                 </div>
 
-                                                <div className="pt-3 border-t border-border flex items-end">
+                                                <div className="pt-2.5 border-t border-border flex items-center justify-between">
                                                     <div className="text-left">
-                                                        <span className="text-[10px] text-primary uppercase font-black block leading-none mb-0.5">Price</span>
-                                                        <span className="text-lg font-black tracking-tighter">${item.listingPrice?.toFixed(2) || "0.00"}</span>
+                                                        <span className="text-[9px] text-primary uppercase font-black block leading-none mb-1">Price</span>
+                                                        <span className="text-base font-black tracking-tighter leading-none">${item.listingPrice?.toFixed(2) || "0.00"}</span>
                                                     </div>
+                                                    {(item as any).grade && (
+                                                        <Badge variant="outline" className="text-[10px] h-5 px-2 font-bold border-primary/20 bg-primary/5 text-primary">
+                                                            {(item as any).gradingCompany} {(item as any).grade}
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                             </CardContent>
                                         </Card>
@@ -311,12 +342,59 @@ export default function VendorClient() {
                                         </SheetDescription>
                                     </SheetHeader>
 
-                                    <div className="flex justify-center bg-accent/20 rounded-2xl p-6 border border-primary/5">
-                                        <img
-                                            src={selectedItem.photos?.[0] || (selectedItem as any).frontMediaUrl || mp?.imageUrl || `https://placehold.co/300x400?text=${isS ? 'Sealed' : 'Card'}`}
-                                            alt={name}
-                                            className="h-72 rounded-xl shadow-2xl object-contain"
-                                        />
+                                    <div className="space-y-4">
+                                        <div className="flex justify-center bg-accent/20 rounded-2xl p-6 border border-primary/5 relative group">
+                                            <img
+                                                src={activePhoto || `https://placehold.co/300x400?text=${isS ? 'Sealed' : 'Card'}`}
+                                                alt={name}
+                                                className="h-72 rounded-xl shadow-2xl object-contain transition-all duration-300"
+                                            />
+                                            {allPhotos.length > 1 && (
+                                                <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 flex justify-between opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="icon"
+                                                        className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm pointer-events-auto"
+                                                        onClick={() => {
+                                                            const idx = allPhotos.indexOf(activePhoto || "");
+                                                            const prevIdx = (idx - 1 + allPhotos.length) % allPhotos.length;
+                                                            setActivePhoto(allPhotos[prevIdx]);
+                                                        }}
+                                                    >
+                                                        <ChevronLeft className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="icon"
+                                                        className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm pointer-events-auto"
+                                                        onClick={() => {
+                                                            const idx = allPhotos.indexOf(activePhoto || "");
+                                                            const nextIdx = (idx + 1) % allPhotos.length;
+                                                            setActivePhoto(allPhotos[nextIdx]);
+                                                        }}
+                                                    >
+                                                        <ChevronRight className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {allPhotos.length > 1 && (
+                                            <div className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-hide">
+                                                {allPhotos.map((photo, i) => (
+                                                    <button
+                                                        key={i}
+                                                        onClick={() => setActivePhoto(photo)}
+                                                        className={cn(
+                                                            "relative flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden border-2 transition-all",
+                                                            activePhoto === photo ? "border-primary ring-2 ring-primary/20" : "border-transparent opacity-60 hover:opacity-100"
+                                                        )}
+                                                    >
+                                                        <img src={photo} className="w-full h-full object-cover" alt={`${name} ${i + 1}`} />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">

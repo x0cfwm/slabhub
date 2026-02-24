@@ -132,8 +132,8 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="sm:max-w-xl overflow-y-auto bg-card/95 backdrop-blur-xl border-l-primary/10 p-0 flex flex-col">
-                <div className="p-8 pb-0">
+            <SheetContent className="sm:max-w-xl bg-card/95 backdrop-blur-xl border-l-primary/10 p-0 flex flex-col h-full">
+                <div className="flex-1 overflow-y-auto p-8 pb-0">
                     <SheetHeader className="px-0 mb-8 border-b border-primary/5 pb-8">
                         <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start text-center sm:text-left">
                             <div className="w-24 h-32 flex-shrink-0 rounded-xl overflow-hidden border bg-muted/30 shadow-md ring-1 ring-primary/5">
@@ -535,16 +535,16 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                     </div>
                 </div>
 
-                <div className="mt-auto border-t border-primary/10 bg-background/50 backdrop-blur-md p-8 pt-6">
-                    <SheetFooter className="flex flex-col gap-3 sm:flex-col">
-                        <Button className="w-full h-12 text-md font-bold shadow-[0_0_20px] shadow-primary/20" onClick={handleSave} disabled={loading}>
+                <div className="mt-auto border-t border-primary/10 bg-background/50 backdrop-blur-md p-4">
+                    <SheetFooter className="flex flex-col gap-2 sm:flex-col">
+                        <Button className="w-full h-11 text-md font-bold shadow-[0_0_20px] shadow-primary/20" onClick={handleSave} disabled={loading}>
                             {loading ? "Saving..." : "Save Changes"}
-                            <Save className="ml-2 h-5 w-5" />
+                            <Save className="ml-2 h-4 w-4" />
                         </Button>
                         {activeTab === "basic" && (
                             <Button
                                 variant="ghost"
-                                className="w-full h-12 text-sm font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                className="w-full h-9 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 onClick={async () => {
                                     if (!item) return;
                                     if (window.confirm("Are you sure you want to remove this asset from your portfolio?")) {
@@ -570,10 +570,10 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                         {activeTab === "grading" && (item as any).type === "SINGLE_CARD_GRADED" && (
                             <Button
                                 variant="ghost"
-                                className="w-full h-12 text-sm font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                className="w-full h-9 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 onClick={async () => {
                                     if (!item) return;
-                                    if (window.confirm("Are you sure you want to revert this asset to Raw? Certification history and grading images will be lost.")) {
+                                    if (window.confirm("Are you sure you want to revert this asset to Raw? Certification history will be lost.")) {
                                         setLoading(true);
                                         try {
                                             await updateInventoryItem(item.id, {

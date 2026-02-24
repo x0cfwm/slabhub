@@ -85,7 +85,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
                             src={item.photos?.[0] || (item as any).frontMediaUrl || finalProfile?.imageUrl || `https://placehold.co/300x400?text=${isSealed ? 'Sealed' : 'Card'}`}
                             alt={displayName}
                             className={cn(
-                                "object-contain w-full h-full transition-all duration-500 group-hover:scale-110 p-2",
+                                "object-contain w-full h-full transition-all duration-500 group-hover:scale-110",
                                 variantType === "ALTERNATE_ART" && "hue-rotate-15 saturate-110",
                                 variantType === "PARALLEL_FOIL" && "contrast-125 brightness-110"
                             )}
