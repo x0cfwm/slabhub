@@ -96,6 +96,8 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                 cardProfile,
                 marketPriceSnapshot,
                 marketPrice,
+                frontMediaUrl,
+                backMediaUrl,
                 // These are fields that might need special handling or are currently not supported by backend
                 ...patchData
             } = formData as any;
