@@ -55,6 +55,8 @@ export default function AddItemPage() {
         quantity: 1,
         variantType: "NORMAL" as VariantType,
         language: "EN" as Language,
+        listingPrice: 0,
+        sellingDescription: "",
         configuration: {
             containsBoosters: false,
             containsFixedCards: false,
@@ -113,6 +115,9 @@ export default function AddItemPage() {
                 photos: uploadedPhotos,
                 refPriceChartingProductId: formData.refPriceChartingProductId,
                 itemType: category,
+                // Clean up listing data if not LISTED
+                listingPrice: formData.stage === "LISTED" ? (parseFloat(formData.listingPrice) || 0) : undefined,
+                sellingDescription: formData.stage === "LISTED" ? formData.sellingDescription : undefined,
             };
             await createInventoryItem(itemToSave as any);
             toast.success("Item added to inventory");
@@ -584,10 +589,34 @@ export default function AddItemPage() {
                                         <SelectItem value="ACQUIRED">Acquired</SelectItem>
                                         <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
                                         <SelectItem value="IN_STOCK">In Stock</SelectItem>
+                                        <SelectItem value="LISTED">Listed (For Sale)</SelectItem>
                                         <SelectItem value="BEING_GRADED">Grading In-Progress</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
+
+                            {formData.stage === "LISTED" && (
+                                <>
+                                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                        <Label>Listing Price ($)</Label>
+                                        <Input
+                                            type="number"
+                                            placeholder="0.00"
+                                            className="border-primary/50"
+                                            value={formData.listingPrice || ""}
+                                            onChange={e => setFormData({ ...formData, listingPrice: parseFloat(e.target.value) })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                        <Label>Public Description (Optional)</Label>
+                                        <Input
+                                            placeholder="e.g. Mint condition PSA 10..."
+                                            value={formData.sellingDescription || ""}
+                                            onChange={e => setFormData({ ...formData, sellingDescription: e.target.value })}
+                                        />
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </CardContent>
                     <div className="p-6 border-t flex justify-between bg-card/50">

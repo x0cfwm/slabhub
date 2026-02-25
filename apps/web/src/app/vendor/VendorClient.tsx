@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { getVendorPage } from "@/lib/api";
 import { InventoryItem, MarketProduct, SellerProfile } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -46,7 +46,28 @@ export default function VendorClient() {
     const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const router = useRouter();
+    const pathname = usePathname();
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+    const selectedItemIdFromUrl = searchParams.get("itemId");
+
+    // Sync selected item state with URL
+    useEffect(() => {
+        if (items.length > 0) {
+            const item = items.find(i => i.id === selectedItemIdFromUrl);
+            setSelectedItem(item || null);
+        }
+    }, [items, selectedItemIdFromUrl]);
+
+    const handleOpenItem = (item: InventoryItem | null) => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (item) {
+            params.set("itemId", item.id);
+        } else {
+            params.delete("itemId");
+        }
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    };
     const [activePhoto, setActivePhoto] = useState<string | null>(null);
     const [isZoomed, setIsZoomed] = useState(false);
     const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
@@ -112,7 +133,6 @@ export default function VendorClient() {
                     .filter(i => (i as any).cardProfile)
                     .map(i => {
                         const cp = (i as any).cardProfile;
-                        const pr = (i as any).pricing;
                         return {
                             id: (i as any).cardVariantId || (i as any).refPriceChartingProductId,
                             name: cp.name,
@@ -121,10 +141,10 @@ export default function VendorClient() {
                             rarity: cp.rarity,
                             cardNumber: cp.cardNumber,
                             imageUrl: cp.imageUrl,
-                            rawPrice: pr?.rawPrice || 0,
-                            sealedPrice: pr?.sealedPrice || 0,
-                            lastUpdated: pr?.updatedAt || new Date().toISOString(),
-                            source: pr?.source || "Unknown",
+                            rawPrice: cp.rawPrice || 0,
+                            sealedPrice: cp.sealedPrice || 0,
+                            lastUpdated: (i as any).updatedAt || new Date().toISOString(),
+                            source: "PriceCharting",
                         } as MarketProduct;
                     });
 
@@ -157,6 +177,32 @@ export default function VendorClient() {
             return card?.name.toLowerCase().includes(s) || card?.set.toLowerCase().includes(s);
         });
     }, [items, marketProducts, search]);
+
+    const currentItemIndex = useMemo(() =>
+        selectedItem ? filteredItems.findIndex(i => i.id === selectedItem.id) : -1
+        , [selectedItem, filteredItems]);
+
+    const handleNextItem = () => {
+        if (currentItemIndex === -1 || filteredItems.length <= 1) return;
+        const nextIndex = (currentItemIndex + 1) % filteredItems.length;
+        handleOpenItem(filteredItems[nextIndex]);
+    };
+
+    const handlePrevItem = () => {
+        if (currentItemIndex === -1 || filteredItems.length <= 1) return;
+        const prevIndex = (currentItemIndex - 1 + filteredItems.length) % filteredItems.length;
+        handleOpenItem(filteredItems[prevIndex]);
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!selectedItem || isZoomed) return;
+            if (e.key === "ArrowRight") handleNextItem();
+            if (e.key === "ArrowLeft") handlePrevItem();
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [selectedItem, currentItemIndex, filteredItems]);
 
     if (loading) return <div className="p-8 text-center text-primary-foreground/50">Loading public page...</div>;
     if (!profile) return <div className="p-8 text-center text-primary-foreground/50">Vendor not found</div>;
@@ -279,7 +325,7 @@ export default function VendorClient() {
                                 const displayName = isSealed ? (item as any).productName : marketProduct?.name || "Unknown Asset";
 
                                 return (
-                                    <div key={item.id} className="group relative cursor-pointer" onClick={() => setSelectedItem(item)}>
+                                    <div key={item.id} className="group relative cursor-pointer" onClick={() => handleOpenItem(item)}>
                                         <div className="absolute -inset-0.5 bg-gradient-to-b from-primary/20 to-transparent rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
                                         <Card className="relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md border-primary/10 bg-card/50 backdrop-blur-md">
                                             <div className="aspect-[3/4] overflow-hidden relative bg-accent/5">
@@ -350,204 +396,228 @@ export default function VendorClient() {
                 </Tabs>
             </div>
 
-            <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
-                <DialogContent showCloseButton={false} className="max-w-[98vw] md:max-w-7xl w-full h-[95vh] md:h-[90vh] p-0 gap-0 border-none bg-black overflow-hidden rounded-none md:rounded-[2.5rem] shadow-2xl">
-                    {selectedItem ? (
-                        <div className="flex flex-col md:flex-row h-full w-full">
-                            {/* Left Side: Immersive Image Gallery */}
-                            <div className="flex-[1.4] relative bg-[#0a0a0a] flex flex-col min-h-0">
-                                {/* Main Image Area */}
-                                <div className="flex-1 relative flex items-center justify-center p-4 md:p-12 overflow-hidden group">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50" />
+            <Dialog open={!!selectedItem} onOpenChange={(open) => !open && handleOpenItem(null)}>
+                <DialogContent showCloseButton={false} className="max-w-[98vw] md:max-w-7xl w-full h-[95vh] md:h-[85vh] p-0 gap-0 border-none bg-black overflow-hidden rounded-none md:rounded-[2.5rem] shadow-2xl">
+                    <div className="relative h-full w-full flex flex-col overflow-hidden">
+                        {selectedItem ? (
+                            <div className="flex flex-col md:flex-row h-full w-full min-h-0">
+                                {/* Left Side: Immersive Image Gallery */}
+                                <div className="flex-[1.4] relative bg-[#0a0a0a] flex flex-col h-full overflow-hidden border-b md:border-b-0">
+                                    {/* Main Image Area */}
+                                    <div className="flex-1 relative flex items-center justify-center p-4 md:p-12 overflow-hidden group">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50" />
 
-                                    <div
-                                        className="absolute inset-0 flex items-center justify-center p-6 md:p-12 z-10 transition-all duration-700 animate-in fade-in zoom-in-95"
-                                        onMouseMove={handleMouseMove}
-                                        onMouseLeave={() => setIsZoomed(false)}
-                                    >
                                         <div
-                                            className={cn(
-                                                "relative transition-transform duration-500 ease-out cursor-zoom-in flex items-center justify-center w-full h-full",
-                                                isZoomed && "scale-[2.5] cursor-zoom-out"
-                                            )}
-                                            style={isZoomed ? {
-                                                transformOrigin: `${mousePos.x}% ${mousePos.y}%`,
-                                            } : undefined}
-                                            onClick={() => setIsZoomed(!isZoomed)}
+                                            className="absolute inset-0 flex items-center justify-center p-6 md:p-12 z-10 transition-all duration-700 animate-in fade-in zoom-in-95"
+                                            onMouseMove={handleMouseMove}
+                                            onMouseLeave={() => setIsZoomed(false)}
                                         >
-                                            <img
-                                                src={activePhoto || `https://placehold.co/800x1200?text=${((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? 'Sealed' : 'Card'}`}
-                                                alt={((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? (selectedItem as any).productName : (marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || "Asset Details")}
-                                                className="max-w-full max-h-full w-auto h-auto object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.8)] rounded-lg pointer-events-none"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Navigation Arrows */}
-                                    {allPhotos.length > 1 && (
-                                        <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-20">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-12 w-12 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-xl pointer-events-auto border border-white/10 text-white transition-all hover:scale-110 active:scale-95"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const idx = allPhotos.indexOf(activePhoto || "");
-                                                    const prevIdx = (idx - 1 + allPhotos.length) % allPhotos.length;
-                                                    setActivePhoto(allPhotos[prevIdx]);
-                                                }}
+                                            <div
+                                                className={cn(
+                                                    "relative transition-transform duration-500 ease-out cursor-zoom-in flex items-center justify-center w-full h-full",
+                                                    isZoomed && "scale-[2.5] cursor-zoom-out"
+                                                )}
+                                                style={isZoomed ? {
+                                                    transformOrigin: `${mousePos.x}% ${mousePos.y}%`,
+                                                } : undefined}
+                                                onClick={() => setIsZoomed(!isZoomed)}
                                             >
-                                                <ChevronLeft className="h-8 w-8" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-12 w-12 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-xl pointer-events-auto border border-white/10 text-white transition-all hover:scale-110 active:scale-95"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const idx = allPhotos.indexOf(activePhoto || "");
-                                                    const nextIdx = (idx + 1) % allPhotos.length;
-                                                    setActivePhoto(allPhotos[nextIdx]);
-                                                }}
-                                            >
-                                                <ChevronRight className="h-8 w-8" />
-                                            </Button>
-                                        </div>
-                                    )}
-
-                                    {/* Bottom Thumbnails Strip */}
-                                    {allPhotos.length > 1 && (
-                                        <div className="absolute bottom-8 inset-x-0 flex justify-center z-20">
-                                            <div className="bg-white/5 backdrop-blur-2xl p-2 rounded-2xl border border-white/10 flex gap-2">
-                                                {allPhotos.map((photo, i) => (
-                                                    <button
-                                                        key={i}
-                                                        onClick={() => setActivePhoto(photo)}
-                                                        className={cn(
-                                                            "relative w-12 h-16 rounded-lg overflow-hidden border-2 transition-all",
-                                                            activePhoto === photo ? "border-primary scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-100"
-                                                        )}
-                                                    >
-                                                        <img src={photo} className="w-full h-full object-cover" alt="prev" />
-                                                    </button>
-                                                ))}
+                                                <img
+                                                    src={activePhoto || `https://placehold.co/800x1200?text=${((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? 'Sealed' : 'Card'}`}
+                                                    alt={((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? (selectedItem as any).productName : (marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || "Asset Details")}
+                                                    className="max-w-full max-h-full w-auto h-auto object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.8)] rounded-lg pointer-events-none"
+                                                />
                                             </div>
                                         </div>
-                                    )}
-                                </div>
-                            </div>
 
-                            {/* Right Side: Content & Sales Details */}
-                            <div className="flex-1 bg-card flex flex-col min-h-0 border-l border-white/5 relative">
-                                {/* Fixed Header in Panel */}
-                                <div className="p-6 md:p-10 border-b border-border/50">
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-start gap-12">
-                                            <div className="space-y-1">
-                                                <DialogDescription asChild>
-                                                    <p className="text-primary font-bold tracking-[0.2em] uppercase text-[10px] animate-in slide-in-from-left duration-500">
-                                                        {marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.set || "TCG Asset"}
-                                                    </p>
-                                                </DialogDescription>
-                                                <DialogTitle asChild>
-                                                    <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight">
-                                                        {((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? (selectedItem as any).productName : (marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || "Asset Details")}
-                                                    </h2>
-                                                </DialogTitle>
-                                            </div>
-                                            <div className="flex gap-2 shrink-0">
-                                                <Button variant="outline" size="icon" className="rounded-full h-10 w-10">
-                                                    <Share2 className="h-4 w-4" />
-                                                </Button>
-                                                <button
-                                                    className="h-10 w-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
-                                                    onClick={() => setSelectedItem(null)}
+                                        {/* Navigation Arrows */}
+                                        {allPhotos.length > 1 && (
+                                            <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-20">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-12 w-12 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-xl pointer-events-auto border border-white/10 text-white transition-all hover:scale-110 active:scale-95"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const idx = allPhotos.indexOf(activePhoto || "");
+                                                        const prevIdx = (idx - 1 + allPhotos.length) % allPhotos.length;
+                                                        setActivePhoto(allPhotos[prevIdx]);
+                                                    }}
                                                 >
-                                                    <X className="h-5 w-5" />
-                                                </button>
+                                                    <ChevronLeft className="h-8 w-8" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-12 w-12 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-xl pointer-events-auto border border-white/10 text-white transition-all hover:scale-110 active:scale-95"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const idx = allPhotos.indexOf(activePhoto || "");
+                                                        const nextIdx = (idx + 1) % allPhotos.length;
+                                                        setActivePhoto(allPhotos[nextIdx]);
+                                                    }}
+                                                >
+                                                    <ChevronRight className="h-8 w-8" />
+                                                </Button>
                                             </div>
-                                        </div>
+                                        )}
 
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            {selectedItem.quantity > 1 && (
-                                                <Badge className="bg-primary hover:bg-primary text-black font-black uppercase text-[10px] py-1 px-3 rounded-md">
-                                                    {selectedItem.quantity} In Stock
-                                                </Badge>
-                                            )}
-                                            {(selectedItem as any).grade && (
-                                                <Badge variant="secondary" className="font-bold bg-muted/50 text-foreground text-[10px] py-1 px-3 border border-border">
-                                                    {(selectedItem as any).gradingCompany} {(selectedItem as any).grade}
-                                                </Badge>
-                                            )}
-                                            {(selectedItem as any).condition && !((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") && (
-                                                <Badge variant="outline" className="font-bold border-primary/20 text-primary text-[10px] py-1 px-3 bg-primary/5">
-                                                    {(selectedItem as any).condition}
-                                                </Badge>
-                                            )}
-                                        </div>
+                                        {/* Bottom Thumbnails Strip */}
+                                        {allPhotos.length > 1 && (
+                                            <div className="absolute bottom-8 inset-x-0 flex justify-center z-20">
+                                                <div className="bg-white/5 backdrop-blur-2xl p-2 rounded-2xl border border-white/10 flex gap-2">
+                                                    {allPhotos.map((photo, i) => (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => setActivePhoto(photo)}
+                                                            className={cn(
+                                                                "relative w-12 h-16 rounded-lg overflow-hidden border-2 transition-all",
+                                                                activePhoto === photo ? "border-primary scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-100"
+                                                            )}
+                                                        >
+                                                            <img src={photo} className="w-full h-full object-cover" alt="prev" />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
-                                {/* Scrollable Body */}
-                                <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-10">
-                                    {/* Pricing Block */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-accent/5 rounded-[2rem] p-6 border border-primary/10 relative overflow-hidden group hover:border-primary/30 transition-colors">
-                                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                                                <ShoppingCart className="h-8 w-8 text-primary" />
-                                            </div>
-                                            <span className="text-[10px] text-primary uppercase font-black block mb-2 tracking-widest">SlabHub Price</span>
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-4xl font-black tracking-tighter">
-                                                    ${Math.round(selectedItem.listingPrice || 0).toLocaleString()}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="bg-muted/10 rounded-[2rem] p-6 border border-border/50">
-                                            <span className="text-[10px] text-muted-foreground uppercase font-black block mb-2 tracking-widest">Market Value</span>
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-2xl font-bold text-muted-foreground tracking-tight">
-                                                    ${Math.round((((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.sealedPrice : marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.rawPrice) || 0).toLocaleString()}
-                                                </span>
-                                                <span className="text-[10px] text-muted-foreground font-black">EST.</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Description */}
-                                    {(selectedItem as any).sellingDescription && (
+                                {/* Right Side: Content & Sales Details */}
+                                <div className="flex-1 bg-card flex flex-col h-full overflow-hidden border-l border-white/5 relative min-h-0">
+                                    {/* Fixed Header in Panel */}
+                                    <div className="p-6 md:p-10 border-b border-border/50 shrink-0">
                                         <div className="space-y-4">
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
-                                                <Info className="h-3 w-3" /> Seller's Description
-                                            </h3>
-                                            <div className="text-[13px] leading-relaxed text-foreground bg-muted/5 p-6 rounded-2xl border border-border/50 italic border-l-4 border-l-primary/50">
-                                                "{(selectedItem as any).sellingDescription}"
+                                            <div className="flex justify-between items-start gap-12">
+                                                <div className="space-y-1">
+                                                    <DialogDescription asChild>
+                                                        <p className="text-primary font-bold tracking-[0.2em] uppercase text-[10px] animate-in slide-in-from-left duration-500">
+                                                            {marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.set || "TCG Asset"}
+                                                        </p>
+                                                    </DialogDescription>
+                                                    <DialogTitle asChild>
+                                                        <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight">
+                                                            {((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? (selectedItem as any).productName : (marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || "Asset Details")}
+                                                        </h2>
+                                                    </DialogTitle>
+                                                </div>
+                                                <div className="flex gap-2 shrink-0">
+                                                    <Button variant="outline" size="icon" className="rounded-full h-10 w-10">
+                                                        <Share2 className="h-4 w-4" />
+                                                    </Button>
+                                                    <button
+                                                        className="h-10 w-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
+                                                        onClick={() => handleOpenItem(null)}
+                                                    >
+                                                        <X className="h-5 w-5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                {selectedItem.quantity > 1 && (
+                                                    <Badge className="bg-primary hover:bg-primary text-black font-black uppercase text-[10px] py-1 px-3 rounded-md">
+                                                        {selectedItem.quantity} In Stock
+                                                    </Badge>
+                                                )}
+                                                {(selectedItem as any).grade && (
+                                                    <Badge variant="secondary" className="font-bold bg-muted/50 text-foreground text-[10px] py-1 px-3 border border-border">
+                                                        {(selectedItem as any).gradingCompany} {(selectedItem as any).grade}
+                                                    </Badge>
+                                                )}
+                                                {(selectedItem as any).condition && !((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") && (
+                                                    <Badge variant="outline" className="font-bold border-primary/20 text-primary text-[10px] py-1 px-3 bg-primary/5">
+                                                        {(selectedItem as any).condition}
+                                                    </Badge>
+                                                )}
                                             </div>
                                         </div>
-                                    )}
+                                    </div>
 
-                                    {/* Seller info Mini */}
-                                    <div className="p-6 bg-muted/30 rounded-2xl border border-border flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-xl font-black text-white">
-                                            {profile.shopName.charAt(0)}
+                                    {/* Scrollable Body */}
+                                    <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-10 min-h-0">
+                                        {/* Pricing Block */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-accent/5 rounded-[2rem] p-6 border border-primary/10 relative overflow-hidden group hover:border-primary/30 transition-colors">
+                                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                                                    <ShoppingCart className="h-8 w-8 text-primary" />
+                                                </div>
+                                                <span className="text-[10px] text-primary uppercase font-black block mb-2 tracking-widest">SlabHub Price</span>
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-4xl font-black tracking-tighter">
+                                                        ${Math.round(selectedItem.listingPrice || 0).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="bg-muted/10 rounded-[2rem] p-6 border border-border/50">
+                                                <span className="text-[10px] text-muted-foreground uppercase font-black block mb-2 tracking-widest">Market Value</span>
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-2xl font-bold text-muted-foreground tracking-tight">
+                                                        ${Math.round(selectedItem.marketPrice || 0).toLocaleString()}
+                                                    </span>
+                                                    <span className="text-[10px] text-muted-foreground font-black">EST.</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-bold">{profile.shopName}</p>
-                                            <p className="text-xs text-muted-foreground">@{profile.handle} • {profile.locationCity}</p>
+
+                                        {/* Description */}
+                                        {(selectedItem as any).sellingDescription && (
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                                    <Info className="h-3 w-3" /> Seller's Description
+                                                </h3>
+                                                <div className="text-[13px] leading-relaxed text-foreground bg-muted/5 p-6 rounded-2xl border border-border/50 italic border-l-4 border-l-primary/50">
+                                                    "{(selectedItem as any).sellingDescription}"
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Seller info Mini */}
+                                        <div className="p-6 bg-muted/30 rounded-2xl border border-border flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-xl font-black text-white">
+                                                {profile.shopName.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold">{profile.shopName}</p>
+                                                <p className="text-xs text-muted-foreground">@{profile.handle} • {profile.locationCity}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                {/* Action Footer */}
-                                <div className="p-8 md:p-12 border-t border-border/50 bg-background/50 backdrop-blur-xl mt-auto">
-                                    <Button className="w-full h-16 text-lg font-black rounded-2xl shadow-xl shadow-primary/20 gap-3 hover:scale-[1.02] active:scale-95 transition-all bg-primary hover:bg-primary/90 text-black">
-                                        <MessageSquare className="h-6 w-6" />
-                                        Inquire About Purchase
-                                    </Button>
+                                    {/* Action Footer */}
+                                    <div className="p-6 md:p-10 border-t border-border/50 bg-card shrink-0">
+                                        <Button className="w-full h-16 text-lg font-black rounded-2xl shadow-xl shadow-primary/20 gap-3 hover:scale-[1.02] active:scale-95 transition-all bg-primary hover:bg-primary/90 text-black">
+                                            <MessageSquare className="h-6 w-6" />
+                                            Inquire About Purchase
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ) : null}
+                        ) : null}
+
+                        {/* Product Navigation Arrows (Edges) */}
+                        {selectedItem && filteredItems.length > 1 && (
+                            <div className="absolute inset-0 flex items-center justify-between pointer-events-none z-50 px-4 md:px-8">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-10 w-10 md:h-14 md:w-14 rounded-full bg-black/50 hover:bg-black/80 backdrop-blur-xl pointer-events-auto border border-white/10 text-white transition-all hover:scale-110 active:scale-95 shadow-2xl"
+                                    onClick={handlePrevItem}
+                                >
+                                    <ChevronLeft className="h-6 w-6 md:h-8 md:w-8" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-10 w-10 md:h-14 md:w-14 rounded-full bg-black/50 hover:bg-black/80 backdrop-blur-xl pointer-events-auto border border-white/10 text-white transition-all hover:scale-110 active:scale-95 shadow-2xl"
+                                    onClick={handleNextItem}
+                                >
+                                    <ChevronRight className="h-6 w-6 md:h-8 md:w-8" />
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

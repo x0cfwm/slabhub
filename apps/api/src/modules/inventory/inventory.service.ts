@@ -64,7 +64,7 @@ export class InventoryService {
                         set: true,
                         sales: {
                             orderBy: { date: 'desc' },
-                            take: 15,
+                            take: 50,
                         },
                     },
                 },
@@ -439,7 +439,7 @@ export class InventoryService {
         return sales;
     }
 
-    private getMarketPrice(item: any) {
+    public getMarketPrice(item: any) {
         if (!item.refPriceChartingProduct) return null;
 
         const ref = item.refPriceChartingProduct;
@@ -504,7 +504,7 @@ export class InventoryService {
         return null;
     }
 
-    private transformItem(item: any) {
+    public transformItem(item: any) {
         // Build card info from variant if available
         let cardProfile = null;
         if (item.cardVariant?.card) {
