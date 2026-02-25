@@ -136,10 +136,10 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick }:
                                     </Select>
                                 </TableCell>
                                 <TableCell className="text-right font-mono text-xs">
-                                    ${(item.acquisitionPrice || 0).toFixed(2)}
+                                    ${Math.round(item.acquisitionPrice || 0).toLocaleString()}
                                 </TableCell>
                                 <TableCell className="text-right font-bold text-xs text-primary">
-                                    {typeof marketPrice === 'number' ? `$${marketPrice.toFixed(2)}` : (item.marketPriceSnapshot ? `$${Number(item.marketPriceSnapshot).toFixed(2)}` : "-")}
+                                    {typeof marketPrice === 'number' ? `$${Math.round(marketPrice).toLocaleString()}` : (item.marketPriceSnapshot ? `$${Math.round(Number(item.marketPriceSnapshot)).toLocaleString()}` : "-")}
                                 </TableCell>
                                 <TableCell>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">

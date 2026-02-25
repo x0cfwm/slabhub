@@ -13,6 +13,8 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogTitle,
+    DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -411,7 +413,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                             <div className="space-y-2">
                                                 <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Market Price ($)</Label>
                                                 <div className="h-11 bg-muted/30 border border-primary/5 rounded-md flex items-center px-3 font-mono text-sm opacity-80">
-                                                    {formData.marketPrice?.toFixed(2) || "—"}
+                                                    {formData.marketPrice ? Math.round(formData.marketPrice).toLocaleString() : "—"}
                                                 </div>
                                             </div>
                                         </div>
@@ -642,7 +644,9 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
             </SheetContent>
 
             <Dialog open={!!zoomedImage} onOpenChange={(open) => !open && setZoomedImage(null)}>
-                <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center">
+                <DialogContent showCloseButton={false} className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center">
+                    <DialogTitle className="sr-only">Quick Look</DialogTitle>
+                    <DialogDescription className="sr-only">Zoomed image view of the asset</DialogDescription>
                     {zoomedImage && (
                         <div className="relative w-full h-full flex items-center justify-center p-4">
                             <img

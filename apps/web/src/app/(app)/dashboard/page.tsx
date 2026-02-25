@@ -158,7 +158,7 @@ export default function DashboardPage() {
                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">${stats.marketValue.toFixed(2)}</div>
+                        <div className="text-2xl font-bold">${Math.round(stats.marketValue).toLocaleString()}</div>
                         <p className="text-xs text-muted-foreground">Based on market data</p>
                     </CardContent>
                 </Card>

@@ -32,6 +32,8 @@ import { cn } from "@/lib/utils";
 import {
     Dialog,
     DialogContent,
+    DialogTitle,
+    DialogDescription,
 } from "@/components/ui/dialog";
 import { SimpleThemeToggle } from "@/components/common/SimpleThemeToggle";
 
@@ -46,6 +48,8 @@ export default function VendorClient() {
     const [search, setSearch] = useState("");
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [activePhoto, setActivePhoto] = useState<string | null>(null);
+    const [isZoomed, setIsZoomed] = useState(false);
+    const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
 
     const allPhotos = useMemo(() => {
         if (!selectedItem) return [];
@@ -75,6 +79,19 @@ export default function VendorClient() {
             setActivePhoto(null);
         }
     }, [allPhotos]);
+    useEffect(() => {
+        if (!selectedItem) {
+            setIsZoomed(false);
+        }
+    }, [selectedItem]);
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isZoomed) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        setMousePos({ x, y });
+    };
 
     useEffect(() => {
         if (!handle) {
@@ -295,7 +312,7 @@ export default function VendorClient() {
                                                 <div className="pt-2.5 border-t border-border flex items-center justify-between">
                                                     <div className="text-left">
                                                         <span className="text-[9px] text-primary uppercase font-black block leading-none mb-1">Price</span>
-                                                        <span className="text-base font-black tracking-tighter leading-none">${item.listingPrice?.toFixed(2) || "0.00"}</span>
+                                                        <span className="text-base font-black tracking-tighter leading-none">${Math.round(item.listingPrice || 0).toLocaleString()}</span>
                                                     </div>
                                                     {(item as any).grade && (
                                                         <Badge variant="outline" className="text-[10px] h-5 px-2 font-bold border-primary/20 bg-primary/5 text-primary">
@@ -335,187 +352,207 @@ export default function VendorClient() {
 
             <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
                 <DialogContent showCloseButton={false} className="max-w-[98vw] md:max-w-7xl w-full h-[95vh] md:h-[90vh] p-0 gap-0 border-none bg-black overflow-hidden rounded-none md:rounded-[2.5rem] shadow-2xl">
-                    {selectedItem && (() => {
-                        const vid = (selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId;
-                        const mp = marketProducts.find(p => p.id === vid);
-                        const isS = (selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED";
-                        const name = isS ? (selectedItem as any).productName : mp?.name || "Asset Details";
+                    {selectedItem ? (
+                        <div className="flex flex-col md:flex-row h-full w-full">
+                            {/* Left Side: Immersive Image Gallery */}
+                            <div className="flex-[1.4] relative bg-[#0a0a0a] flex flex-col min-h-0">
+                                {/* Main Image Area */}
+                                <div className="flex-1 relative flex items-center justify-center p-4 md:p-12 overflow-hidden group">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50" />
 
-                        return (
-                            <div className="flex flex-col md:flex-row h-full w-full">
-                                {/* Left Side: Immersive Image Gallery */}
-                                <div className="flex-[1.4] relative bg-[#0a0a0a] flex flex-col min-h-0">
-                                    {/* Main Image Area */}
-                                    <div className="flex-1 relative flex items-center justify-center p-4 md:p-12 overflow-hidden group">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50" />
-
-                                        <div className="relative w-full h-full flex items-center justify-center z-10 transition-all duration-700 animate-in fade-in zoom-in-95">
+                                    <div
+                                        className="absolute inset-0 flex items-center justify-center p-4 md:p-12 z-10 transition-all duration-700 animate-in fade-in zoom-in-95 overflow-hidden"
+                                        onMouseMove={handleMouseMove}
+                                        onMouseLeave={() => setIsZoomed(false)}
+                                    >
+                                        <div
+                                            className={cn(
+                                                "relative transition-transform duration-500 ease-out cursor-zoom-in flex items-center justify-center",
+                                                isZoomed && "scale-[2.5] cursor-zoom-out"
+                                            )}
+                                            style={isZoomed ? {
+                                                transformOrigin: `${mousePos.x}% ${mousePos.y}%`,
+                                                width: '100%',
+                                                height: '100%'
+                                            } : {
+                                                width: '100%',
+                                                height: '100%'
+                                            }}
+                                            onClick={() => setIsZoomed(!isZoomed)}
+                                        >
                                             <img
-                                                src={activePhoto || `https://placehold.co/800x1200?text=${isS ? 'Sealed' : 'Card'}`}
-                                                alt={name}
-                                                className="max-w-full max-h-full object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-lg transition-transform duration-500"
+                                                src={activePhoto || `https://placehold.co/800x1200?text=${((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? 'Sealed' : 'Card'}`}
+                                                alt={((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? (selectedItem as any).productName : (marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || "Asset Details")}
+                                                className="max-w-full max-h-full w-auto h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-lg"
                                             />
                                         </div>
-
-                                        {/* Navigation Arrows */}
-                                        {allPhotos.length > 1 && (
-                                            <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-20">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-12 w-12 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-xl pointer-events-auto border border-white/10 text-white transition-all hover:scale-110 active:scale-95"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        const idx = allPhotos.indexOf(activePhoto || "");
-                                                        const prevIdx = (idx - 1 + allPhotos.length) % allPhotos.length;
-                                                        setActivePhoto(allPhotos[prevIdx]);
-                                                    }}
-                                                >
-                                                    <ChevronLeft className="h-8 w-8" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-12 w-12 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-xl pointer-events-auto border border-white/10 text-white transition-all hover:scale-110 active:scale-95"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        const idx = allPhotos.indexOf(activePhoto || "");
-                                                        const nextIdx = (idx + 1) % allPhotos.length;
-                                                        setActivePhoto(allPhotos[nextIdx]);
-                                                    }}
-                                                >
-                                                    <ChevronRight className="h-8 w-8" />
-                                                </Button>
-                                            </div>
-                                        )}
-
-                                        {/* Bottom Thumbnails Strip */}
-                                        {allPhotos.length > 1 && (
-                                            <div className="absolute bottom-8 inset-x-0 flex justify-center z-20">
-                                                <div className="bg-white/5 backdrop-blur-2xl p-2 rounded-2xl border border-white/10 flex gap-2">
-                                                    {allPhotos.map((photo, i) => (
-                                                        <button
-                                                            key={i}
-                                                            onClick={() => setActivePhoto(photo)}
-                                                            className={cn(
-                                                                "relative w-12 h-16 rounded-lg overflow-hidden border-2 transition-all",
-                                                                activePhoto === photo ? "border-primary scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-100"
-                                                            )}
-                                                        >
-                                                            <img src={photo} className="w-full h-full object-cover" alt={`${name} ${i + 1}`} />
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
-                                </div>
 
-                                {/* Right Side: Content & Sales Details */}
-                                <div className="flex-1 bg-card flex flex-col min-h-0 border-l border-white/5 relative">
-                                    {/* Fixed Header in Panel */}
-                                    <div className="p-6 md:p-10 border-b border-border/50">
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-start gap-12">
-                                                <div className="space-y-1">
-                                                    <p className="text-primary font-bold tracking-[0.2em] uppercase text-[10px] animate-in slide-in-from-left duration-500">
-                                                        {mp?.set || "TCG Asset"}
-                                                    </p>
-                                                    <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight">
-                                                        {name}
-                                                    </h2>
-                                                </div>
-                                                <div className="flex gap-2 shrink-0">
-                                                    <Button variant="outline" size="icon" className="rounded-full h-10 w-10">
-                                                        <Share2 className="h-4 w-4" />
-                                                    </Button>
+                                    {/* Navigation Arrows */}
+                                    {allPhotos.length > 1 && (
+                                        <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-20">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-12 w-12 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-xl pointer-events-auto border border-white/10 text-white transition-all hover:scale-110 active:scale-95"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const idx = allPhotos.indexOf(activePhoto || "");
+                                                    const prevIdx = (idx - 1 + allPhotos.length) % allPhotos.length;
+                                                    setActivePhoto(allPhotos[prevIdx]);
+                                                }}
+                                            >
+                                                <ChevronLeft className="h-8 w-8" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-12 w-12 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-xl pointer-events-auto border border-white/10 text-white transition-all hover:scale-110 active:scale-95"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const idx = allPhotos.indexOf(activePhoto || "");
+                                                    const nextIdx = (idx + 1) % allPhotos.length;
+                                                    setActivePhoto(allPhotos[nextIdx]);
+                                                }}
+                                            >
+                                                <ChevronRight className="h-8 w-8" />
+                                            </Button>
+                                        </div>
+                                    )}
+
+                                    {/* Bottom Thumbnails Strip */}
+                                    {allPhotos.length > 1 && (
+                                        <div className="absolute bottom-8 inset-x-0 flex justify-center z-20">
+                                            <div className="bg-white/5 backdrop-blur-2xl p-2 rounded-2xl border border-white/10 flex gap-2">
+                                                {allPhotos.map((photo, i) => (
                                                     <button
-                                                        className="h-10 w-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
-                                                        onClick={() => setSelectedItem(null)}
+                                                        key={i}
+                                                        onClick={() => setActivePhoto(photo)}
+                                                        className={cn(
+                                                            "relative w-12 h-16 rounded-lg overflow-hidden border-2 transition-all",
+                                                            activePhoto === photo ? "border-primary scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-100"
+                                                        )}
                                                     >
-                                                        <X className="h-5 w-5" />
+                                                        <img src={photo} className="w-full h-full object-cover" alt="prev" />
                                                     </button>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                {selectedItem.quantity > 1 && (
-                                                    <Badge className="bg-primary hover:bg-primary text-black font-black uppercase text-[10px] py-1 px-3 rounded-md">
-                                                        {selectedItem.quantity} In Stock
-                                                    </Badge>
-                                                )}
-                                                {(selectedItem as any).grade && (
-                                                    <Badge variant="secondary" className="font-bold bg-muted/50 text-foreground text-[10px] py-1 px-3 border border-border">
-                                                        {(selectedItem as any).gradingCompany} {(selectedItem as any).grade}
-                                                    </Badge>
-                                                )}
-                                                {(selectedItem as any).condition && !isS && (
-                                                    <Badge variant="outline" className="font-bold border-primary/20 text-primary text-[10px] py-1 px-3 bg-primary/5">
-                                                        {(selectedItem as any).condition}
-                                                    </Badge>
-                                                )}
+                                                ))}
                                             </div>
                                         </div>
-                                    </div>
-
-                                    {/* Scrollable Body */}
-                                    <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-10">
-                                        {/* Pricing Block */}
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="bg-accent/5 rounded-[2rem] p-6 border border-primary/10 relative overflow-hidden group hover:border-primary/30 transition-colors">
-                                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                                                    <ShoppingCart className="h-8 w-8 text-primary" />
-                                                </div>
-                                                <span className="text-[10px] text-primary uppercase font-black block mb-2 tracking-widest">SlabHub Price</span>
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className="text-4xl font-black tracking-tighter">${selectedItem.listingPrice?.toFixed(2) || "0.00"}</span>
-                                                    <span className="text-xs text-muted-foreground font-bold">USD</span>
-                                                </div>
-                                            </div>
-                                            <div className="bg-muted/10 rounded-[2rem] p-6 border border-border/50">
-                                                <span className="text-[10px] text-muted-foreground uppercase font-black block mb-2 tracking-widest">Market Value</span>
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className="text-2xl font-bold text-muted-foreground tracking-tight">${(isS ? mp?.sealedPrice : mp?.rawPrice)?.toFixed(2) || "0.00"}</span>
-                                                    <span className="text-[10px] text-muted-foreground font-black">EST.</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Description */}
-                                        {(selectedItem as any).sellingDescription && (
-                                            <div className="space-y-4">
-                                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
-                                                    <Info className="h-3 w-3" /> Seller's Description
-                                                </h3>
-                                                <div className="text-[13px] leading-relaxed text-foreground bg-muted/5 p-6 rounded-2xl border border-border/50 italic border-l-4 border-l-primary/50">
-                                                    "{(selectedItem as any).sellingDescription}"
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Seller info Mini */}
-                                        <div className="p-6 bg-muted/30 rounded-2xl border border-border flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-xl font-black text-white">
-                                                {profile.shopName.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-bold">{profile.shopName}</p>
-                                                <p className="text-xs text-muted-foreground">@{profile.handle} • {profile.locationCity}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Action Footer */}
-                                    <div className="p-6 md:p-10 border-t border-border/50 bg-background/50 backdrop-blur-xl">
-                                        <Button className="w-full h-16 text-lg font-black rounded-2xl shadow-[0_20px_40px_rgba(var(--primary-rgb),0.3)] gap-3 hover:scale-[1.02] active:scale-95 transition-all bg-primary hover:bg-primary/90 text-black">
-                                            <MessageSquare className="h-6 w-6" />
-                                            Inquire About Purchase
-                                        </Button>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
-                        );
-                    })()}
+
+                            {/* Right Side: Content & Sales Details */}
+                            <div className="flex-1 bg-card flex flex-col min-h-0 border-l border-white/5 relative">
+                                {/* Fixed Header in Panel */}
+                                <div className="p-6 md:p-10 border-b border-border/50">
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-start gap-12">
+                                            <div className="space-y-1">
+                                                <DialogDescription asChild>
+                                                    <p className="text-primary font-bold tracking-[0.2em] uppercase text-[10px] animate-in slide-in-from-left duration-500">
+                                                        {marketProducts.find(p => p.id === (selectedItem.cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.set || "TCG Asset"}
+                                                    </p>
+                                                </DialogDescription>
+                                                <DialogTitle asChild>
+                                                    <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight">
+                                                        {((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? (selectedItem as any).productName : (marketProducts.find(p => p.id === (selectedItem.cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || "Asset Details")}
+                                                    </h2>
+                                                </DialogTitle>
+                                            </div>
+                                            <div className="flex gap-2 shrink-0">
+                                                <Button variant="outline" size="icon" className="rounded-full h-10 w-10">
+                                                    <Share2 className="h-4 w-4" />
+                                                </Button>
+                                                <button
+                                                    className="h-10 w-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
+                                                    onClick={() => setSelectedItem(null)}
+                                                >
+                                                    <X className="h-5 w-5" />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            {selectedItem.quantity > 1 && (
+                                                <Badge className="bg-primary hover:bg-primary text-black font-black uppercase text-[10px] py-1 px-3 rounded-md">
+                                                    {selectedItem.quantity} In Stock
+                                                </Badge>
+                                            )}
+                                            {(selectedItem as any).grade && (
+                                                <Badge variant="secondary" className="font-bold bg-muted/50 text-foreground text-[10px] py-1 px-3 border border-border">
+                                                    {(selectedItem as any).gradingCompany} {(selectedItem as any).grade}
+                                                </Badge>
+                                            )}
+                                            {(selectedItem as any).condition && !((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") && (
+                                                <Badge variant="outline" className="font-bold border-primary/20 text-primary text-[10px] py-1 px-3 bg-primary/5">
+                                                    {(selectedItem as any).condition}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Scrollable Body */}
+                                <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-10">
+                                    {/* Pricing Block */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-accent/5 rounded-[2rem] p-6 border border-primary/10 relative overflow-hidden group hover:border-primary/30 transition-colors">
+                                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                                                <ShoppingCart className="h-8 w-8 text-primary" />
+                                            </div>
+                                            <span className="text-[10px] text-primary uppercase font-black block mb-2 tracking-widest">SlabHub Price</span>
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-4xl font-black tracking-tighter">
+                                                    ${Math.round(selectedItem.listingPrice || 0).toLocaleString()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-muted/10 rounded-[2rem] p-6 border border-border/50">
+                                            <span className="text-[10px] text-muted-foreground uppercase font-black block mb-2 tracking-widest">Market Value</span>
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-2xl font-bold text-muted-foreground tracking-tight">
+                                                    ${Math.round((((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? marketProducts.find(p => p.id === (selectedItem.cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.sealedPrice : marketProducts.find(p => p.id === (selectedItem.cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.rawPrice) || 0).toLocaleString()}
+                                                </span>
+                                                <span className="text-[10px] text-muted-foreground font-black">EST.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Description */}
+                                    {(selectedItem as any).sellingDescription && (
+                                        <div className="space-y-4">
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                                <Info className="h-3 w-3" /> Seller's Description
+                                            </h3>
+                                            <div className="text-[13px] leading-relaxed text-foreground bg-muted/5 p-6 rounded-2xl border border-border/50 italic border-l-4 border-l-primary/50">
+                                                "{(selectedItem as any).sellingDescription}"
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Seller info Mini */}
+                                    <div className="p-6 bg-muted/30 rounded-2xl border border-border flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-xl font-black text-white">
+                                            {profile.shopName.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold">{profile.shopName}</p>
+                                            <p className="text-xs text-muted-foreground">@{profile.handle} • {profile.locationCity}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Action Footer */}
+                                <div className="p-6 md:p-10 border-t border-border/50 bg-background/50 backdrop-blur-xl">
+                                    <Button className="w-full h-16 text-lg font-black rounded-2xl shadow-[0_20px_40px_rgba(var(--primary-rgb),0.3)] gap-3 hover:scale-[1.02] active:scale-95 transition-all bg-primary hover:bg-primary/90 text-black">
+                                        <MessageSquare className="h-6 w-6" />
+                                        Inquire About Purchase
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : null}
                 </DialogContent>
             </Dialog>
         </div>

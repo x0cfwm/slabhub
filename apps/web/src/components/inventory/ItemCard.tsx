@@ -131,7 +131,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
                     <div className="flex flex-col">
                         <span className="text-muted-foreground text-[7px] uppercase font-bold">Market</span>
                         <span className="font-bold text-primary text-[10px]">
-                            {typeof marketPrice === 'number' ? `$${marketPrice.toFixed(2)}` : "N/A"}
+                            {typeof marketPrice === 'number' ? `$${Math.round(marketPrice).toLocaleString()}` : "N/A"}
                         </span>
                     </div>
                     <div className="flex flex-col items-end">
@@ -144,7 +144,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
                             <span className="text-muted-foreground text-[7px] uppercase font-bold text-black border px-1 rounded-sm bg-accent">Cost</span>
                         </div>
                         <span className="font-bold text-[10px]">
-                            ${(Number(item.acquisitionPrice) || 0).toFixed(2)}
+                            ${Math.round(Number(item.acquisitionPrice) || 0).toLocaleString()}
                         </span>
                     </div>
                 </div>

@@ -123,7 +123,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                     <Skeleton className="h-5 w-16" />
                                 ) : (
                                     <p className={`text-base font-bold ${selectedGrade === "Raw" ? "text-amber-700 dark:text-amber-400" : ""}`}>
-                                        ${(history?.updatedRawPrice ?? product.rawPrice).toFixed(2)}
+                                        ${Math.round(history?.updatedRawPrice ?? product.rawPrice).toLocaleString()}
                                     </p>
                                 )}
                             </div>
@@ -145,7 +145,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                         >
                                             <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "Grade 9" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>PSA 9</p>
                                             <p className={`text-base font-bold ${selectedGrade === "Grade 9" ? "text-amber-700 dark:text-amber-400" : ""}`}>
-                                                ${history.summary.grade9.toFixed(2)}
+                                                ${Math.round(history.summary.grade9).toLocaleString()}
                                             </p>
                                         </div>
                                     )}
@@ -159,7 +159,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                         >
                                             <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "Grade 9.5" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>BGS 9.5</p>
                                             <p className={`text-base font-bold ${selectedGrade === "Grade 9.5" ? "text-amber-700 dark:text-amber-400" : ""}`}>
-                                                ${history.summary.grade95.toFixed(2)}
+                                                ${Math.round(history.summary.grade95).toLocaleString()}
                                             </p>
                                         </div>
                                     )}
@@ -173,7 +173,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                         >
                                             <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "PSA 10" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>PSA 10</p>
                                             <p className={`text-base font-bold ${selectedGrade === "PSA 10" ? "text-amber-700 dark:text-amber-400" : ""}`}>
-                                                ${history.summary.psa10.toFixed(2)}
+                                                ${Math.round(history.summary.psa10).toLocaleString()}
                                             </p>
                                         </div>
                                     )}
@@ -187,7 +187,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                         >
                                             <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "Grade 8" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>PSA 8</p>
                                             <p className={`text-base font-bold ${selectedGrade === "Grade 8" ? "text-amber-700 dark:text-amber-400" : ""}`}>
-                                                ${history.summary.grade8.toFixed(2)}
+                                                ${Math.round(history.summary.grade8).toLocaleString()}
                                             </p>
                                         </div>
                                     )}
@@ -201,7 +201,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                         >
                                             <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "Grade 7" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>PSA 7</p>
                                             <p className={`text-base font-bold ${selectedGrade === "Grade 7" ? "text-amber-700 dark:text-amber-400" : ""}`}>
-                                                ${history.summary.grade7.toFixed(2)}
+                                                ${Math.round(history.summary.grade7).toLocaleString()}
                                             </p>
                                         </div>
                                     )}
@@ -290,7 +290,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="text-xs py-3 px-4 font-semibold">
-                                                        ${entry.price.toFixed(2)}
+                                                        ${entry.price % 1 === 0 ? entry.price.toFixed(0) : entry.price.toFixed(2)}
                                                     </TableCell>
                                                     <TableCell className="text-right py-3 pr-6">
                                                         {entry.link ? (
