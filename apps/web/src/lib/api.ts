@@ -1,5 +1,5 @@
 import { Grader } from "../../../api/src/modules/grading/types/grading.types";
-import { MarketPriceHistory, MarketProduct, MarketProductsResponse, MarketSet, InventoryItem, SellerProfile } from "./types";
+import { MarketPriceHistory, MarketProduct, MarketProductsResponse, MarketSet, InventoryItem, SellerProfile, PortfolioHistoryEntry } from "./types";
 
 export interface GradingLookupResult {
     grader: string;
@@ -239,6 +239,16 @@ export async function reorderInventoryItems(items: { id: string; sortOrder: numb
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to reorder inventory items');
     }
+}
+
+export async function getMarketValueHistory(days: number = 90): Promise<PortfolioHistoryEntry[]> {
+    const url = getFullUrl('/v1/inventory/stats/market-value-history');
+    url.searchParams.set('days', days.toString());
+    const response = await fetch(url.toString(), { credentials: 'include' });
+    if (!response.ok) {
+        throw new Error('Failed to fetch market value history');
+    }
+    return response.json();
 }
 
 export async function uploadFile(file: File): Promise<{ url: string }> {

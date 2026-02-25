@@ -16,8 +16,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { listInventory, getMe, getMarketProducts } from "@/lib/api";
-import { InventoryItem, MarketProduct, SellerProfile } from "@/lib/types";
+import { listInventory, getMe, getMarketProducts, getMarketValueHistory } from "@/lib/api";
+import { InventoryItem, MarketProduct, SellerProfile, PortfolioHistoryEntry } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { MarketValueChart } from "@/components/dashboard/MarketValueChart";
@@ -25,19 +25,22 @@ import { MarketValueChart } from "@/components/dashboard/MarketValueChart";
 export default function DashboardPage() {
     const [items, setItems] = useState<InventoryItem[]>([]);
     const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
+    const [history, setHistory] = useState<PortfolioHistoryEntry[]>([]);
     const [profile, setProfile] = useState<SellerProfile | null>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchData = async () => {
         try {
-            const [inv, market, prof] = await Promise.all([
+            const [inv, market, prof, hist] = await Promise.all([
                 listInventory(),
                 getMarketProducts({ page: 1, limit: 100 }), // Fetch some market products for pricing
-                getMe()
+                getMe(),
+                getMarketValueHistory(90)
             ]);
             setItems(inv);
             setMarketProducts(market.items);
             setProfile(prof?.profile || null);
+            setHistory(hist);
         } catch (err) {
             toast.error("Failed to fetch dashboard data");
         } finally {
@@ -173,7 +176,7 @@ export default function DashboardPage() {
                 </Card>
             </div>
 
-            <MarketValueChart items={items} />
+            <MarketValueChart items={items} history={history} />
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <Card className="col-span-4">

@@ -231,3 +231,9 @@ export interface InviteAcceptance {
     acceptedAt: string;
     invitedEmailMasked: string;
 }
+
+export interface PortfolioHistoryEntry {
+    date: string;
+    value: number;
+    cost: number;
+}

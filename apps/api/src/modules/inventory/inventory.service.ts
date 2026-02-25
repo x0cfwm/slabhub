@@ -291,6 +291,131 @@ export class InventoryService {
         }
     }
 
+    async getMarketValueHistory(userId: string, days: number = 90) {
+        const items = await this.prisma.inventoryItem.findMany({
+            where: {
+                userId,
+                stage: { notIn: [InventoryStage.ARCHIVED] }
+            },
+            include: {
+                refPriceChartingProduct: true
+            }
+        });
+
+        const productIds = items
+            .map(i => i.refPriceChartingProductId)
+            .filter((id): id is string => !!id);
+
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+        startDate.setHours(0, 0, 0, 0);
+
+        const sales = productIds.length > 0 ? await this.prisma.priceChartingSales.findMany({
+            where: {
+                productId: { in: productIds },
+                date: { gte: startDate }
+            },
+            orderBy: { date: 'asc' }
+        }) : [];
+
+        // Group sales by product and date
+        const salesByProductAndDate: Record<string, Record<string, any[]>> = {};
+        sales.forEach(sale => {
+            const dateStr = sale.date.toISOString().split('T')[0];
+            if (!salesByProductAndDate[sale.productId]) {
+                salesByProductAndDate[sale.productId] = {};
+            }
+            if (!salesByProductAndDate[sale.productId][dateStr]) {
+                salesByProductAndDate[sale.productId][dateStr] = [];
+            }
+            salesByProductAndDate[sale.productId][dateStr].push(sale);
+        });
+
+        const history = [];
+        const now = new Date();
+        now.setHours(23, 59, 59, 999);
+
+        // Pre-calculate acquisition data
+        const itemsWithAcqDate = items.map(item => ({
+            ...item,
+            acqDate: item.acquisitionDate ? new Date(item.acquisitionDate) : new Date(item.createdAt)
+        }));
+
+        // Track last known price per item part (Product + Type + Grade)
+        const lastKnownPrices: Record<string, number> = {};
+
+        // To make it smoother, we'll iterate through days
+        for (let i = days; i >= 0; i--) {
+            const currentDate = new Date(now);
+            currentDate.setDate(now.getDate() - i);
+            currentDate.setHours(23, 59, 59, 999);
+            const dateStr = currentDate.toISOString().split('T')[0];
+
+            let totalMarketValue = 0;
+            let totalCost = 0;
+
+            itemsWithAcqDate.forEach(item => {
+                if (item.acqDate > currentDate) return; // Not acquired yet
+
+                const qty = item.quantity || 1;
+                totalCost += (Number(item.acquisitionPrice) || 0) * qty;
+
+                let itemPrice = 0;
+                const cacheKey = `${item.refPriceChartingProductId}_${item.itemType}_${item.gradeValue}`;
+
+                if (item.refPriceChartingProductId) {
+                    const daySales = salesByProductAndDate[item.refPriceChartingProductId]?.[dateStr] || [];
+
+                    if (daySales.length > 0) {
+                        const filteredSales = this.filterSalesByItemType(daySales, item);
+                        if (filteredSales.length > 0) {
+                            // Use mean price for the day
+                            const dayAvg = filteredSales.reduce((sum, s) => sum + Number(s.price), 0) / filteredSales.length;
+                            lastKnownPrices[cacheKey] = dayAvg;
+                            itemPrice = dayAvg;
+                        }
+                    }
+                }
+
+                // If no price for this specific day, use last known historical price
+                if (itemPrice === 0) {
+                    itemPrice = lastKnownPrices[cacheKey] || 0;
+                }
+
+                // If still no price from history, fallback to current snapshot or acquisition price
+                if (itemPrice === 0) {
+                    itemPrice = Number(this.getMarketPrice(item)) || Number(item.marketPriceSnapshot) || Number(item.acquisitionPrice) || 0;
+                }
+
+                totalMarketValue += itemPrice * qty;
+            });
+
+            history.push({
+                date: currentDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
+                value: Math.round(totalMarketValue),
+                cost: Math.round(totalCost)
+            });
+        }
+
+        return history;
+    }
+
+    private filterSalesByItemType(sales: any[], item: any) {
+        if (item.itemType === 'SINGLE_CARD_GRADED') {
+            const grade = String(item.gradeValue).toLowerCase();
+            return sales.filter(s => s.grade?.toLowerCase().includes(grade));
+        }
+        if (item.itemType === 'SINGLE_CARD_RAW') {
+            // PriceCharting usually has "Ungraded" or null for raw
+            return sales.filter(s =>
+                !s.grade ||
+                s.grade.toLowerCase().includes('ungraded') ||
+                s.grade.toLowerCase().includes('raw')
+            );
+        }
+        return sales;
+    }
+
     private getMarketPrice(item: any) {
         if (!item.refPriceChartingProduct) return null;
 

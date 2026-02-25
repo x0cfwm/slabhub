@@ -85,4 +85,15 @@ export class InventoryController {
         return this.inventoryService.deleteItem(userId, id);
     }
 
+    @Get('stats/market-value-history')
+    async getMarketValueHistory(
+        @CurrentUserId() userId: string | undefined,
+        @Param('days') days?: string,
+    ) {
+        if (!userId) {
+            throw new NotFoundException('No authenticated user');
+        }
+        const period = days ? parseInt(days) : 90;
+        return this.inventoryService.getMarketValueHistory(userId, period);
+    }
 }

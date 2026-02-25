@@ -17,55 +17,23 @@ import {
 } from "@/components/ui/chart";
 import { Button } from "@/components/ui/button";
 
-import { InventoryItem } from "@/lib/types";
+import { InventoryItem, PortfolioHistoryEntry } from "@/lib/types";
 
-const calculateChartData = (items: InventoryItem[], days: number, interval: number) => {
-    const data = [];
-    const now = new Date();
-    now.setHours(23, 59, 59, 999); // End of today
+const calculateChartData = (history: PortfolioHistoryEntry[], days: number) => {
+    if (!history || history.length === 0) return [];
 
-    for (let i = days; i >= 0; i -= interval) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toLocaleDateString("en-US", {
-            month: "short",
-            day: "2-digit",
-        });
+    // Backend returns history from days ago to today.
+    // history[0] is 90 days ago, history[last] is today.
 
-        // Filter items acquired on or before this date
-        const relevantItems = items.filter(item => {
-            if (!item.acquisitionDate) return false;
-            const acqDate = new Date(item.acquisitionDate);
-            return acqDate <= date;
-        });
+    const slice = history.slice(-days - 1);
 
-        // Calculate total cost and total market value
-        const cost = relevantItems.reduce((acc, item) => {
-            return acc + (item.acquisitionPrice || 0) * (item.quantity || 1);
-        }, 0);
-
-        const marketValue = relevantItems.reduce((acc, item) => {
-            const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
-            const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
-
-            let unitPrice = item.marketPrice ?? 0;
-            if (!unitPrice) {
-                // Simplified fallback logic similar to dashboard
-                unitPrice = item.marketPriceSnapshot
-                    ? Number(item.marketPriceSnapshot)
-                    : (item.acquisitionPrice || 0);
-            }
-
-            return acc + unitPrice * (item.quantity || 1);
-        }, 0);
-
-        data.push({
-            date: dateStr,
-            value: Math.round(marketValue),
-            cost: Math.round(cost)
-        });
+    // If we want to reduce points for 3m to make it cleaner (optional)
+    if (days > 30) {
+        // Return every 2nd or 3rd point if needed, but daily is usually fine for Area chart
+        return slice;
     }
-    return data;
+
+    return slice;
 };
 
 const chartConfig = {
@@ -81,21 +49,22 @@ const chartConfig = {
 
 interface MarketValueChartProps {
     items: InventoryItem[];
+    history: PortfolioHistoryEntry[];
 }
 
-export function MarketValueChart({ items }: MarketValueChartProps) {
+export function MarketValueChart({ items, history }: MarketValueChartProps) {
     const [timeRange, setTimeRange] = React.useState<"7d" | "30d" | "3m">("3m");
 
     const data = React.useMemo(() => {
         switch (timeRange) {
             case "7d":
-                return calculateChartData(items, 7, 1);
+                return calculateChartData(history, 7);
             case "30d":
-                return calculateChartData(items, 30, 4);
+                return calculateChartData(history, 30);
             case "3m":
-                return calculateChartData(items, 90, 10);
+                return calculateChartData(history, 90);
         }
-    }, [items, timeRange]);
+    }, [history, timeRange]);
 
     return (
         <Card className="w-full">
