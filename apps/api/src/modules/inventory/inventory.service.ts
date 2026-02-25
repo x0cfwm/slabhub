@@ -21,6 +21,7 @@ export class InventoryService {
     ) { }
 
     async listItems(userId: string) {
+        this.marketPriceCache.clear();
         const items = await this.prisma.inventoryItem.findMany({
             where: { userId },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
@@ -35,7 +36,7 @@ export class InventoryService {
                         set: true,
                         sales: {
                             orderBy: { date: 'desc' },
-                            take: 50,
+                            take: 15, // Reduced for performance
                         },
                     },
                 },
@@ -318,7 +319,7 @@ export class InventoryService {
                     include: {
                         sales: {
                             orderBy: { date: 'desc' },
-                            take: 50,
+                            take: 10, // Minimal sales for history fallback
                         },
                     },
                 },
@@ -439,8 +440,15 @@ export class InventoryService {
         return sales;
     }
 
+    private marketPriceCache = new Map<string, number | null>();
+
     public getMarketPrice(item: any) {
         if (!item.refPriceChartingProduct) return null;
+
+        const cacheKey = `${item.refPriceChartingProduct.id}_${item.itemType}_${item.gradeValue}`;
+        if (this.marketPriceCache.has(cacheKey)) {
+            return this.marketPriceCache.get(cacheKey);
+        }
 
         const ref = item.refPriceChartingProduct;
         const sales = ref.sales || [];
@@ -463,16 +471,25 @@ export class InventoryService {
             // 1. Try to find sales for this specific grade
             const gradedSales = sales.filter((s: any) => s.grade?.toLowerCase().includes(gradeStr));
             const gradedAvg = getAverageOf3(gradedSales);
-            if (gradedAvg !== null) return gradedAvg;
+            if (gradedAvg !== null) {
+                this.marketPriceCache.set(cacheKey, gradedAvg);
+                return gradedAvg;
+            }
 
             // 2. Fallback to summary grade price if available (from PriceCharting elements)
             const numericGrade = gradeStr.match(/\d+(\.\d+)?/)?.[0];
+            let fallbackPrice: number | null = null;
 
-            if (numericGrade === '10' && ref.grade10Price) return Number(ref.grade10Price);
-            if (numericGrade === '9.5' && ref.grade95Price) return Number(ref.grade95Price);
-            if (numericGrade === '9' && ref.grade9Price) return Number(ref.grade9Price);
-            if (numericGrade === '8' && ref.grade8Price) return Number(ref.grade8Price);
-            if (numericGrade === '7' && ref.grade7Price) return Number(ref.grade7Price);
+            if (numericGrade === '10' && ref.grade10Price) fallbackPrice = Number(ref.grade10Price);
+            else if (numericGrade === '9.5' && ref.grade95Price) fallbackPrice = Number(ref.grade95Price);
+            else if (numericGrade === '9' && ref.grade9Price) fallbackPrice = Number(ref.grade9Price);
+            else if (numericGrade === '8' && ref.grade8Price) fallbackPrice = Number(ref.grade8Price);
+            else if (numericGrade === '7' && ref.grade7Price) fallbackPrice = Number(ref.grade7Price);
+
+            if (fallbackPrice !== null) {
+                this.marketPriceCache.set(cacheKey, fallbackPrice);
+                return fallbackPrice;
+            }
 
             // 3. Fallback to Raw sales average
             const rawSales = sales.filter((s: any) =>
@@ -481,10 +498,9 @@ export class InventoryService {
                 s.grade.toLowerCase().includes('raw')
             );
             const rawAvg = getAverageOf3(rawSales);
-            if (rawAvg !== null) return rawAvg;
-
-            // 4. Fallback to static raw price
-            return ref.rawPrice ? Number(ref.rawPrice) : null;
+            const finalPrice = rawAvg !== null ? rawAvg : (ref.rawPrice ? Number(ref.rawPrice) : null);
+            this.marketPriceCache.set(cacheKey, finalPrice);
+            return finalPrice;
         }
 
         if (item.itemType === 'SINGLE_CARD_RAW') {
@@ -495,12 +511,12 @@ export class InventoryService {
                 s.grade.toLowerCase().includes('raw')
             );
             const rawAvg = getAverageOf3(rawSales);
-            if (rawAvg !== null) return rawAvg;
-
-            // 2. Fallback to static raw price
-            return ref.rawPrice ? Number(ref.rawPrice) : null;
+            const price = rawAvg !== null ? rawAvg : (ref.rawPrice ? Number(ref.rawPrice) : null);
+            this.marketPriceCache.set(cacheKey, price);
+            return price;
         }
 
+        this.marketPriceCache.set(cacheKey, null);
         return null;
     }
 

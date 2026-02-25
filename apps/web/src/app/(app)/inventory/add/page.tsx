@@ -69,9 +69,7 @@ export default function AddItemPage() {
             if (search.length >= 2) {
                 try {
                     let productTypeFilter = undefined;
-                    if (category === "SINGLE_CARD_RAW" || category === "SINGLE_CARD_GRADED") {
-                        productTypeFilter = "SINGLE_CARD";
-                    } else if (category === "SEALED_PRODUCT") {
+                    if (category === "SEALED_PRODUCT") {
                         productTypeFilter = "SEALED_OTHER,SEALED_BOX,SEALED_PACK";
                     }
                     const response = await getMarketProducts({

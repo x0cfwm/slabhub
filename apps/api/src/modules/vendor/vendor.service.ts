@@ -49,7 +49,7 @@ export class VendorService {
                         set: true,
                         sales: {
                             orderBy: { date: 'desc' },
-                            take: 50,
+                            take: 15,
                         },
                     },
                 },
