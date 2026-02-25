@@ -173,7 +173,7 @@ export default function DashboardPage() {
                 </Card>
             </div>
 
-            <MarketValueChart />
+            <MarketValueChart items={items} />
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <Card className="col-span-4">

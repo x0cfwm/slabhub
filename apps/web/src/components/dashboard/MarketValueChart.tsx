@@ -17,9 +17,13 @@ import {
 } from "@/components/ui/chart";
 import { Button } from "@/components/ui/button";
 
-const generateMockData = (days: number, interval: number) => {
+import { InventoryItem } from "@/lib/types";
+
+const calculateChartData = (items: InventoryItem[], days: number, interval: number) => {
     const data = [];
     const now = new Date();
+    now.setHours(23, 59, 59, 999); // End of today
+
     for (let i = days; i >= 0; i -= interval) {
         const date = new Date(now);
         date.setDate(date.getDate() - i);
@@ -28,12 +32,38 @@ const generateMockData = (days: number, interval: number) => {
             day: "2-digit",
         });
 
-        // Randomish values with upward trend
-        const baseValue = 10000 + (days - i) * (50 + Math.random() * 20);
-        const value = Math.floor(baseValue + Math.random() * 1000);
-        const cost = Math.floor(baseValue * 0.7 + Math.random() * 500);
+        // Filter items acquired on or before this date
+        const relevantItems = items.filter(item => {
+            if (!item.acquisitionDate) return false;
+            const acqDate = new Date(item.acquisitionDate);
+            return acqDate <= date;
+        });
 
-        data.push({ date: dateStr, value, cost });
+        // Calculate total cost and total market value
+        const cost = relevantItems.reduce((acc, item) => {
+            return acc + (item.acquisitionPrice || 0) * (item.quantity || 1);
+        }, 0);
+
+        const marketValue = relevantItems.reduce((acc, item) => {
+            const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
+            const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
+
+            let unitPrice = item.marketPrice ?? 0;
+            if (!unitPrice) {
+                // Simplified fallback logic similar to dashboard
+                unitPrice = item.marketPriceSnapshot
+                    ? Number(item.marketPriceSnapshot)
+                    : (item.acquisitionPrice || 0);
+            }
+
+            return acc + unitPrice * (item.quantity || 1);
+        }, 0);
+
+        data.push({
+            date: dateStr,
+            value: Math.round(marketValue),
+            cost: Math.round(cost)
+        });
     }
     return data;
 };
@@ -49,19 +79,23 @@ const chartConfig = {
     },
 } satisfies ChartConfig;
 
-export function MarketValueChart() {
+interface MarketValueChartProps {
+    items: InventoryItem[];
+}
+
+export function MarketValueChart({ items }: MarketValueChartProps) {
     const [timeRange, setTimeRange] = React.useState<"7d" | "30d" | "3m">("3m");
 
     const data = React.useMemo(() => {
         switch (timeRange) {
             case "7d":
-                return generateMockData(7, 1);
+                return calculateChartData(items, 7, 1);
             case "30d":
-                return generateMockData(30, 4);
+                return calculateChartData(items, 30, 4);
             case "3m":
-                return generateMockData(90, 10);
+                return calculateChartData(items, 90, 10);
         }
-    }, [timeRange]);
+    }, [items, timeRange]);
 
     return (
         <Card className="w-full">

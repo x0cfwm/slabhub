@@ -133,9 +133,9 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="sm:max-w-xl bg-card/95 backdrop-blur-xl border-l-primary/10 p-0 flex flex-col h-full">
-                <div className="flex-1 overflow-y-auto p-8 pb-0">
-                    <SheetHeader className="px-0 mb-8 border-b border-primary/5 pb-8">
-                        <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start text-center sm:text-left">
+                <div className="flex-1 overflow-y-auto p-6 pb-0">
+                    <SheetHeader className="px-0 mb-4 border-b border-primary/5 pb-4">
+                        <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start text-center sm:text-left">
                             <div className="w-24 h-32 flex-shrink-0 rounded-xl overflow-hidden border bg-muted/30 shadow-md ring-1 ring-primary/5">
                                 <img
                                     src={photos[0] || finalProfile?.imageUrl || `https://placehold.co/200x300?text=${isSealed ? 'Sealed' : 'Card'}`}
@@ -153,7 +153,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                         </div>
                     </SheetHeader>
 
-                    <div className="mt-6">
+                    <div className="mt-4">
                         <Tabs value={activeTab} onValueChange={setTab} className="w-full">
                             <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1 rounded-xl">
                                 <TabsTrigger value="basic" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-xs px-2">
@@ -174,7 +174,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                 </TabsTrigger>
                             </TabsList>
 
-                            <div className="py-6 min-h-[500px]">
+                            <div className="py-4 min-h-[500px]">
                                 <TabsContent value="basic" className="space-y-6 mt-0">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2 col-span-2">
@@ -216,6 +216,20 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                                 className="h-11 bg-background/50 border-primary/10"
                                                 value={formData.acquisitionDate ? new Date(formData.acquisitionDate).toISOString().split('T')[0] : ""}
                                                 onChange={e => setFormData({ ...formData, acquisitionDate: e.target.value })}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70 flex items-center gap-1">
+                                                <Layers className="h-3 w-3" /> Quantity
+                                            </Label>
+                                            <Input
+                                                type="number"
+                                                min={1}
+                                                className="h-11 bg-background/50 border-primary/10"
+                                                value={formData.quantity || 1}
+                                                onChange={e => setFormData({ ...formData, quantity: parseInt(e.target.value) } as any)}
+                                                disabled={itType === "SINGLE_CARD_GRADED"}
                                             />
                                         </div>
 
@@ -419,7 +433,8 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                                                 itemType: "SINGLE_CARD_RAW" as any,
                                                                 gradeProvider: undefined,
                                                                 gradeValue: undefined,
-                                                                certNumber: undefined
+                                                                certNumber: undefined,
+                                                                quantity: 1
                                                             } as any);
                                                         }}
                                                     >
@@ -517,7 +532,8 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                                         ...formData,
                                                         itemType: "SINGLE_CARD_GRADED" as any,
                                                         gradeProvider: "PSA" as any,
-                                                        gradeValue: "10"
+                                                        gradeValue: "10",
+                                                        quantity: 1
                                                     } as any);
                                                 }}
                                             >
