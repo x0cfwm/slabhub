@@ -33,6 +33,10 @@ export class InventoryService {
                 refPriceChartingProduct: {
                     include: {
                         set: true,
+                        sales: {
+                            orderBy: { date: 'desc' },
+                            take: 15,
+                        },
                     },
                 },
                 frontMedia: true,
@@ -58,6 +62,10 @@ export class InventoryService {
                 refPriceChartingProduct: {
                     include: {
                         set: true,
+                        sales: {
+                            orderBy: { date: 'desc' },
+                            take: 15,
+                        },
                     },
                 },
                 frontMedia: true,
@@ -131,6 +139,10 @@ export class InventoryService {
                     refPriceChartingProduct: {
                         include: {
                             set: true,
+                            sales: {
+                                orderBy: { date: 'desc' },
+                                take: 15,
+                            },
                         },
                     },
                     frontMedia: true,
@@ -219,6 +231,10 @@ export class InventoryService {
                 refPriceChartingProduct: {
                     include: {
                         set: true,
+                        sales: {
+                            orderBy: { date: 'desc' },
+                            take: 15,
+                        },
                     },
                 },
                 frontMedia: true,
@@ -403,11 +419,11 @@ export class InventoryService {
     private filterSalesByItemType(sales: any[], item: any) {
         if (item.itemType === 'SINGLE_CARD_GRADED') {
             const grade = String(item.gradeValue).toLowerCase();
-            return sales.filter(s => s.grade?.toLowerCase().includes(grade));
+            return sales.filter((s: any) => s.grade?.toLowerCase().includes(grade));
         }
         if (item.itemType === 'SINGLE_CARD_RAW') {
             // PriceCharting usually has "Ungraded" or null for raw
-            return sales.filter(s =>
+            return sales.filter((s: any) =>
                 !s.grade ||
                 s.grade.toLowerCase().includes('ungraded') ||
                 s.grade.toLowerCase().includes('raw')
@@ -420,23 +436,59 @@ export class InventoryService {
         if (!item.refPriceChartingProduct) return null;
 
         const ref = item.refPriceChartingProduct;
+        const sales = ref.sales || [];
 
         if (item.itemType === 'SEALED_PRODUCT') {
             return ref.sealedPrice ? Number(ref.sealedPrice) : null;
         }
 
-        if (item.itemType === 'SINGLE_CARD_RAW') {
+        // Helper to calculate average of last 3 sales
+        const getAverageOf3 = (filteredSales: any[]) => {
+            if (filteredSales.length === 0) return null;
+            const last3 = filteredSales.slice(0, 3);
+            const sum = last3.reduce((acc, s) => acc + Number(s.price), 0);
+            return sum / last3.length;
+        };
+
+        if (item.itemType === 'SINGLE_CARD_GRADED') {
+            const grade = String(item.gradeValue).toLowerCase();
+
+            // 1. Try to find sales for this specific grade
+            const gradedSales = sales.filter((s: any) => s.grade?.toLowerCase().includes(grade));
+            const gradedAvg = getAverageOf3(gradedSales);
+            if (gradedAvg !== null) return gradedAvg;
+
+            // 2. Fallback to summary grade price if available (from PriceCharting elements)
+            if (grade === '10' && ref.grade10Price) return Number(ref.grade10Price);
+            if (grade === '9.5' && ref.grade95Price) return Number(ref.grade95Price);
+            if (grade === '9' && ref.grade9Price) return Number(ref.grade9Price);
+            if (grade === '8' && ref.grade8Price) return Number(ref.grade8Price);
+            if (grade === '7' && ref.grade7Price) return Number(ref.grade7Price);
+
+            // 3. Fallback to Raw sales average
+            const rawSales = sales.filter((s: any) =>
+                !s.grade ||
+                s.grade.toLowerCase().includes('ungraded') ||
+                s.grade.toLowerCase().includes('raw')
+            );
+            const rawAvg = getAverageOf3(rawSales);
+            if (rawAvg !== null) return rawAvg;
+
+            // 4. Fallback to static raw price
             return ref.rawPrice ? Number(ref.rawPrice) : null;
         }
 
-        if (item.itemType === 'SINGLE_CARD_GRADED') {
-            const grade = String(item.gradeValue);
-            if (grade === '10') return ref.grade10Price ? Number(ref.grade10Price) : (ref.rawPrice ? Number(ref.rawPrice) : null);
-            if (grade === '9.5') return ref.grade95Price ? Number(ref.grade95Price) : (ref.rawPrice ? Number(ref.rawPrice) : null);
-            if (grade === '9') return ref.grade9Price ? Number(ref.grade9Price) : (ref.rawPrice ? Number(ref.rawPrice) : null);
-            if (grade === '8') return ref.grade8Price ? Number(ref.grade8Price) : (ref.rawPrice ? Number(ref.rawPrice) : null);
-            if (grade === '7') return ref.grade7Price ? Number(ref.grade7Price) : (ref.rawPrice ? Number(ref.rawPrice) : null);
+        if (item.itemType === 'SINGLE_CARD_RAW') {
+            // 1. Try to find last 3 raw sales
+            const rawSales = sales.filter((s: any) =>
+                !s.grade ||
+                s.grade.toLowerCase().includes('ungraded') ||
+                s.grade.toLowerCase().includes('raw')
+            );
+            const rawAvg = getAverageOf3(rawSales);
+            if (rawAvg !== null) return rawAvg;
 
+            // 2. Fallback to static raw price
             return ref.rawPrice ? Number(ref.rawPrice) : null;
         }
 

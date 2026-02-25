@@ -191,13 +191,13 @@ export class MarketPricingService {
         try {
             const { summary, sales } = await this.parser.parse(priceChartingUrl);
 
-            // Calculate current price from recent history (average of last 5 sales for stability)
+            // Calculate current price from recent history (average of last 3 sales for stability)
             // Or use the 'ungraded' summary price if available
-            const recentSales = sales.slice(0, 5);
+            const recentSales = sales.slice(0, 3);
             let avgPrice = summary.ungraded;
 
             if (!avgPrice && recentSales.length > 0) {
-                avgPrice = recentSales.reduce((acc, p) => acc + p.price, 0) / recentSales.length;
+                avgPrice = recentSales.reduce((acc: number, p: any) => acc + p.price, 0) / recentSales.length;
             }
 
             // Update RefPriceChartingProduct in DB with new prices
