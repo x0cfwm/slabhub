@@ -279,10 +279,10 @@ export default function VendorClient() {
                                 const displayName = isSealed ? (item as any).productName : marketProduct?.name || "Unknown Asset";
 
                                 return (
-                                    <div key={item.id} className="group relative cursor-pointer" onClick={() => setSelectedItem(item)}>
+                                    <div key={item.id} className="group relative cursor-pointer h-full" onClick={() => setSelectedItem(item)}>
                                         <div className="absolute -inset-0.5 bg-gradient-to-b from-primary/20 to-transparent rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                                        <Card className="relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md border-primary/10 bg-card/50 backdrop-blur-md">
-                                            <div className="aspect-[3/4] overflow-hidden relative bg-accent/5">
+                                        <Card className="relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md border-primary/10 bg-card/50 backdrop-blur-md h-full flex flex-col">
+                                            <div className="aspect-[3/4] overflow-hidden relative bg-accent/5 shrink-0">
                                                 <img
                                                     src={item.photos?.[0] || (item as any).frontMediaUrl || marketProduct?.imageUrl || "https://placehold.co/300x400?text=Asset"}
                                                     className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-110"
@@ -292,10 +292,10 @@ export default function VendorClient() {
                                                     <p className="text-[9px] text-primary font-black uppercase tracking-[0.2em] truncate">{marketProduct?.set || "TCG Asset"}</p>
                                                 </div>
                                             </div>
-                                            <CardContent className="p-3 space-y-3">
-                                                <div>
-                                                    <h4 className="font-bold text-[13px] tracking-tight group-hover:text-primary transition-colors leading-tight">{displayName}</h4>
-                                                    <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                                            <CardContent className="p-3 flex-1 flex flex-col justify-between space-y-3">
+                                                <div className="space-y-1.5">
+                                                    <h4 className="font-bold text-[13px] tracking-tight group-hover:text-primary transition-colors leading-tight line-clamp-3 min-h-[2.5rem]">{displayName}</h4>
+                                                    <div className="flex items-center gap-1 flex-wrap">
                                                         {item.quantity > 1 && (
                                                             <Badge className="text-[9px] h-4 px-2 uppercase font-black bg-primary text-black">
                                                                 {item.quantity} In Stock
@@ -309,7 +309,7 @@ export default function VendorClient() {
                                                     </div>
                                                 </div>
 
-                                                <div className="pt-2.5 border-t border-border flex items-center justify-between">
+                                                <div className="pt-2.5 border-t border-border flex items-center justify-between mt-auto">
                                                     <div className="text-left">
                                                         <span className="text-[9px] text-primary uppercase font-black block leading-none mb-1">Price</span>
                                                         <span className="text-base font-black tracking-tighter leading-none">${Math.round(item.listingPrice || 0).toLocaleString()}</span>
@@ -451,12 +451,12 @@ export default function VendorClient() {
                                             <div className="space-y-1">
                                                 <DialogDescription asChild>
                                                     <p className="text-primary font-bold tracking-[0.2em] uppercase text-[10px] animate-in slide-in-from-left duration-500">
-                                                        {marketProducts.find(p => p.id === (selectedItem.cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.set || "TCG Asset"}
+                                                        {marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.set || "TCG Asset"}
                                                     </p>
                                                 </DialogDescription>
                                                 <DialogTitle asChild>
                                                     <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight">
-                                                        {((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? (selectedItem as any).productName : (marketProducts.find(p => p.id === (selectedItem.cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || "Asset Details")}
+                                                        {((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? (selectedItem as any).productName : (marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || "Asset Details")}
                                                     </h2>
                                                 </DialogTitle>
                                             </div>
@@ -512,7 +512,7 @@ export default function VendorClient() {
                                             <span className="text-[10px] text-muted-foreground uppercase font-black block mb-2 tracking-widest">Market Value</span>
                                             <div className="flex items-baseline gap-1">
                                                 <span className="text-2xl font-bold text-muted-foreground tracking-tight">
-                                                    ${Math.round((((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? marketProducts.find(p => p.id === (selectedItem.cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.sealedPrice : marketProducts.find(p => p.id === (selectedItem.cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.rawPrice) || 0).toLocaleString()}
+                                                    ${Math.round((((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.sealedPrice : marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.rawPrice) || 0).toLocaleString()}
                                                 </span>
                                                 <span className="text-[10px] text-muted-foreground font-black">EST.</span>
                                             </div>
