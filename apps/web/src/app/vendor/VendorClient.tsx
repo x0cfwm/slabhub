@@ -27,8 +27,13 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, MessageSquare, Info, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShoppingCart, MessageSquare, Info, ChevronLeft, ChevronRight, Maximize2, X, Share2, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+    Dialog,
+    DialogContent,
+} from "@/components/ui/dialog";
+import { SimpleThemeToggle } from "@/components/common/SimpleThemeToggle";
 
 export default function VendorClient() {
     const searchParams = useSearchParams();
@@ -141,7 +146,10 @@ export default function VendorClient() {
 
     if (!profile.isActive) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-8 bg-background">
+            <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-background relative">
+                <div className="absolute top-4 right-4">
+                    <SimpleThemeToggle />
+                </div>
                 <Card className="max-w-md w-full text-center p-8 space-y-4 border-border bg-card shadow-lg">
                     <div className="w-20 h-20 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Users className="w-10 h-10 text-muted-foreground opacity-50" />
@@ -203,12 +211,13 @@ export default function VendorClient() {
                                 )}
                             </div>
                         </div>
-                        <div className="flex gap-2 w-full md:w-auto pt-4 md:pt-0">
+                        <div className="flex gap-2 w-full md:w-auto pt-4 md:pt-0 items-center">
+                            <SimpleThemeToggle />
                             <Button onClick={copyLink} variant="outline" className="flex-1 md:flex-none border-border">
-                                <Instagram className="h-4 w-4 mr-2" /> Share
+                                <Share2 className="h-4 w-4 mr-2" /> Share
                             </Button>
                             {profile.socials.instagram && (
-                                <Button variant="outline" size="icon" className="border-border">
+                                <Button variant="outline" size="icon" className="border-border" onClick={() => window.open(`https://instagram.com/${profile.socials.instagram}`, '_blank')}>
                                     <Instagram className="h-4 w-4" />
                                 </Button>
                             )}
@@ -324,8 +333,8 @@ export default function VendorClient() {
                 </Tabs>
             </div>
 
-            <Sheet open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
-                <SheetContent className="sm:max-w-md overflow-y-auto bg-card/95 backdrop-blur-xl border-l-primary/10 p-0">
+            <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
+                <DialogContent showCloseButton={false} className="max-w-[98vw] md:max-w-7xl w-full h-[95vh] md:h-[90vh] p-0 gap-0 border-none bg-black overflow-hidden rounded-none md:rounded-[2.5rem] shadow-2xl">
                     {selectedItem && (() => {
                         const vid = (selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId;
                         const mp = marketProducts.find(p => p.id === vid);
@@ -333,127 +342,182 @@ export default function VendorClient() {
                         const name = isS ? (selectedItem as any).productName : mp?.name || "Asset Details";
 
                         return (
-                            <div className="flex flex-col h-full">
-                                <div className="p-10 space-y-6">
-                                    <SheetHeader className="px-0 text-left">
-                                        <SheetTitle className="font-bold text-2xl tracking-tight">{name}</SheetTitle>
-                                        <SheetDescription className="font-mono text-[10px] uppercase opacity-70">
-                                            {mp?.set || "TCG Asset"} — {isS ? 'Sealed' : 'Single Card'}
-                                        </SheetDescription>
-                                    </SheetHeader>
+                            <div className="flex flex-col md:flex-row h-full w-full">
+                                {/* Left Side: Immersive Image Gallery */}
+                                <div className="flex-[1.4] relative bg-[#0a0a0a] flex flex-col min-h-0">
+                                    {/* Main Image Area */}
+                                    <div className="flex-1 relative flex items-center justify-center p-4 md:p-12 overflow-hidden group">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50" />
 
-                                    <div className="space-y-4">
-                                        <div className="flex justify-center bg-accent/20 rounded-2xl p-6 border border-primary/5 relative group">
+                                        <div className="relative w-full h-full flex items-center justify-center z-10 transition-all duration-700 animate-in fade-in zoom-in-95">
                                             <img
-                                                src={activePhoto || `https://placehold.co/300x400?text=${isS ? 'Sealed' : 'Card'}`}
+                                                src={activePhoto || `https://placehold.co/800x1200?text=${isS ? 'Sealed' : 'Card'}`}
                                                 alt={name}
-                                                className="h-72 rounded-xl shadow-2xl object-contain transition-all duration-300"
+                                                className="max-w-full max-h-full object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-lg transition-transform duration-500"
                                             />
-                                            {allPhotos.length > 1 && (
-                                                <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 flex justify-between opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                                    <Button
-                                                        variant="secondary"
-                                                        size="icon"
-                                                        className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm pointer-events-auto"
-                                                        onClick={() => {
-                                                            const idx = allPhotos.indexOf(activePhoto || "");
-                                                            const prevIdx = (idx - 1 + allPhotos.length) % allPhotos.length;
-                                                            setActivePhoto(allPhotos[prevIdx]);
-                                                        }}
-                                                    >
-                                                        <ChevronLeft className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="secondary"
-                                                        size="icon"
-                                                        className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm pointer-events-auto"
-                                                        onClick={() => {
-                                                            const idx = allPhotos.indexOf(activePhoto || "");
-                                                            const nextIdx = (idx + 1) % allPhotos.length;
-                                                            setActivePhoto(allPhotos[nextIdx]);
-                                                        }}
-                                                    >
-                                                        <ChevronRight className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            )}
                                         </div>
 
+                                        {/* Navigation Arrows */}
                                         {allPhotos.length > 1 && (
-                                            <div className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-hide">
-                                                {allPhotos.map((photo, i) => (
-                                                    <button
-                                                        key={i}
-                                                        onClick={() => setActivePhoto(photo)}
-                                                        className={cn(
-                                                            "relative flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden border-2 transition-all",
-                                                            activePhoto === photo ? "border-primary ring-2 ring-primary/20" : "border-transparent opacity-60 hover:opacity-100"
-                                                        )}
-                                                    >
-                                                        <img src={photo} className="w-full h-full object-cover" alt={`${name} ${i + 1}`} />
-                                                    </button>
-                                                ))}
+                                            <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-20">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-12 w-12 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-xl pointer-events-auto border border-white/10 text-white transition-all hover:scale-110 active:scale-95"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const idx = allPhotos.indexOf(activePhoto || "");
+                                                        const prevIdx = (idx - 1 + allPhotos.length) % allPhotos.length;
+                                                        setActivePhoto(allPhotos[prevIdx]);
+                                                    }}
+                                                >
+                                                    <ChevronLeft className="h-8 w-8" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-12 w-12 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-xl pointer-events-auto border border-white/10 text-white transition-all hover:scale-110 active:scale-95"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const idx = allPhotos.indexOf(activePhoto || "");
+                                                        const nextIdx = (idx + 1) % allPhotos.length;
+                                                        setActivePhoto(allPhotos[nextIdx]);
+                                                    }}
+                                                >
+                                                    <ChevronRight className="h-8 w-8" />
+                                                </Button>
+                                            </div>
+                                        )}
+
+                                        {/* Bottom Thumbnails Strip */}
+                                        {allPhotos.length > 1 && (
+                                            <div className="absolute bottom-8 inset-x-0 flex justify-center z-20">
+                                                <div className="bg-white/5 backdrop-blur-2xl p-2 rounded-2xl border border-white/10 flex gap-2">
+                                                    {allPhotos.map((photo, i) => (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => setActivePhoto(photo)}
+                                                            className={cn(
+                                                                "relative w-12 h-16 rounded-lg overflow-hidden border-2 transition-all",
+                                                                activePhoto === photo ? "border-primary scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-100"
+                                                            )}
+                                                        >
+                                                            <img src={photo} className="w-full h-full object-cover" alt={`${name} ${i + 1}`} />
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
                                         )}
                                     </div>
+                                </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10">
-                                            <span className="text-[10px] text-primary uppercase font-black block mb-1">Price</span>
-                                            <span className="text-2xl font-black">${selectedItem.listingPrice?.toFixed(2) || "0.00"}</span>
-                                        </div>
-                                        <div className="bg-muted/30 rounded-2xl p-4 border border-border/50">
-                                            <span className="text-[10px] text-muted-foreground uppercase font-black block mb-1">Market Avg</span>
-                                            <span className="text-lg font-bold text-muted-foreground">${(isS ? mp?.sealedPrice : mp?.rawPrice)?.toFixed(2) || "0.00"}</span>
+                                {/* Right Side: Content & Sales Details */}
+                                <div className="flex-1 bg-card flex flex-col min-h-0 border-l border-white/5 relative">
+                                    {/* Fixed Header in Panel */}
+                                    <div className="p-6 md:p-10 border-b border-border/50">
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-start gap-12">
+                                                <div className="space-y-1">
+                                                    <p className="text-primary font-bold tracking-[0.2em] uppercase text-[10px] animate-in slide-in-from-left duration-500">
+                                                        {mp?.set || "TCG Asset"}
+                                                    </p>
+                                                    <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight">
+                                                        {name}
+                                                    </h2>
+                                                </div>
+                                                <div className="flex gap-2 shrink-0">
+                                                    <Button variant="outline" size="icon" className="rounded-full h-10 w-10">
+                                                        <Share2 className="h-4 w-4" />
+                                                    </Button>
+                                                    <button
+                                                        className="h-10 w-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
+                                                        onClick={() => setSelectedItem(null)}
+                                                    >
+                                                        <X className="h-5 w-5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                {selectedItem.quantity > 1 && (
+                                                    <Badge className="bg-primary hover:bg-primary text-black font-black uppercase text-[10px] py-1 px-3 rounded-md">
+                                                        {selectedItem.quantity} In Stock
+                                                    </Badge>
+                                                )}
+                                                {(selectedItem as any).grade && (
+                                                    <Badge variant="secondary" className="font-bold bg-muted/50 text-foreground text-[10px] py-1 px-3 border border-border">
+                                                        {(selectedItem as any).gradingCompany} {(selectedItem as any).grade}
+                                                    </Badge>
+                                                )}
+                                                {(selectedItem as any).condition && !isS && (
+                                                    <Badge variant="outline" className="font-bold border-primary/20 text-primary text-[10px] py-1 px-3 bg-primary/5">
+                                                        {(selectedItem as any).condition}
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            {selectedItem.quantity > 1 && (
-                                                <Badge className="bg-primary text-black font-black uppercase text-[10px] py-1 px-3">
-                                                    {selectedItem.quantity} In Stock
-                                                </Badge>
-                                            )}
-                                            {(selectedItem as any).grade && (
-                                                <Badge variant="outline" className="font-bold border-primary/30 bg-primary/5 text-primary text-[10px] py-1 px-3">
-                                                    {(selectedItem as any).gradingCompany} {(selectedItem as any).grade}
-                                                </Badge>
-                                            )}
-                                            {(selectedItem as any).condition && !isS && (
-                                                <Badge variant="outline" className="font-bold border-border bg-muted/20 text-[10px] py-1 px-3">
-                                                    {(selectedItem as any).condition}
-                                                </Badge>
-                                            )}
+                                    {/* Scrollable Body */}
+                                    <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-10">
+                                        {/* Pricing Block */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-accent/5 rounded-[2rem] p-6 border border-primary/10 relative overflow-hidden group hover:border-primary/30 transition-colors">
+                                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                                                    <ShoppingCart className="h-8 w-8 text-primary" />
+                                                </div>
+                                                <span className="text-[10px] text-primary uppercase font-black block mb-2 tracking-widest">SlabHub Price</span>
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-4xl font-black tracking-tighter">${selectedItem.listingPrice?.toFixed(2) || "0.00"}</span>
+                                                    <span className="text-xs text-muted-foreground font-bold">USD</span>
+                                                </div>
+                                            </div>
+                                            <div className="bg-muted/10 rounded-[2rem] p-6 border border-border/50">
+                                                <span className="text-[10px] text-muted-foreground uppercase font-black block mb-2 tracking-widest">Market Value</span>
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-2xl font-bold text-muted-foreground tracking-tight">${(isS ? mp?.sealedPrice : mp?.rawPrice)?.toFixed(2) || "0.00"}</span>
+                                                    <span className="text-[10px] text-muted-foreground font-black">EST.</span>
+                                                </div>
+                                            </div>
                                         </div>
 
+                                        {/* Description */}
                                         {(selectedItem as any).sellingDescription && (
-                                            <div className="space-y-2 pt-4 border-t border-border/50">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1.5">
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
                                                     <Info className="h-3 w-3" /> Seller's Description
-                                                </Label>
-                                                <div className="text-sm leading-relaxed text-muted-foreground bg-accent/5 p-4 rounded-xl border border-primary/5 italic">
+                                                </h3>
+                                                <div className="text-[13px] leading-relaxed text-foreground bg-muted/5 p-6 rounded-2xl border border-border/50 italic border-l-4 border-l-primary/50">
                                                     "{(selectedItem as any).sellingDescription}"
                                                 </div>
                                             </div>
                                         )}
-                                    </div>
-                                </div>
 
-                                <div className="mt-auto p-8 bg-gradient-to-t from-background to-transparent border-t border-border/50">
-                                    <Button className="w-full h-14 text-md font-bold rounded-2xl shadow-xl shadow-primary/20 gap-2">
-                                        <MessageSquare className="h-5 w-5" />
-                                        Inquire about this item
-                                    </Button>
-                                    <p className="text-center text-[9px] text-muted-foreground font-medium uppercase tracking-widest mt-4">
-                                        Contact via {profile.shopName} socials for purchase
-                                    </p>
+                                        {/* Seller info Mini */}
+                                        <div className="p-6 bg-muted/30 rounded-2xl border border-border flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-xl font-black text-white">
+                                                {profile.shopName.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold">{profile.shopName}</p>
+                                                <p className="text-xs text-muted-foreground">@{profile.handle} • {profile.locationCity}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Footer */}
+                                    <div className="p-6 md:p-10 border-t border-border/50 bg-background/50 backdrop-blur-xl">
+                                        <Button className="w-full h-16 text-lg font-black rounded-2xl shadow-[0_20px_40px_rgba(var(--primary-rgb),0.3)] gap-3 hover:scale-[1.02] active:scale-95 transition-all bg-primary hover:bg-primary/90 text-black">
+                                            <MessageSquare className="h-6 w-6" />
+                                            Inquire About Purchase
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         );
                     })()}
-                </SheetContent>
-            </Sheet>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

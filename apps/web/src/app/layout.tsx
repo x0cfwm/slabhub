@@ -57,6 +57,7 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           storageKey="slabhub-theme"
+          disableTransitionOnChange
         >
           <AuthProvider>
             {children}

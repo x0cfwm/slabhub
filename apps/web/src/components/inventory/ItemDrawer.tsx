@@ -10,6 +10,10 @@ import {
     SheetTitle,
     SheetFooter
 } from "@/components/ui/sheet";
+import {
+    Dialog,
+    DialogContent,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,7 +29,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { InventoryItem, CardProfile, InventoryStage, GradingCompany, Condition } from "@/lib/types";
-import { Trash2, Save, Info, ShoppingCart, Award, Calendar, DollarSign, StickyNote, Layers, Plus, Loader2, Check, ArrowLeft } from "lucide-react";
+import { Trash2, Save, Info, ShoppingCart, Award, Calendar, DollarSign, StickyNote, Layers, Plus, Loader2, Check, ArrowLeft, Maximize2, X } from "lucide-react";
 import { updateInventoryItem, deleteInventoryItem, uploadFile, deleteFile } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -63,6 +67,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
     const [formData, setFormData] = useState<Partial<InventoryItem>>({});
     const [loading, setLoading] = useState(false);
     const [uploadingPhotos, setUploadingPhotos] = useState<Record<string, boolean>>({});
+    const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
     // Get active tab from URL or default to "basic"
     const activeTab = searchParams.get("tab") || "basic";
@@ -136,12 +141,18 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                 <div className="flex-1 overflow-y-auto p-6 pb-0">
                     <SheetHeader className="px-0 mb-4 border-b border-primary/5 pb-4">
                         <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start text-center sm:text-left">
-                            <div className="w-24 h-32 flex-shrink-0 rounded-xl overflow-hidden border bg-muted/30 shadow-md ring-1 ring-primary/5">
+                            <div
+                                className="w-24 h-32 flex-shrink-0 rounded-xl overflow-hidden border bg-muted/30 shadow-md ring-1 ring-primary/5 relative group cursor-zoom-in"
+                                onClick={() => setZoomedImage(photos[0] || finalProfile?.imageUrl || null)}
+                            >
                                 <img
                                     src={photos[0] || finalProfile?.imageUrl || `https://placehold.co/200x300?text=${isSealed ? 'Sealed' : 'Card'}`}
                                     alt={displayName}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-cover transition-transform group-hover:scale-110"
                                 />
+                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Maximize2 className="h-4 w-4 text-white" />
+                                </div>
                             </div>
                             <div className="flex-1 min-w-0 space-y-2">
                                 <SheetTitle className="font-bold text-2xl tracking-tight leading-tight">{displayName || "Asset Details"}</SheetTitle>
@@ -280,7 +291,18 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                                 {uploadingPhotos[label] ? (
                                                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                                 ) : (formData as any).photos?.[idx] ? (
-                                                    <img src={(formData as any).photos[idx]} className="absolute inset-0 w-full h-full object-cover" alt={label} />
+                                                    <div className="absolute inset-0 w-full h-full group/img">
+                                                        <img src={(formData as any).photos[idx]} className="w-full h-full object-cover" alt={label} />
+                                                        <div
+                                                            className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setZoomedImage((formData as any).photos[idx]);
+                                                            }}
+                                                        >
+                                                            <Maximize2 className="h-4 w-4 text-white" />
+                                                        </div>
+                                                    </div>
                                                 ) : (
                                                     <div className="text-center space-y-2">
                                                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
@@ -618,6 +640,28 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                     </SheetFooter>
                 </div>
             </SheetContent>
+
+            <Dialog open={!!zoomedImage} onOpenChange={(open) => !open && setZoomedImage(null)}>
+                <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center">
+                    {zoomedImage && (
+                        <div className="relative w-full h-full flex items-center justify-center p-4">
+                            <img
+                                src={zoomedImage}
+                                alt="Zoomed view"
+                                className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl ring-1 ring-white/10"
+                            />
+                            <Button
+                                variant="secondary"
+                                size="icon"
+                                className="absolute top-6 right-6 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md border-white/10 text-white"
+                                onClick={() => setZoomedImage(null)}
+                            >
+                                <X className="h-6 w-6" />
+                            </Button>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </Sheet>
     );
 }
