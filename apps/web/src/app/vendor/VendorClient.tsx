@@ -361,29 +361,24 @@ export default function VendorClient() {
                                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50" />
 
                                     <div
-                                        className="absolute inset-0 flex items-center justify-center p-4 md:p-12 z-10 transition-all duration-700 animate-in fade-in zoom-in-95 overflow-hidden"
+                                        className="absolute inset-0 flex items-center justify-center p-6 md:p-12 z-10 transition-all duration-700 animate-in fade-in zoom-in-95"
                                         onMouseMove={handleMouseMove}
                                         onMouseLeave={() => setIsZoomed(false)}
                                     >
                                         <div
                                             className={cn(
-                                                "relative transition-transform duration-500 ease-out cursor-zoom-in flex items-center justify-center",
+                                                "relative transition-transform duration-500 ease-out cursor-zoom-in flex items-center justify-center w-full h-full",
                                                 isZoomed && "scale-[2.5] cursor-zoom-out"
                                             )}
                                             style={isZoomed ? {
                                                 transformOrigin: `${mousePos.x}% ${mousePos.y}%`,
-                                                width: '100%',
-                                                height: '100%'
-                                            } : {
-                                                width: '100%',
-                                                height: '100%'
-                                            }}
+                                            } : undefined}
                                             onClick={() => setIsZoomed(!isZoomed)}
                                         >
                                             <img
                                                 src={activePhoto || `https://placehold.co/800x1200?text=${((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? 'Sealed' : 'Card'}`}
                                                 alt={((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? (selectedItem as any).productName : (marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || "Asset Details")}
-                                                className="max-w-full max-h-full w-auto h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-lg"
+                                                className="max-w-full max-h-full w-auto h-auto object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.8)] rounded-lg pointer-events-none"
                                             />
                                         </div>
                                     </div>
@@ -544,8 +539,8 @@ export default function VendorClient() {
                                 </div>
 
                                 {/* Action Footer */}
-                                <div className="p-6 md:p-10 border-t border-border/50 bg-background/50 backdrop-blur-xl">
-                                    <Button className="w-full h-16 text-lg font-black rounded-2xl shadow-[0_20px_40px_rgba(var(--primary-rgb),0.3)] gap-3 hover:scale-[1.02] active:scale-95 transition-all bg-primary hover:bg-primary/90 text-black">
+                                <div className="p-8 md:p-12 border-t border-border/50 bg-background/50 backdrop-blur-xl mt-auto">
+                                    <Button className="w-full h-16 text-lg font-black rounded-2xl shadow-xl shadow-primary/20 gap-3 hover:scale-[1.02] active:scale-95 transition-all bg-primary hover:bg-primary/90 text-black">
                                         <MessageSquare className="h-6 w-6" />
                                         Inquire About Purchase
                                     </Button>
