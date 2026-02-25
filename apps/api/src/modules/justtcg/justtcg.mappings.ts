@@ -50,5 +50,7 @@ export const JUSTTCG_MAPPINGS: JustTcgMapping[] = [
             { source: 'game', target: 'gameExternalId', transform: 'string' },
             // image_url is missing from top-level keys in this API version
         ],
+        limit: 20,
+        concurrency: 2,
     },
 ];

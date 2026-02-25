@@ -72,58 +72,88 @@ export class JustTcgSyncService {
         this.logger.log(`Starting sync for ${mapping.name}... ${progress ? `(Resuming from ${mapping.pagination === 'offset' ? 'offset ' + currentOffset : 'page ' + currentPage})` : '(Fresh Start)'}`);
 
         try {
-            const fetchOptions = {
-                startOffset: currentOffset,
-                startPage: currentPage,
-                startCursor: currentCursor
-            };
+            const concurrency = mapping.concurrency ?? 1;
+            const limit = mapping.limit ?? 20;
 
-            for await (const response of this.client.fetchPages(mapping, fetchOptions)) {
-                totalItems = response.meta?.total;
-                const items = response.data;
-                const mappedItems = items.map((item) => this.mapFields(item, mapping));
+            let hasNextPage = true;
 
-                if (!dryRun) {
-                    await this.upsertItems(mapping.model, mapping.unique.targetField, mappedItems);
+            while (hasNextPage) {
+                const batchPromises = [];
+                // We can only pre-fetch if pagination is offset or page-based.
+                // Cursor-based requires the previous result's cursor.
+                const currentBatchSize = mapping.pagination === 'cursor' || mapping.pagination === 'none' ? 1 : concurrency;
 
-                    // Update variables for next page
-                    totalProcessed += items.length;
+                for (let i = 0; i < currentBatchSize && hasNextPage; i++) {
+                    batchPromises.push(this.client.fetchPage(mapping, currentPage, currentCursor, currentOffset));
+
+                    // Optimistic increment for the next request in the batch
                     if (mapping.pagination === 'offset') {
-                        currentOffset += items.length;
+                        currentOffset += limit;
                     } else if (mapping.pagination === 'page') {
                         currentPage++;
-                    } else if (mapping.pagination === 'cursor') {
-                        currentCursor = response.meta?.nextCursor;
+                    } else if (mapping.pagination === 'none') {
+                        hasNextPage = false;
                     }
-
-                    // Save progress after each batch
-                    await this.prisma.refSyncProgress.upsert({
-                        where: { mappingName: mapping.name },
-                        update: {
-                            offset: currentOffset,
-                            page: currentPage,
-                            cursor: currentCursor ?? null,
-                            totalItems,
-                            processedItems: totalProcessed,
-                            status: 'RUNNING',
-                            lastSyncAt: new Date(),
-                        },
-                        create: {
-                            mappingName: mapping.name,
-                            offset: currentOffset,
-                            page: currentPage,
-                            cursor: currentCursor ?? null,
-                            totalItems,
-                            processedItems: totalProcessed,
-                            status: 'RUNNING',
-                        }
-                    });
-                } else {
-                    totalProcessed += items.length;
                 }
 
-                const progressMsg = totalItems ? ` (${Math.round((totalProcessed / totalItems) * 100)}%)` : '';
-                this.logger.log(`Synced ${totalProcessed}${totalItems ? '/' + totalItems : ''} items for ${mapping.name}${progressMsg}`);
+                const responses = await Promise.all(batchPromises);
+
+                for (const response of responses) {
+                    totalItems = response.meta?.total;
+                    const items = response.data;
+                    const mappedItems = items.map((item) => this.mapFields(item, mapping));
+
+                    if (!dryRun) {
+                        await this.upsertItems(mapping.model, mapping.unique.targetField, mappedItems);
+
+                        totalProcessed += items.length;
+                        if (mapping.pagination === 'cursor') {
+                            currentCursor = response.meta?.nextCursor;
+                            hasNextPage = !!currentCursor;
+                        } else if (mapping.pagination === 'offset') {
+                            const hasMore = response.meta?.hasMore ?? items.length >= limit;
+                            if (!hasMore) hasNextPage = false;
+                        } else if (mapping.pagination === 'page') {
+                            const lastPage = response.meta?.lastPage ?? currentPage;
+                            if (currentPage > lastPage) hasNextPage = false;
+                        }
+
+                        // Save progress after each page in the batch
+                        await this.prisma.refSyncProgress.upsert({
+                            where: { mappingName: mapping.name },
+                            update: {
+                                offset: currentOffset,
+                                page: currentPage,
+                                cursor: currentCursor ?? null,
+                                totalItems,
+                                processedItems: totalProcessed,
+                                status: 'RUNNING',
+                                lastSyncAt: new Date(),
+                            },
+                            create: {
+                                mappingName: mapping.name,
+                                offset: currentOffset,
+                                page: currentPage,
+                                cursor: currentCursor ?? null,
+                                totalItems,
+                                processedItems: totalProcessed,
+                                status: 'RUNNING',
+                            }
+                        });
+                    } else {
+                        totalProcessed += items.length;
+                        if (mapping.pagination === 'cursor') {
+                            currentCursor = response.meta?.nextCursor;
+                            hasNextPage = !!currentCursor;
+                        } else if (mapping.pagination === 'offset') {
+                            const hasMore = response.meta?.hasMore ?? items.length >= limit;
+                            if (!hasMore) hasNextPage = false;
+                        }
+                    }
+
+                    const progressMsg = totalItems ? ` (${Math.round((totalProcessed / totalItems) * 100)}%)` : '';
+                    this.logger.log(`Synced ${totalProcessed}${totalItems ? '/' + totalItems : ''} items for ${mapping.name}${progressMsg}`);
+                }
             }
 
             if (!dryRun) {

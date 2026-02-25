@@ -18,6 +18,7 @@ export interface JustTcgMapping {
     model: string;
     params?: Record<string, any>;
     limit?: number;
+    concurrency?: number;
 }
 
 export interface JustTcgResponse<T = any> {

@@ -204,7 +204,7 @@ export class JustTcgClient {
         return allItems;
     }
 
-    private async fetchPage<T>(
+    public async fetchPage<T>(
         mapping: JustTcgMapping,
         page: number,
         cursor?: string,
