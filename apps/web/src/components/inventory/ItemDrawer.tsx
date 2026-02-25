@@ -428,8 +428,8 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                                     </Button>
                                                 </div>
                                             )}
-                                            <div className="space-y-10">
-                                                <div className="space-y-4">
+                                            <div className="space-y-6">
+                                                <div className="space-y-2">
                                                     <Label className="text-xs font-bold uppercase tracking-wider">Grader</Label>
                                                     <RadioGroup
                                                         value={(formData as any).gradeProvider}
@@ -445,18 +445,8 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                                     </RadioGroup>
                                                 </div>
 
-                                                <div className="space-y-4">
-                                                    <Label className="text-xs font-bold uppercase tracking-wider">Certification Number</Label>
-                                                    <Input
-                                                        placeholder="e.g. 112983707"
-                                                        className="h-12 bg-background/50 border-primary/20 font-mono text-lg shadow-sm"
-                                                        value={(formData as any).certNumber || ""}
-                                                        onChange={e => setFormData({ ...formData, certNumber: e.target.value } as any)}
-                                                    />
-                                                </div>
-
                                                 {((formData as any).gradeProvider === "PSA" || (formData as any).gradeProvider === "BGS") && (
-                                                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                                                         <Label className="text-xs font-bold uppercase tracking-wider">Grade</Label>
                                                         <RadioGroup
                                                             value={(formData as any).gradeValue}
@@ -477,7 +467,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
 
                                                 {/* Fallback for other graders or custom input */}
                                                 {(formData as any).gradeProvider && !["PSA", "BGS"].includes((formData as any).gradeProvider) && (
-                                                    <div className="space-y-3">
+                                                    <div className="space-y-2">
                                                         <Label className="text-xs font-bold uppercase tracking-wider">Grade</Label>
                                                         <Input
                                                             placeholder="e.g. 10"
@@ -487,6 +477,16 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                                         />
                                                     </div>
                                                 )}
+
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs font-bold uppercase tracking-wider">Certification Number (Optional)</Label>
+                                                    <Input
+                                                        placeholder="e.g. 112983707"
+                                                        className="h-12 bg-background/50 border-primary/20 font-mono text-lg shadow-sm"
+                                                        value={(formData as any).certNumber || ""}
+                                                        onChange={e => setFormData({ ...formData, certNumber: e.target.value } as any)}
+                                                    />
+                                                </div>
                                             </div>
 
                                             <div className="border border-dashed border-primary/20 rounded-2xl p-8 flex flex-col items-center justify-center text-center space-y-3 bg-primary/5">

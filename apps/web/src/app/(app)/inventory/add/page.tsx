@@ -378,8 +378,8 @@ export default function AddItemPage() {
 
                                 {category === "SINGLE_CARD_GRADED" && (
                                     <div className="space-y-6">
-                                        <div className="space-y-4 p-6 rounded-2xl bg-card border border-border/60 shadow-sm">
-                                            <div className="space-y-3">
+                                        <div className="space-y-4 p-5 rounded-2xl bg-card border border-border/60 shadow-sm">
+                                            <div className="space-y-2">
                                                 <Label className="text-xs font-bold uppercase tracking-wider">Grader</Label>
                                                 <RadioGroup
                                                     value={formData.gradeProvider}
@@ -397,18 +397,8 @@ export default function AddItemPage() {
                                                 </RadioGroup>
                                             </div>
 
-                                            <div className="space-y-3">
-                                                <Label className="text-xs font-bold uppercase tracking-wider">Certification Number</Label>
-                                                <Input
-                                                    placeholder="e.g. 112983707"
-                                                    className="h-12 font-mono text-lg border-primary/20"
-                                                    value={formData.certNumber || ""}
-                                                    onChange={e => setFormData({ ...formData, certNumber: e.target.value })}
-                                                />
-                                            </div>
-
                                             {formData.gradeProvider && (
-                                                <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                                                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                                                     <Label className="text-xs font-bold uppercase tracking-wider">Grade</Label>
                                                     <RadioGroup
                                                         value={formData.grade}
@@ -440,6 +430,16 @@ export default function AddItemPage() {
                                                     </RadioGroup>
                                                 </div>
                                             )}
+
+                                            <div className="space-y-2">
+                                                <Label className="text-xs font-bold uppercase tracking-wider">Certification Number (Optional)</Label>
+                                                <Input
+                                                    placeholder="e.g. 112983707"
+                                                    className="h-12 font-mono text-lg border-primary/20"
+                                                    value={formData.certNumber || ""}
+                                                    onChange={e => setFormData({ ...formData, certNumber: e.target.value })}
+                                                />
+                                            </div>
                                         </div>
 
                                         <div className="p-4 border border-dashed border-primary/30 rounded-lg bg-card flex items-center gap-2 shadow-sm">
@@ -599,7 +599,7 @@ export default function AddItemPage() {
                             onClick={() => setStep(3)}
                             disabled={
                                 (category !== "SEALED_PRODUCT" && (!formData.baseCardId || !formData.variantType || !formData.language)) ||
-                                (category === "SINGLE_CARD_GRADED" && (!formData.gradeProvider || !formData.grade || !formData.certNumber))
+                                (category === "SINGLE_CARD_GRADED" && (!formData.gradeProvider || !formData.grade))
                             }
                         >
                             Next: Media Assets
