@@ -69,7 +69,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
             {...attributes}
             {...listeners}
             className={cn(
-                "group cursor-grab active:cursor-grabbing hover:shadow-md transition-all overflow-hidden border-muted-foreground/10 py-0 gap-0 h-full flex flex-col",
+                "group cursor-grab active:cursor-grabbing hover:shadow-md transition-all overflow-hidden border-muted-foreground/10 py-0 gap-0",
                 isDragging && !isOverlay && "opacity-40 grayscale-[0.5]",
                 isOverlay && "shadow-2xl ring-2 ring-primary/20 cursor-grabbing",
                 item.type === "SINGLE_CARD_GRADED" && "border-primary/20 bg-primary/5"
@@ -78,7 +78,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
                 if (onClick) onClick();
             }}
         >
-            <div className="relative pointer-events-none shrink-0">
+            <div className="relative pointer-events-none">
                 <AspectRatio ratio={2.5 / 3.5}>
                     <div className="flex items-center justify-center w-full h-full bg-accent/10 relative overflow-hidden">
                         <img
@@ -121,13 +121,13 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
                     )}
                 </div>
             </div>
-            <CardContent className="p-2.5 space-y-1.5 pointer-events-none flex-1 flex flex-col">
-                <div className="min-w-0 flex-1">
+            <CardContent className="p-2.5 space-y-1.5 pointer-events-none">
+                <div className="min-w-0">
                     <h4 className="font-bold text-xs line-clamp-2 leading-tight h-8 mb-0.5">{displayName}</h4>
                     <p className="text-[9px] text-muted-foreground uppercase tracking-tight truncate">{displaySub}</p>
                 </div>
 
-                <div className="flex items-center justify-between text-xs pt-1 border-t border-muted mt-auto">
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-muted">
                     <div className="flex flex-col">
                         <span className="text-muted-foreground text-[7px] uppercase font-bold">Market</span>
                         <span className="font-bold text-primary text-[10px]">
@@ -148,7 +148,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
                         </span>
                     </div>
                 </div>
-                {item.type === "SINGLE_CARD_GRADED" && (
+                {item.type === "SINGLE_CARD_GRADED" && item.certNumber && (
                     <div className="text-[7px] font-mono text-muted-foreground truncate border-t border-muted/50 pt-1">
                         CERT: {item.certNumber}
                     </div>
