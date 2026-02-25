@@ -70,7 +70,22 @@ export default function DashboardPage() {
                 const marketProduct = marketProducts.find(p => p.id === refId || p.id === vid);
 
                 if (marketProduct) {
-                    unitPrice = isSealed ? (marketProduct.sealedPrice ?? 0) : (marketProduct.rawPrice ?? 0);
+                    if (isSealed) {
+                        unitPrice = marketProduct.sealedPrice ?? 0;
+                    } else if (itType === "SINGLE_CARD_GRADED") {
+                        // Attempt to match grade
+                        const gradeStr = String((item as any).gradeValue || (item as any).grade || "").toLowerCase();
+                        const numericGrade = gradeStr.match(/\d+(\.\d+)?/)?.[0];
+
+                        if (numericGrade === '10') unitPrice = marketProduct.grade10Price ?? marketProduct.rawPrice ?? 0;
+                        else if (numericGrade === '9.5') unitPrice = marketProduct.grade95Price ?? marketProduct.rawPrice ?? 0;
+                        else if (numericGrade === '9') unitPrice = marketProduct.grade9Price ?? marketProduct.rawPrice ?? 0;
+                        else if (numericGrade === '8') unitPrice = marketProduct.grade8Price ?? marketProduct.rawPrice ?? 0;
+                        else if (numericGrade === '7') unitPrice = marketProduct.grade7Price ?? marketProduct.rawPrice ?? 0;
+                        else unitPrice = marketProduct.rawPrice ?? 0;
+                    } else {
+                        unitPrice = marketProduct.rawPrice ?? 0;
+                    }
                 } else if (item.marketPriceSnapshot) {
                     unitPrice = Number(item.marketPriceSnapshot);
                 }

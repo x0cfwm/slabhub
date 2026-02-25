@@ -35,7 +35,7 @@ export class InventoryService {
                         set: true,
                         sales: {
                             orderBy: { date: 'desc' },
-                            take: 15,
+                            take: 50,
                         },
                     },
                 },
@@ -141,7 +141,7 @@ export class InventoryService {
                             set: true,
                             sales: {
                                 orderBy: { date: 'desc' },
-                                take: 15,
+                                take: 50,
                             },
                         },
                     },
@@ -314,7 +314,14 @@ export class InventoryService {
                 stage: { notIn: [InventoryStage.ARCHIVED] }
             },
             include: {
-                refPriceChartingProduct: true
+                refPriceChartingProduct: {
+                    include: {
+                        sales: {
+                            orderBy: { date: 'desc' },
+                            take: 50,
+                        },
+                    },
+                },
             }
         });
 
@@ -451,19 +458,21 @@ export class InventoryService {
         };
 
         if (item.itemType === 'SINGLE_CARD_GRADED') {
-            const grade = String(item.gradeValue).toLowerCase();
+            const gradeStr = String(item.gradeValue || '').toLowerCase();
 
             // 1. Try to find sales for this specific grade
-            const gradedSales = sales.filter((s: any) => s.grade?.toLowerCase().includes(grade));
+            const gradedSales = sales.filter((s: any) => s.grade?.toLowerCase().includes(gradeStr));
             const gradedAvg = getAverageOf3(gradedSales);
             if (gradedAvg !== null) return gradedAvg;
 
             // 2. Fallback to summary grade price if available (from PriceCharting elements)
-            if (grade === '10' && ref.grade10Price) return Number(ref.grade10Price);
-            if (grade === '9.5' && ref.grade95Price) return Number(ref.grade95Price);
-            if (grade === '9' && ref.grade9Price) return Number(ref.grade9Price);
-            if (grade === '8' && ref.grade8Price) return Number(ref.grade8Price);
-            if (grade === '7' && ref.grade7Price) return Number(ref.grade7Price);
+            const numericGrade = gradeStr.match(/\d+(\.\d+)?/)?.[0];
+
+            if (numericGrade === '10' && ref.grade10Price) return Number(ref.grade10Price);
+            if (numericGrade === '9.5' && ref.grade95Price) return Number(ref.grade95Price);
+            if (numericGrade === '9' && ref.grade9Price) return Number(ref.grade9Price);
+            if (numericGrade === '8' && ref.grade8Price) return Number(ref.grade8Price);
+            if (numericGrade === '7' && ref.grade7Price) return Number(ref.grade7Price);
 
             // 3. Fallback to Raw sales average
             const rawSales = sales.filter((s: any) =>
