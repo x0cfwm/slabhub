@@ -91,6 +91,14 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
 
     const handleSave = async () => {
         if (!item) return;
+
+        const today = new Date().toISOString().split("T")[0];
+        const acqDate = formData.acquisitionDate ? new Date(formData.acquisitionDate).toISOString().split('T')[0] : "";
+        if (acqDate && acqDate > today) {
+            toast.error("Acquisition date cannot be in the future");
+            return;
+        }
+
         setLoading(true);
         try {
             // Remove fields that the backend doesn't allow in the update DTO
@@ -227,6 +235,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                             <Input
                                                 type="date"
                                                 className="h-11 bg-background/50 border-primary/10"
+                                                max={new Date().toISOString().split('T')[0]}
                                                 value={formData.acquisitionDate ? new Date(formData.acquisitionDate).toISOString().split('T')[0] : ""}
                                                 onChange={e => setFormData({ ...formData, acquisitionDate: e.target.value })}
                                             />

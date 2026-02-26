@@ -341,7 +341,7 @@ export class InventoryService {
                     include: {
                         sales: {
                             orderBy: { date: 'desc' },
-                            take: 10, // Minimal sales for history fallback
+                            take: 50, // Increased to match global getMarketPrice accuracy
                         },
                     },
                 },
@@ -423,14 +423,19 @@ export class InventoryService {
                     }
                 }
 
-                // If no price for this specific day, use last known historical price
-                if (itemPrice === 0) {
-                    itemPrice = lastKnownPrices[cacheKey] || 0;
-                }
+                // ALIGNMENT FIX:
+                // 1. For the current day (i=0), we MUST use the same dynamic logic as the dashboard to avoid jumps.
+                // 2. We improve the fallback chain to be Dynamic -> Snapshot -> Acquisition.
+                const dynamicPrice = this.getMarketPrice(item);
+                const snapshotPrice = Number(item.marketPriceSnapshot);
+                const acqPrice = Number(item.acquisitionPrice);
 
-                // If still no price from history, fallback to current snapshot or acquisition price
-                if (itemPrice === 0) {
-                    itemPrice = Number(this.getMarketPrice(item)) || Number(item.marketPriceSnapshot) || Number(item.acquisitionPrice) || 0;
+                if (i === 0) {
+                    itemPrice = dynamicPrice || snapshotPrice || acqPrice || 0;
+                } else if (itemPrice === 0) {
+                    // For historical points, if we don't have a daily sale, try:
+                    // lastKnownPrice (from history loop) -> dynamicPrice (smoothed) -> snapshot -> acq
+                    itemPrice = lastKnownPrices[cacheKey] || dynamicPrice || snapshotPrice || acqPrice || 0;
                 }
 
                 totalMarketValue += itemPrice * qty;

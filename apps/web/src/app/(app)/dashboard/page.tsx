@@ -53,10 +53,21 @@ export default function DashboardPage() {
     }, []);
 
     const stats = useMemo(() => {
-        const totalItems = items.reduce((acc, i) => acc + (i.quantity || 1), 0);
-        const forSaleItems = items.filter(i => i.stage === "LISTED").reduce((acc, i) => acc + (i.quantity || 1), 0);
+        const now = new Date();
+        now.setHours(23, 59, 59, 999);
 
-        const marketValue = items.reduce((acc, item) => {
+        // Only include items that are not archived and were acquired as of now to match chart logic
+        const activeItems = items.filter(item => {
+            if (item.stage === "ARCHIVED") return false;
+
+            const acqDate = item.acquisitionDate ? new Date(item.acquisitionDate) : new Date(item.createdAt);
+            return acqDate <= now;
+        });
+
+        const totalItems = activeItems.reduce((acc, i) => acc + (i.quantity || 1), 0);
+        const forSaleItems = activeItems.filter(i => i.stage === "LISTED").reduce((acc, i) => acc + (i.quantity || 1), 0);
+
+        const marketValue = activeItems.reduce((acc, item) => {
             const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
             const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
 
@@ -88,13 +99,15 @@ export default function DashboardPage() {
                     }
                 } else if (item.marketPriceSnapshot) {
                     unitPrice = Number(item.marketPriceSnapshot);
+                } else {
+                    unitPrice = Number(item.acquisitionPrice) || 0;
                 }
             }
 
             return acc + (unitPrice * (item.quantity || 1));
         }, 0);
 
-        const stages = items.reduce((acc, item) => {
+        const stages = activeItems.reduce((acc, item) => {
             acc[item.stage] = (acc[item.stage] || 0) + (item.quantity || 1);
             return acc;
         }, {} as Record<string, number>);

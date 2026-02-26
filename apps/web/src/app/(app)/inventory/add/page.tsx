@@ -96,16 +96,21 @@ export default function AddItemPage() {
     }, [search, category]);
 
     const handleSave = async () => {
+        const today = new Date().toISOString().split("T")[0];
+        if (formData.acquisitionDate > today) {
+            toast.error("Acquisition date cannot be in the future");
+            return;
+        }
+
         setLoading(true);
         try {
             // Determine the final cardVariantId if it's a card
             const {
                 type: _type,
                 baseCardId: _baseCardId,
+                cardVariantId: _cardVariantId,
                 variantType: _variantType,
-                grade: _grade,
-                gradingCompany: _gradingCompany,
-                cardVariantId: _cardVariantId, // Also remove the initial cardVariantId if any
+                language: _language,
                 ...sanitizedFormData
             } = formData;
 
@@ -113,8 +118,6 @@ export default function AddItemPage() {
                 ...sanitizedFormData,
                 photos: uploadedPhotos,
                 refPriceChartingProductId: isManualEntry ? undefined : formData.refPriceChartingProductId,
-                cardVariantId: isManualEntry ? undefined : formData.cardVariantId,
-                baseCardId: isManualEntry ? undefined : formData.baseCardId,
                 itemType: category,
                 // Clean up listing data if not LISTED
                 listingPrice: formData.stage === "LISTED" ? (parseFloat(formData.listingPrice) || 0) : undefined,
@@ -422,7 +425,7 @@ export default function AddItemPage() {
                                 )}
 
                                 {category === "SINGLE_CARD_RAW" && (
-                                    <div className="grid grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-3 gap-6">
                                         <div className="space-y-2">
                                             <Label>Professional Condition</Label>
                                             <Select
@@ -448,6 +451,7 @@ export default function AddItemPage() {
                                                 onChange={e => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
                                             />
                                         </div>
+                                        <div />
                                     </div>
                                 )}
 
@@ -563,7 +567,7 @@ export default function AddItemPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-6">
+                                <div className="grid grid-cols-3 gap-6">
                                     <div className="space-y-2">
                                         <Label>Sealed Integrity</Label>
                                         <Select
@@ -587,6 +591,7 @@ export default function AddItemPage() {
                                             onChange={e => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
                                         />
                                     </div>
+                                    <div />
                                 </div>
 
                                 <div className="p-5 border border-border/60 rounded-xl bg-card shadow-sm space-y-4">
@@ -638,7 +643,7 @@ export default function AddItemPage() {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-6 pt-4 border-t">
+                        <div className="grid grid-cols-3 gap-6 pt-4 border-t">
                             <div className="space-y-2">
                                 <Label>Acquisition Price ($)</Label>
                                 <Input
@@ -646,6 +651,15 @@ export default function AddItemPage() {
                                     placeholder="0.00"
                                     value={formData.acquisitionPrice || ""}
                                     onChange={e => setFormData({ ...formData, acquisitionPrice: parseFloat(e.target.value) })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Acquisition Date</Label>
+                                <Input
+                                    type="date"
+                                    max={new Date().toISOString().split("T")[0]}
+                                    value={formData.acquisitionDate}
+                                    onChange={e => setFormData({ ...formData, acquisitionDate: e.target.value })}
                                 />
                             </div>
                             <div className="space-y-2">
