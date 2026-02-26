@@ -44,6 +44,7 @@ export default function AddItemPage() {
     const [category, setCategory] = useState<InventoryCategory | null>(null);
     const [cards, setCards] = useState<MarketProduct[]>([]);
     const [search, setSearch] = useState("");
+    const [isManualEntry, setIsManualEntry] = useState(false);
     const [uploadingPhotos, setUploadingPhotos] = useState<Record<string, boolean>>({});
     const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
 
@@ -99,19 +100,21 @@ export default function AddItemPage() {
         try {
             // Determine the final cardVariantId if it's a card
             const {
-                type,
-                baseCardId,
-                variantType,
-                grade,
-                gradingCompany,
-                cardVariantId, // Also remove the initial cardVariantId if any
+                type: _type,
+                baseCardId: _baseCardId,
+                variantType: _variantType,
+                grade: _grade,
+                gradingCompany: _gradingCompany,
+                cardVariantId: _cardVariantId, // Also remove the initial cardVariantId if any
                 ...sanitizedFormData
             } = formData;
 
             const itemToSave = {
                 ...sanitizedFormData,
                 photos: uploadedPhotos,
-                refPriceChartingProductId: formData.refPriceChartingProductId,
+                refPriceChartingProductId: isManualEntry ? undefined : formData.refPriceChartingProductId,
+                cardVariantId: isManualEntry ? undefined : formData.cardVariantId,
+                baseCardId: isManualEntry ? undefined : formData.baseCardId,
                 itemType: category,
                 // Clean up listing data if not LISTED
                 listingPrice: formData.stage === "LISTED" ? (parseFloat(formData.listingPrice) || 0) : undefined,
@@ -185,6 +188,7 @@ export default function AddItemPage() {
                         onClick={() => {
                             setCategory("SINGLE_CARD_RAW");
                             setFormData({ ...formData, quantity: 1, type: "SINGLE_CARD_RAW" });
+                            setIsManualEntry(false);
                             setStep(2);
                         }}
                     />
@@ -196,6 +200,7 @@ export default function AddItemPage() {
                         onClick={() => {
                             setCategory("SINGLE_CARD_GRADED");
                             setFormData({ ...formData, quantity: 1, type: "SINGLE_CARD_GRADED" });
+                            setIsManualEntry(false);
                             setStep(2);
                         }}
                     />
@@ -207,6 +212,7 @@ export default function AddItemPage() {
                         onClick={() => {
                             setCategory("SEALED_PRODUCT");
                             setFormData({ ...formData, quantity: 1, type: "SEALED_PRODUCT" });
+                            setIsManualEntry(false);
                             setStep(2);
                         }}
                     />
@@ -237,13 +243,79 @@ export default function AddItemPage() {
                                 <div className="relative">
                                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input
-                                        placeholder={category === "SEALED_PRODUCT" ? "Booster Box, ETB, Pack..." : "Pikachu, Luffy, Charizard..."}
+                                        placeholder={category === "SEALED_PRODUCT" ? "Booster Box, ETB, Pack..." : "Luffy, Zoro, Nami..."}
                                         className="pl-9"
                                         value={search}
                                         onChange={e => setSearch(e.target.value)}
+                                        disabled={isManualEntry}
                                     />
                                 </div>
-                                {cards.length > 0 && (
+
+                                {!isManualEntry && (
+                                    <div className="flex justify-end mt-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsManualEntry(true);
+                                                // Clear DB-linked fields when switching to manual
+                                                setFormData((prev: any) => ({
+                                                    ...prev,
+                                                    refPriceChartingProductId: undefined,
+                                                    baseCardId: undefined,
+                                                    cardVariantId: undefined
+                                                }));
+                                            }}
+                                            className="text-[10px] text-primary hover:underline font-medium"
+                                        >
+                                            Can't find it? Add manually
+                                        </button>
+                                    </div>
+                                )}
+
+                                {isManualEntry && (
+                                    <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] font-bold uppercase tracking-wider opacity-70">Item Name</Label>
+                                                <Input
+                                                    placeholder="e.g. Custom Bundle or Rare Collectible"
+                                                    value={formData.productName || ""}
+                                                    onChange={e => setFormData({ ...formData, productName: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] font-bold uppercase tracking-wider opacity-70">Set / Collection Name (Optional)</Label>
+                                                <Input
+                                                    placeholder="e.g. Custom Set"
+                                                    value={formData.setName || ""}
+                                                    onChange={e => setFormData({ ...formData, setName: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2">
+                                            <div className="mt-0.5">
+                                                <FileText className="h-3 w-3 text-amber-600" />
+                                            </div>
+                                            <p className="text-[10px] text-amber-700 leading-tight">
+                                                <strong>Note:</strong> Market price history won't be shown for items added manually as they are not linked to our database.
+                                            </p>
+                                        </div>
+                                        <div className="flex justify-end">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsManualEntry(false);
+                                                    setFormData({ ...formData, productName: undefined, setName: undefined });
+                                                }}
+                                                className="text-[10px] text-muted-foreground hover:text-foreground hover:underline"
+                                            >
+                                                Switch back to search
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {cards.length > 0 && !isManualEntry && (
                                     <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                                         {cards.map(card => (
                                             <div
@@ -625,7 +697,8 @@ export default function AddItemPage() {
                         <Button
                             onClick={() => setStep(3)}
                             disabled={
-                                (category !== "SEALED_PRODUCT" && (!formData.baseCardId || !formData.variantType || !formData.language)) ||
+                                (category !== "SEALED_PRODUCT" && !isManualEntry && (!formData.baseCardId || !formData.variantType || !formData.language)) ||
+                                (category !== "SEALED_PRODUCT" && isManualEntry && !formData.productName) ||
                                 (category === "SINGLE_CARD_GRADED" && (!formData.gradeProvider || !formData.grade))
                             }
                         >

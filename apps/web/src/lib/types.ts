@@ -63,6 +63,8 @@ export interface InventoryBase {
     photos?: string[];
     sellingDescription?: string;
     refPriceChartingProductId?: string;
+    productName?: string;
+    setName?: string;
     cardProfile?: CardProfile;
     createdAt: string;
 }

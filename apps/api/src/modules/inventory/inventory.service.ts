@@ -283,15 +283,15 @@ export class InventoryService {
 
     private validateItemType(dto: CreateInventoryItemDto) {
         if (dto.itemType === ItemType.SINGLE_CARD_RAW) {
-            if (!dto.cardVariantId && !dto.refPriceChartingProductId) {
+            if (!dto.cardVariantId && !dto.refPriceChartingProductId && !dto.productName) {
                 throw new BadRequestException(
-                    'cardVariantId or refPriceChartingProductId is required for SINGLE_CARD_RAW',
+                    'cardVariantId, refPriceChartingProductId, or productName is required for SINGLE_CARD_RAW',
                 );
             }
         } else if (dto.itemType === ItemType.SINGLE_CARD_GRADED) {
-            if (!dto.cardVariantId && !dto.refPriceChartingProductId) {
+            if (!dto.cardVariantId && !dto.refPriceChartingProductId && !dto.productName) {
                 throw new BadRequestException(
-                    'cardVariantId or refPriceChartingProductId is required for SINGLE_CARD_GRADED',
+                    'cardVariantId, refPriceChartingProductId, or productName is required for SINGLE_CARD_GRADED',
                 );
             }
             if (!dto.gradeProvider || !dto.gradeValue) {
@@ -542,6 +542,15 @@ export class InventoryService {
                 imageUrl: this.mediaService.ensureCdnUrl(item.refPriceChartingProduct.imageUrl) || '',
                 rawPrice: item.refPriceChartingProduct.rawPrice ? Number(item.refPriceChartingProduct.rawPrice) : null,
                 sealedPrice: item.refPriceChartingProduct.sealedPrice ? Number(item.refPriceChartingProduct.sealedPrice) : null,
+            };
+        } else if (item.productName) {
+            cardProfile = {
+                id: null,
+                name: item.productName,
+                set: item.setName || 'Unknown',
+                rarity: '',
+                cardNumber: '',
+                imageUrl: (item.photos && (item.photos as string[]).length > 0) ? (item.photos as string[])[0] : '',
             };
         }
 

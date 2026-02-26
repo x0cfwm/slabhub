@@ -276,6 +276,36 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                                 onChange={e => setFormData({ ...formData, notes: e.target.value })}
                                             />
                                         </div>
+
+                                        {!((item as any).cardVariantId || item.refPriceChartingProductId) && (
+                                            <div className="space-y-4 col-span-2 pt-4 border-t border-primary/10">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Info className="h-3 w-3 text-primary" />
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Non-Database Asset</span>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Manual Item Name</Label>
+                                                        <Input
+                                                            className="h-11 bg-background/50 border-primary/10"
+                                                            value={formData.productName || ""}
+                                                            onChange={e => setFormData({ ...formData, productName: e.target.value })}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Manual Set Name</Label>
+                                                        <Input
+                                                            className="h-11 bg-background/50 border-primary/10"
+                                                            value={formData.setName || ""}
+                                                            onChange={e => setFormData({ ...formData, setName: e.target.value })}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <p className="text-[10px] text-muted-foreground italic leading-tight">
+                                                    This item is not linked to our price database. Modifying these fields will only update the display name.
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </TabsContent>
 
