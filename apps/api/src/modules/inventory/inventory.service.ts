@@ -34,10 +34,7 @@ export class InventoryService {
                 refPriceChartingProduct: {
                     include: {
                         set: true,
-                        sales: {
-                            orderBy: { date: 'desc' },
-                            take: 15, // Reduced for performance
-                        },
+                        // No sales needed here anymore, we use snapshots
                     },
                 },
                 frontMedia: true,
@@ -63,6 +60,7 @@ export class InventoryService {
                 refPriceChartingProduct: {
                     include: {
                         set: true,
+                        //getItem might still want to show sales in a modal, but for valuation we use snapshots
                         sales: {
                             orderBy: { date: 'desc' },
                             take: 50,
@@ -151,6 +149,18 @@ export class InventoryService {
                 } as any,
             });
 
+            // Initial snapshot calculation if we have product data
+            if (item.refPriceChartingProductId) {
+                const currentPrice = this.getMarketPrice(item);
+                if (currentPrice !== null) {
+                    await this.prisma.inventoryItem.update({
+                        where: { id: item.id },
+                        data: { marketPriceSnapshot: currentPrice }
+                    });
+                    (item as any).marketPriceSnapshot = currentPrice;
+                }
+            }
+
             return this.transformItem(item);
         } catch (error) {
             this.logger.error(`Failed to create inventory item: ${error.message}`, error.stack);
@@ -234,7 +244,7 @@ export class InventoryService {
                         set: true,
                         sales: {
                             orderBy: { date: 'desc' },
-                            take: 15,
+                            take: 50,
                         },
                     },
                 },
@@ -242,6 +252,18 @@ export class InventoryService {
                 backMedia: true,
             } as any,
         });
+
+        // Update snapshot if we have product data (re-calculate on every update for consistency)
+        if (item.refPriceChartingProductId) {
+            const currentPrice = this.getMarketPrice(item);
+            if (currentPrice !== null) {
+                await this.prisma.inventoryItem.update({
+                    where: { id: item.id },
+                    data: { marketPriceSnapshot: currentPrice }
+                });
+                (item as any).marketPriceSnapshot = currentPrice;
+            }
+        }
 
         return this.transformItem(item);
     }
@@ -394,7 +416,7 @@ export class InventoryService {
                         const filteredSales = this.filterSalesByItemType(daySales, item);
                         if (filteredSales.length > 0) {
                             // Use mean price for the day
-                            const dayAvg = filteredSales.reduce((sum, s) => sum + Number(s.price), 0) / filteredSales.length;
+                            const dayAvg = filteredSales.reduce((sum: number, s: any) => sum + Number(s.price), 0) / filteredSales.length;
                             lastKnownPrices[cacheKey] = dayAvg;
                             itemPrice = dayAvg;
                         }
@@ -422,6 +444,71 @@ export class InventoryService {
         }
 
         return history;
+    }
+
+    async syncAllMarketPriceSnapshots() {
+        // Get all unique products linked to inventory items
+        const items = await this.prisma.inventoryItem.findMany({
+            where: {
+                refPriceChartingProductId: { not: null },
+                stage: { notIn: [InventoryStage.ARCHIVED] }
+            },
+            select: {
+                refPriceChartingProductId: true
+            },
+            distinct: ['refPriceChartingProductId']
+        });
+
+        const productIds = items
+            .map(i => i.refPriceChartingProductId)
+            .filter((id): id is string => !!id);
+
+        this.logger.log(`Syncing market price snapshots for ${productIds.length} unique products...`);
+
+        for (const productId of productIds) {
+            try {
+                await this.recalculateMarketPriceSnapshots(productId);
+            } catch (error) {
+                this.logger.error(`Failed to sync snapshots for product ${productId}: ${error.message}`);
+            }
+        }
+
+        this.logger.log('Market price snapshots sync completed.');
+    }
+
+    async recalculateMarketPriceSnapshots(productId: string) {
+        // Find all inventory items linked to this PriceCharting product
+        const items = await this.prisma.inventoryItem.findMany({
+            where: {
+                refPriceChartingProductId: productId,
+                stage: { notIn: [InventoryStage.ARCHIVED] }
+            },
+            include: {
+                refPriceChartingProduct: {
+                    include: {
+                        sales: {
+                            orderBy: { date: 'desc' },
+                            take: 50,
+                        },
+                    },
+                },
+            }
+        });
+
+        if (items.length === 0) return;
+
+        this.logger.log(`Recalculating market price snapshots for ${items.length} items linked to product ${productId}`);
+        this.marketPriceCache.clear();
+
+        for (const item of items) {
+            const currentPrice = this.getMarketPrice(item);
+            if (currentPrice !== null) {
+                await this.prisma.inventoryItem.update({
+                    where: { id: item.id },
+                    data: { marketPriceSnapshot: currentPrice }
+                });
+            }
+        }
     }
 
     private filterSalesByItemType(sales: any[], item: any) {
@@ -565,7 +652,7 @@ export class InventoryService {
             marketPriceSnapshot: item.marketPriceSnapshot
                 ? Number(item.marketPriceSnapshot)
                 : null,
-            marketPrice: this.getMarketPrice(item),
+            marketPrice: item.marketPriceSnapshot ? Number(item.marketPriceSnapshot) : this.getMarketPrice(item),
             acquisitionDate: item.acquisitionDate?.toISOString?.() || null,
             acquisitionSource: item.acquisitionSource,
             storageLocation: item.storageLocation,

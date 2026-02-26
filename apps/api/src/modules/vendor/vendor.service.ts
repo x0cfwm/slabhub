@@ -47,10 +47,6 @@ export class VendorService {
                 refPriceChartingProduct: {
                     include: {
                         set: true,
-                        sales: {
-                            orderBy: { date: 'desc' },
-                            take: 15,
-                        },
                     },
                 },
                 frontMedia: true,

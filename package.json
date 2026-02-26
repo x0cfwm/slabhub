@@ -22,7 +22,8 @@
     "justtcg:sync:dictionaries": "pnpm --filter @slabhub/api run justtcg:sync:dictionaries",
     "justtcg:sync:catalog": "pnpm --filter @slabhub/api run justtcg:sync:catalog",
     "justtcg:sync:all": "pnpm --filter @slabhub/api run justtcg:sync:all",
-    "pricecharting:crawl:onepiece": "pnpm --filter @slabhub/api run pricecharting:crawl:onepiece"
+    "pricecharting:crawl:onepiece": "pnpm --filter @slabhub/api run pricecharting:crawl:onepiece",
+    "inventory:sync:prices": "pnpm --filter @slabhub/api run inventory:sync:prices"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

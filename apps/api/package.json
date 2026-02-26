@@ -15,7 +15,8 @@
         "justtcg:sync:dictionaries": "npm run console -- justtcg:sync:dictionaries",
         "justtcg:sync:catalog": "npm run console -- justtcg:sync:catalog",
         "justtcg:sync:all": "npm run console -- justtcg:sync:all",
-        "pricecharting:crawl:onepiece": "npm run console -- pricecharting:crawl:onepiece"
+        "pricecharting:crawl:onepiece": "npm run console -- pricecharting:crawl:onepiece",
+        "inventory:sync:prices": "npm run console -- inventory:sync:prices"
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.992.0",

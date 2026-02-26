@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { GetMarketProductsDto } from './dto/market-products.dto';
 import { PriceChartingParser } from './parsers/pricecharting.parser';
 import { MediaService } from '../media/media.service';
+import { InventoryService } from '../inventory/inventory.service';
 
 @Injectable()
 export class MarketPricingService {
@@ -15,6 +16,7 @@ export class MarketPricingService {
         private readonly prisma: PrismaService,
         private readonly parser: PriceChartingParser,
         private readonly mediaService: MediaService,
+        private readonly inventoryService: InventoryService,
     ) { }
 
     async listProducts(query: GetMarketProductsDto, userId?: string) {
@@ -216,6 +218,11 @@ export class MarketPricingService {
             await this.prisma.refPriceChartingProduct.update({
                 where: { id: productId },
                 data: updateData
+            });
+
+            // Trigger recalulation of inventory snapshots for this product
+            this.inventoryService.recalculateMarketPriceSnapshots(productId).catch(err => {
+                this.logger.error(`Failed to recalculate snapshots for ${productId}: ${err.message}`);
             });
 
             // Store sales in DB for future "greedy" access
