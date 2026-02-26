@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { getVendorPage } from "@/lib/api";
 import { InventoryItem, MarketProduct, SellerProfile } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -46,27 +46,34 @@ export default function VendorClient() {
     const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
-    const router = useRouter();
-    const pathname = usePathname();
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-    const selectedItemIdFromUrl = searchParams.get("itemId");
 
-    // Sync selected item state with URL
+    // Sync selected item state with URL on initial load and browser navigation
     useEffect(() => {
-        if (items.length > 0) {
-            const item = items.find(i => i.id === selectedItemIdFromUrl);
-            setSelectedItem(item || null);
-        }
-    }, [items, selectedItemIdFromUrl]);
+        const syncFromUrl = () => {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get("itemId");
+            if (items.length > 0) {
+                const item = items.find(i => i.id === id);
+                setSelectedItem(item || null);
+            }
+        };
+
+        syncFromUrl();
+        window.addEventListener("popstate", syncFromUrl);
+        return () => window.removeEventListener("popstate", syncFromUrl);
+    }, [items]);
 
     const handleOpenItem = (item: InventoryItem | null) => {
-        const params = new URLSearchParams(searchParams.toString());
+        setSelectedItem(item);
+        const url = new URL(window.location.href);
         if (item) {
-            params.set("itemId", item.id);
+            url.searchParams.set("itemId", item.id);
         } else {
-            params.delete("itemId");
+            url.searchParams.delete("itemId");
         }
-        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+        // Update URL without triggering Next.js RSC fetch
+        window.history.pushState(null, "", url.toString());
     };
     const [activePhoto, setActivePhoto] = useState<string | null>(null);
     const [isZoomed, setIsZoomed] = useState(false);
