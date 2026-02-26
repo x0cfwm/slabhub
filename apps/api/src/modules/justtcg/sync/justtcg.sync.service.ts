@@ -56,6 +56,26 @@ export class JustTcgSyncService {
             where: { mappingName: mapping.name }
         });
 
+        // Race condition prevention: check if another sync is already running
+        // We allow override if 'fresh' is true or if the last update was more than 5 minutes ago
+        if (progress && progress.status === 'RUNNING' && !fresh) {
+            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+            if (progress.updatedAt > fiveMinutesAgo) {
+                this.logger.warn(`Sync for ${mapping.name} is already in progress (last seen ${progress.updatedAt.toISOString()}). Skipping to avoid race condition.`);
+                return;
+            }
+            this.logger.log(`Previous sync for ${mapping.name} was abandoned (last seen ${progress.updatedAt.toISOString()}). Resuming...`);
+        }
+
+        // Mark as running immediately to prevent other instances from starting
+        if (!dryRun) {
+            await this.prisma.refSyncProgress.upsert({
+                where: { mappingName: mapping.name },
+                update: { status: 'RUNNING', lastSyncAt: new Date() },
+                create: { mappingName: mapping.name, status: 'RUNNING', lastSyncAt: new Date() }
+            });
+        }
+
         // Handle fresh sync request or completed sync
         if (progress && (fresh || progress.status === 'COMPLETED')) {
             this.logger.log(`${fresh ? 'Fresh sync requested' : 'Previous sync was completed'}. Resetting progress for ${mapping.name}...`);
@@ -97,63 +117,57 @@ export class JustTcgSyncService {
                 }
 
                 const responses = await Promise.all(batchPromises);
+                const allMappedItems = [];
 
                 for (const response of responses) {
                     totalItems = response.meta?.total;
                     const items = response.data;
-                    const mappedItems = items.map((item) => this.mapFields(item, mapping));
+                    allMappedItems.push(...items.map((item) => this.mapFields(item, mapping)));
 
-                    if (!dryRun) {
-                        await this.upsertItems(mapping.model, mapping.unique.targetField, mappedItems);
-
-                        totalProcessed += items.length;
-                        if (mapping.pagination === 'cursor') {
-                            currentCursor = response.meta?.nextCursor;
-                            hasNextPage = !!currentCursor;
-                        } else if (mapping.pagination === 'offset') {
-                            const hasMore = response.meta?.hasMore ?? items.length >= limit;
-                            if (!hasMore) hasNextPage = false;
-                        } else if (mapping.pagination === 'page') {
-                            const lastPage = response.meta?.lastPage ?? currentPage;
-                            if (currentPage > lastPage) hasNextPage = false;
-                        }
-
-                        // Save progress after each page in the batch
-                        await this.prisma.refSyncProgress.upsert({
-                            where: { mappingName: mapping.name },
-                            update: {
-                                offset: currentOffset,
-                                page: currentPage,
-                                cursor: currentCursor ?? null,
-                                totalItems,
-                                processedItems: totalProcessed,
-                                status: 'RUNNING',
-                                lastSyncAt: new Date(),
-                            },
-                            create: {
-                                mappingName: mapping.name,
-                                offset: currentOffset,
-                                page: currentPage,
-                                cursor: currentCursor ?? null,
-                                totalItems,
-                                processedItems: totalProcessed,
-                                status: 'RUNNING',
-                            }
-                        });
-                    } else {
-                        totalProcessed += items.length;
-                        if (mapping.pagination === 'cursor') {
-                            currentCursor = response.meta?.nextCursor;
-                            hasNextPage = !!currentCursor;
-                        } else if (mapping.pagination === 'offset') {
-                            const hasMore = response.meta?.hasMore ?? items.length >= limit;
-                            if (!hasMore) hasNextPage = false;
-                        }
+                    totalProcessed += items.length;
+                    if (mapping.pagination === 'cursor') {
+                        currentCursor = response.meta?.nextCursor;
+                        hasNextPage = !!currentCursor;
+                    } else if (mapping.pagination === 'offset') {
+                        const hasMore = response.meta?.hasMore ?? items.length >= limit;
+                        if (!hasMore) hasNextPage = false;
+                    } else if (mapping.pagination === 'page') {
+                        const lastPage = response.meta?.lastPage ?? currentPage;
+                        if (currentPage > lastPage) hasNextPage = false;
                     }
-
-                    const progressMsg = totalItems ? ` (${Math.round((totalProcessed / totalItems) * 100)}%)` : '';
-                    this.logger.log(`Synced ${totalProcessed}${totalItems ? '/' + totalItems : ''} items for ${mapping.name}${progressMsg}`);
                 }
+
+                if (!dryRun && allMappedItems.length > 0) {
+                    await this.upsertItems(mapping.model, mapping.unique.targetField, allMappedItems);
+
+                    // Save progress once per batch
+                    await this.prisma.refSyncProgress.upsert({
+                        where: { mappingName: mapping.name },
+                        update: {
+                            offset: currentOffset,
+                            page: currentPage,
+                            cursor: currentCursor ?? null,
+                            totalItems,
+                            processedItems: totalProcessed,
+                            status: 'RUNNING',
+                            lastSyncAt: new Date(),
+                        },
+                        create: {
+                            mappingName: mapping.name,
+                            offset: currentOffset,
+                            page: currentPage,
+                            cursor: currentCursor ?? null,
+                            totalItems,
+                            processedItems: totalProcessed,
+                            status: 'RUNNING',
+                        }
+                    });
+                } else {
+                    // Even in dryRun or empty results, totalProcessed was incremented above
+                }
+
+                const progressMsg = totalItems ? ` (${Math.round((totalProcessed / totalItems) * 100)}%)` : '';
+                this.logger.log(`Synced ${totalProcessed}${totalItems ? '/' + totalItems : ''} items for ${mapping.name}${progressMsg}`);
             }
 
             if (!dryRun) {
@@ -186,8 +200,16 @@ export class JustTcgSyncService {
             throw new Error(`Prisma model ${modelName} not found`);
         }
 
+        // Deduplicate items in the batch to avoid P2002 (Unique constraint failed) or deadlocks 
+        // when multiple pages happen to contain the same item (e.g. data shifted due to new inserts mid-sync)
+        const uniqueItemsMap = new Map();
+        for (const item of items) {
+            uniqueItemsMap.set(item[uniqueField], item);
+        }
+        const uniqueItems = Array.from(uniqueItemsMap.values());
+
         await Promise.all(
-            items.map((item) =>
+            uniqueItems.map((item) =>
                 model.upsert({
                     where: { [uniqueField]: item[uniqueField] },
                     update: item,
@@ -201,11 +223,7 @@ export class JustTcgSyncService {
         const mapped: Record<string, any> = {};
         for (const fieldMapping of mapping.fields) {
             let value = fieldMapping.source === '*' ? item : item[fieldMapping.source];
-            this.logger.log(`Mapping attempt: ${fieldMapping.source} -> ${fieldMapping.target}, source value: ${value !== undefined ? typeof value : 'undefined'}`);
             if (value !== undefined && value !== null) {
-                if (fieldMapping.target === 'tcgplayerId') {
-                    this.logger.log(`Mapping tcgplayerId: source=${fieldMapping.source}, value=${value}`);
-                }
                 switch (fieldMapping.transform) {
                     case 'number':
                         value = Number(value);

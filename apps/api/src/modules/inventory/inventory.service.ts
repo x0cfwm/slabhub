@@ -464,16 +464,19 @@ export class InventoryService {
             .filter((id): id is string => !!id);
 
         this.logger.log(`Syncing market price snapshots for ${productIds.length} unique products...`);
+        const allUpdates: { id: string; oldPrice: number | null; newPrice: number | null; lastSaleDate: string | null }[] = [];
 
         for (const productId of productIds) {
             try {
-                await this.recalculateMarketPriceSnapshots(productId);
+                const updates = await this.recalculateMarketPriceSnapshots(productId);
+                allUpdates.push(...updates);
             } catch (error) {
                 this.logger.error(`Failed to sync snapshots for product ${productId}: ${error.message}`);
             }
         }
 
         this.logger.log('Market price snapshots sync completed.');
+        return allUpdates;
     }
 
     async recalculateMarketPriceSnapshots(productId: string) {
@@ -495,20 +498,33 @@ export class InventoryService {
             }
         });
 
-        if (items.length === 0) return;
+        if (items.length === 0) return [];
 
-        this.logger.log(`Recalculating market price snapshots for ${items.length} items linked to product ${productId}`);
+        const updates: { id: string; oldPrice: number | null; newPrice: number | null; lastSaleDate: string | null }[] = [];
         this.marketPriceCache.clear();
 
         for (const item of items) {
             const currentPrice = this.getMarketPrice(item);
-            if (currentPrice !== null) {
+            const oldPrice = item.marketPriceSnapshot ? Number(item.marketPriceSnapshot) : null;
+
+            // Get the latest sale date for the specific item type/grade
+            let lastSaleDate = null;
+            if (item.refPriceChartingProduct?.sales && Array.isArray(item.refPriceChartingProduct.sales) && item.refPriceChartingProduct.sales.length > 0) {
+                const filteredSales = this.filterSalesByItemType(item.refPriceChartingProduct.sales, item);
+                if (filteredSales.length > 0) {
+                    lastSaleDate = filteredSales[0].date?.toISOString() || null;
+                }
+            }
+
+            if (currentPrice !== oldPrice) {
                 await this.prisma.inventoryItem.update({
                     where: { id: item.id },
                     data: { marketPriceSnapshot: currentPrice }
                 });
+                updates.push({ id: item.id, oldPrice, newPrice: currentPrice ?? null, lastSaleDate });
             }
         }
+        return updates;
     }
 
     private filterSalesByItemType(sales: any[], item: any) {

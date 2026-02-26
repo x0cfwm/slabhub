@@ -64,4 +64,13 @@ export class CrawlOnePieceCommand extends CommandRunner {
     parseFresh(val: boolean): boolean {
         return val;
     }
+
+    @Option({
+        flags: '-i, --images',
+        description: 'Download and update product images',
+        defaultValue: false,
+    })
+    parseImages(val: boolean): boolean {
+        return val;
+    }
 }

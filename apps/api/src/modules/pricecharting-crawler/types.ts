@@ -39,4 +39,5 @@ export interface PriceChartingCrawlOptions {
     linkRefProducts?: boolean;
     onlySetSlug?: string;
     fresh?: boolean;
+    images?: boolean;
 }

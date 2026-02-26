@@ -30,7 +30,7 @@ export class PriceChartingIngestService {
         this.visitedUrls.clear();
         let productCount = 0;
         const { fresh = false, dryRun = false } = options;
-        const concurrencyLimit = 15;
+        const concurrencyLimit = 40;
 
         // Handle interruption signals to update status instead of leaving it as "RUNNING"
         let isShuttingDown = false;
@@ -228,13 +228,23 @@ export class PriceChartingIngestService {
         const parsed = this.parser.parseProductPage(html, url);
         parsed.categorySlug = 'one-piece-cards';
 
-        if (parsed.imageUrl) {
+        if (options.images && parsed.imageUrl) {
             try {
-                const media = await this.mediaService.putFromRemoteUrl(parsed.imageUrl, {
-                    sourceUrl: parsed.productUrl,
+                // Potential Speedup: Check if we already have this image by source URL
+                const existingMedia = await this.prisma.media.findFirst({
+                    where: { sourceUrl: parsed.imageUrl }
                 });
-                parsed.imageUrl = this.mediaService.getPublicUrl(media, { preferCdn: true });
-                parsed.localImagePath = parsed.imageUrl;
+
+                if (existingMedia) {
+                    parsed.imageUrl = this.mediaService.getPublicUrl(existingMedia, { preferCdn: true });
+                    parsed.localImagePath = parsed.imageUrl;
+                } else {
+                    const media = await this.mediaService.putFromRemoteUrl(parsed.imageUrl, {
+                        sourceUrl: parsed.imageUrl,
+                    });
+                    parsed.imageUrl = this.mediaService.getPublicUrl(media, { preferCdn: true });
+                    parsed.localImagePath = parsed.imageUrl;
+                }
             } catch (error) {
                 this.logger.error(`Failed to download image for ${url}: ${error.message}`);
             }
