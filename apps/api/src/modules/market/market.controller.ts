@@ -7,6 +7,11 @@ import { CurrentUserId } from '../auth/auth.middleware';
 export class MarketPricingController {
     constructor(private readonly marketService: MarketPricingService) { }
 
+    @Get('sync-status')
+    async getSyncStatus() {
+        return this.marketService.getSyncStatus();
+    }
+
     @Get('products')
     async getProducts(
         @Query() query: GetMarketProductsDto,

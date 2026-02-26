@@ -19,6 +19,12 @@ export class MarketPricingService {
         private readonly inventoryService: InventoryService,
     ) { }
 
+    async getSyncStatus() {
+        return this.prisma.refSyncProgress.findUnique({
+            where: { mappingName: 'inventory:sync:prices' }
+        });
+    }
+
     async listProducts(query: GetMarketProductsDto, userId?: string) {
         const { page = 1, limit = 25, search, setExternalId, productType, onlyInInventory } = query;
         const skip = (page - 1) * limit;

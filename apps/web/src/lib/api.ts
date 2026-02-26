@@ -160,6 +160,13 @@ export async function getMarketSets(): Promise<MarketSet[]> {
     return response.json();
 }
 
+export async function getMarketSyncStatus(): Promise<{ mappingName: string; status: string; lastSyncAt: string } | null> {
+    const url = getFullUrl('/v1/market/sync-status');
+    const response = await fetch(url.toString(), { credentials: 'include' });
+    if (!response.ok) return null;
+    return response.json();
+}
+
 export async function getProductPriceHistory(productId: string, refresh = false): Promise<MarketPriceHistory> {
     const url = getFullUrl(`/v1/market/products/${productId}/prices`);
     if (refresh) {

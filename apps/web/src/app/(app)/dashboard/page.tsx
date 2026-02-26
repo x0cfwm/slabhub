@@ -16,31 +16,35 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { listInventory, getMe, getMarketProducts, getMarketValueHistory } from "@/lib/api";
+import { listInventory, getMe, getMarketProducts, getMarketValueHistory, getMarketSyncStatus } from "@/lib/api";
 import { InventoryItem, MarketProduct, SellerProfile, PortfolioHistoryEntry } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { MarketValueChart } from "@/components/dashboard/MarketValueChart";
+import { formatRelativeTime } from "@/lib/utils";
 
 export default function DashboardPage() {
     const [items, setItems] = useState<InventoryItem[]>([]);
     const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
     const [history, setHistory] = useState<PortfolioHistoryEntry[]>([]);
     const [profile, setProfile] = useState<SellerProfile | null>(null);
+    const [syncStatus, setSyncStatus] = useState<{ lastSyncAt: string } | null>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchData = async () => {
         try {
-            const [inv, market, prof, hist] = await Promise.all([
+            const [inv, market, prof, hist, sync] = await Promise.all([
                 listInventory(),
                 getMarketProducts({ page: 1, limit: 100 }), // Fetch some market products for pricing
                 getMe(),
-                getMarketValueHistory(90)
+                getMarketValueHistory(90),
+                getMarketSyncStatus()
             ]);
             setItems(inv);
             setMarketProducts(market.items);
             setProfile(prof?.profile || null);
             setHistory(hist);
+            setSyncStatus(sync);
         } catch (err) {
             toast.error("Failed to fetch dashboard data");
         } finally {
@@ -116,9 +120,16 @@ export default function DashboardPage() {
     }, [items, marketProducts]);
 
     const lastUpdated = useMemo(() => {
+        if (syncStatus?.lastSyncAt) return formatRelativeTime(syncStatus.lastSyncAt);
+        if (marketProducts.length === 0) return null;
+        return formatRelativeTime(marketProducts[0].lastUpdated);
+    }, [syncStatus, marketProducts]);
+
+    const lastUpdatedFull = useMemo(() => {
+        if (syncStatus?.lastSyncAt) return new Date(syncStatus.lastSyncAt).toLocaleString();
         if (marketProducts.length === 0) return null;
         return new Date(marketProducts[0].lastUpdated).toLocaleString();
-    }, [marketProducts]);
+    }, [syncStatus, marketProducts]);
 
     if (loading) {
         return (
@@ -196,10 +207,10 @@ export default function DashboardPage() {
                         <History className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-sm font-medium truncate">{lastUpdated || "N/A"}</div>
-                        <Button variant="link" size="sm" className="h-auto p-0 text-xs" asChild>
-                            <Link href="/pricing">Refresh Pricing</Link>
-                        </Button>
+                        <div className="text-2xl font-bold" title={lastUpdatedFull || ""}>
+                            {lastUpdated || "N/A"}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Last valuation update</p>
                     </CardContent>
                 </Card>
             </div>
