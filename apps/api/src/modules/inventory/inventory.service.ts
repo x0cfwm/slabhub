@@ -652,7 +652,7 @@ export class InventoryService {
             marketPriceSnapshot: item.marketPriceSnapshot
                 ? Number(item.marketPriceSnapshot)
                 : null,
-            marketPrice: item.marketPriceSnapshot ? Number(item.marketPriceSnapshot) : this.getMarketPrice(item),
+            marketPrice: item.marketPriceSnapshot ? Number(item.marketPriceSnapshot) : null,
             acquisitionDate: item.acquisitionDate?.toISOString?.() || null,
             acquisitionSource: item.acquisitionSource,
             storageLocation: item.storageLocation,
