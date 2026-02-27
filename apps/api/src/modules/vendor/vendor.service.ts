@@ -13,9 +13,12 @@ export class VendorService {
 
     async getVendorPage(handle: string) {
         // Get seller profile by handle
-        const seller = await this.prisma.sellerProfile.findUnique({
+        const seller: any = await this.prisma.sellerProfile.findUnique({
             where: { handle },
-            include: { user: { include: { oauthIdentities: true } } },
+            include: {
+                user: { include: { oauthIdentities: true } },
+                avatarMedia: true,
+            },
         });
 
         if (!seller) {
@@ -60,7 +63,7 @@ export class VendorService {
             return this.inventoryService.transformItem(item);
         });
 
-        const facebookIdentity = seller.user?.oauthIdentities?.find(i => i.provider === 'facebook');
+        const facebookIdentity = seller.user?.oauthIdentities?.find((i: any) => i.provider === 'facebook');
 
         return {
             profile: {
@@ -74,6 +77,9 @@ export class VendorService {
                 shippingEnabled: seller.shippingEnabled,
                 socials: seller.socials,
                 wishlistText: seller.wishlistText,
+                referenceLinks: (seller.referenceLinks as any[]) || [],
+                upcomingEvents: (seller.upcomingEvents as any[]) || [],
+                avatarUrl: seller.avatarMedia ? this.mediaService.getPublicUrl(seller.avatarMedia, { preferCdn: true }) : null,
                 facebookVerifiedAt: seller.user?.facebookVerifiedAt?.toISOString() || null,
                 facebookProfileUrl: facebookIdentity?.profileUrl || null,
             },

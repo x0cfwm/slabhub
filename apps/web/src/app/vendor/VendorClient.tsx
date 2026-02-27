@@ -16,6 +16,9 @@ import {
     Users,
     Instagram,
     Copy,
+    Link as LinkIcon,
+    Calendar,
+    ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -246,16 +249,31 @@ export default function VendorClient() {
             <div className="bg-gradient-to-b from-primary/5 whitespace-nowrap to-transparent border-b">
                 <div className="max-w-6xl mx-auto px-4 py-16">
                     <div className="flex flex-col md:flex-row gap-8 items-start">
-                        <div className="w-28 h-28 bg-primary rounded-3xl flex items-center justify-center text-4xl font-black text-white border-4 border-primary/20 rotate-3 shadow-xl">
-                            {profile.shopName.charAt(0)}
-                        </div>
+                        {profile.avatarUrl ? (
+                            <img
+                                src={profile.avatarUrl}
+                                alt={profile.shopName}
+                                className="w-28 h-28 rounded-3xl object-cover border-4 border-primary/20 rotate-3 shadow-xl"
+                            />
+                        ) : (
+                            <div className="w-28 h-28 bg-primary rounded-3xl flex items-center justify-center text-4xl font-black text-white border-4 border-primary/20 rotate-3 shadow-xl">
+                                {profile.shopName.charAt(0)}
+                            </div>
+                        )}
                         <div className="flex-1 space-y-4">
                             <div>
                                 <h1 className="text-5xl font-black tracking-tighter">
                                     {profile.shopName}
                                 </h1>
                                 <p className="text-primary/70 flex items-center gap-1 mt-2 font-bold tracking-widest uppercase text-xs">
-                                    @{profile.handle} • <MapPin className="h-3 w-3" /> {profile.locationCity}, {profile.locationCountry}
+                                    @{profile.handle}
+                                    {(profile.locationCity || profile.locationCountry) && (
+                                        <>
+                                            {" • "}
+                                            <MapPin className="h-3 w-3" />
+                                            {[profile.locationCity, profile.locationCountry].filter(Boolean).join(", ")}
+                                        </>
+                                    )}
                                 </p>
                             </div>
 
@@ -280,6 +298,41 @@ export default function VendorClient() {
                                     </Badge>
                                 )}
                             </div>
+
+                            {/* Compact Info Section */}
+                            {(profile.referenceLinks?.length > 0 || profile.upcomingEvents?.length > 0) && (
+                                <div className="flex flex-col md:flex-row gap-4 pt-2">
+                                    {profile.referenceLinks?.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 items-center">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mr-1">Links:</span>
+                                            {profile.referenceLinks.map((link: any, idx: number) => (
+                                                <a
+                                                    key={idx}
+                                                    href={link.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary/10 hover:bg-primary/20 rounded-lg text-[11px] font-bold text-primary border border-primary/20 transition-all"
+                                                >
+                                                    <LinkIcon className="h-2.5 w-2.5" />
+                                                    {link.title}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {profile.upcomingEvents?.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 items-center">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mr-1">Events:</span>
+                                            {profile.upcomingEvents.map((event: any, idx: number) => (
+                                                <div key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-muted/50 rounded-lg text-[11px] border border-border/50">
+                                                    <Calendar className="h-2.5 w-2.5 text-primary" />
+                                                    <span className="font-bold">{event.name}</span>
+                                                    {event.date && <span className="text-muted-foreground opacity-60">• {event.date}</span>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         <div className="flex gap-2 w-full md:w-auto pt-4 md:pt-0 items-center">
                             <SimpleThemeToggle />
@@ -587,7 +640,15 @@ export default function VendorClient() {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-bold">{profile.shopName}</p>
-                                                <p className="text-xs text-muted-foreground">@{profile.handle} • {profile.locationCity}</p>
+                                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                    @{profile.handle}
+                                                    {profile.locationCity && (
+                                                        <>
+                                                            {" • "}
+                                                            {profile.locationCity}
+                                                        </>
+                                                    )}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>

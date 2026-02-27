@@ -1,4 +1,26 @@
-import { IsString, IsBoolean, IsOptional, IsArray, Matches, ValidateIf } from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsArray, Matches, ValidateIf, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class ReferenceLinkDto {
+    @IsString()
+    title: string;
+
+    @IsString()
+    url: string;
+}
+
+class UpcomingEventDto {
+    @IsString()
+    name: string;
+
+    @IsOptional()
+    @IsString()
+    date?: string;
+
+    @IsOptional()
+    @IsString()
+    location?: string;
+}
 
 export class UpdateProfileDto {
     @IsOptional()
@@ -50,4 +72,20 @@ export class UpdateProfileDto {
     @IsOptional()
     @IsString()
     wishlistText?: string;
+
+    @IsOptional()
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => ReferenceLinkDto)
+    referenceLinks?: ReferenceLinkDto[];
+
+    @IsOptional()
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => UpcomingEventDto)
+    upcomingEvents?: UpcomingEventDto[];
+
+    @IsOptional()
+    @IsString()
+    avatarId?: string;
 }

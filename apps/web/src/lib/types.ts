@@ -152,6 +152,10 @@ export interface SellerProfile {
         ebay?: string;
     };
     wishlistText: string;
+    referenceLinks: { title: string; url: string }[];
+    upcomingEvents: { name: string; date?: string; location?: string }[];
+    avatarId?: string | null;
+    avatarUrl?: string | null;
 }
 
 export interface AppState {

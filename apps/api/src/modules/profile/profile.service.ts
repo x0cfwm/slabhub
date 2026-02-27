@@ -1,22 +1,26 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { MediaService } from '../media/media.service';
 
 @Injectable()
 export class ProfileService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly mediaService: MediaService,
+    ) { }
 
     async getProfileByUserId(userId: string) {
-        const user = await this.prisma.user.findUnique({
+        const user: any = await this.prisma.user.findUnique({
             where: { id: userId },
-            include: { sellerProfile: true, oauthIdentities: true },
+            include: { sellerProfile: { include: { avatarMedia: true } }, oauthIdentities: true },
         });
 
         if (!user) {
             throw new NotFoundException('User not found');
         }
 
-        const facebookIdentity = user.oauthIdentities?.find(i => i.provider === 'facebook');
+        const facebookIdentity = user.oauthIdentities?.find((i: any) => i.provider === 'facebook');
 
         return {
             id: user.id,
@@ -28,9 +32,9 @@ export class ProfileService {
     }
 
     async getProfile(sellerId: string) {
-        const seller = await this.prisma.sellerProfile.findUnique({
+        const seller: any = await this.prisma.sellerProfile.findUnique({
             where: { id: sellerId },
-            include: { user: { include: { oauthIdentities: true } } },
+            include: { user: { include: { oauthIdentities: true } }, avatarMedia: true },
         });
 
         if (!seller) {
@@ -38,7 +42,7 @@ export class ProfileService {
             throw new NotFoundException('Profile not found');
         }
 
-        const facebookIdentity = seller.user?.oauthIdentities?.find(i => i.provider === 'facebook');
+        const facebookIdentity = seller.user?.oauthIdentities?.find((i: any) => i.provider === 'facebook');
 
         return {
             id: seller.user?.id || seller.id,
@@ -50,6 +54,8 @@ export class ProfileService {
     }
 
     async updateProfile(userId: string, dto: UpdateProfileDto) {
+        console.log(`[ProfileService] Updating profile for user ${userId}. DTO:`, JSON.stringify(dto, null, 2));
+
         // Find existing profile for this user
         const existingProfile = await this.prisma.sellerProfile.findUnique({
             where: { userId },
@@ -67,11 +73,16 @@ export class ProfileService {
         }
 
         let updated: any;
+
+        // Prepare data for Prisma, specifically ensuring JSON fields are handled correctly
+        // We use JSON.stringify/parse to ensure we're passing a plain POJO without class instances
+        const updateData: any = JSON.parse(JSON.stringify(dto));
+
         if (existingProfile) {
             updated = await this.prisma.sellerProfile.update({
                 where: { id: existingProfile.id },
-                data: { ...dto },
-                include: { user: true },
+                data: updateData,
+                include: { user: true, avatarMedia: true },
             });
         } else {
             // Create new profile
@@ -80,15 +91,16 @@ export class ProfileService {
             }
             updated = await this.prisma.sellerProfile.create({
                 data: {
-                    ...(dto as any),
-                    handle: dto.handle, // explicitly set for type safety
+                    ...updateData,
+                    handle: dto.handle,
                     shopName: dto.shopName,
                     userId,
                     locationCountry: dto.locationCountry || '',
                     locationCity: dto.locationCity || '',
-                    paymentsAccepted: dto.paymentsAccepted || [],
+                    shippingEnabled: dto.shippingEnabled ?? false,
+                    avatarId: dto.avatarId,
                 },
-                include: { user: true },
+                include: { user: true, avatarMedia: true },
             });
         }
 
@@ -168,6 +180,10 @@ export class ProfileService {
             shippingEnabled: seller.shippingEnabled,
             socials: seller.socials,
             wishlistText: seller.wishlistText,
+            referenceLinks: (seller.referenceLinks as any[]) || [],
+            upcomingEvents: (seller.upcomingEvents as any[]) || [],
+            avatarId: seller.avatarId,
+            avatarUrl: seller.avatarMedia ? this.mediaService.getPublicUrl(seller.avatarMedia, { preferCdn: true }) : null,
             createdAt: seller.createdAt.toISOString(),
             updatedAt: seller.updatedAt.toISOString(),
         };

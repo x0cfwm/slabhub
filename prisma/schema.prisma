@@ -68,11 +68,15 @@ model SellerProfile {
   shippingEnabled  Boolean         @default(false)
   socials          Json            @default("{}")
   wishlistText     String          @default("")
+  referenceLinks   Json            @default("[]")
+  upcomingEvents   Json            @default("[]")
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   userId           String?         @unique
+  avatarId         String?
   inventoryItems   InventoryItem[]
   user             User?           @relation(fields: [userId], references: [id])
+  avatarMedia      Media?          @relation("AvatarMedia", fields: [avatarId], references: [id])
 
   @@index([handle])
   @@index([userId])
@@ -157,6 +161,7 @@ model InventoryItem {
   storageLocation           String?
   notes                     String?
   marketPriceSnapshot       Decimal?                 @db.Decimal(10, 2)
+  marketPriceLastSaleDate   DateTime?
   photos                    Json                     @default("[]") // Still used for backward compatibility or multiple media IDs
   createdAt                 DateTime                 @default(now())
   updatedAt                 DateTime                 @updatedAt
@@ -454,6 +459,7 @@ model Media {
 
   frontInventoryItems InventoryItem[] @relation("FrontMedia")
   backInventoryItems  InventoryItem[] @relation("BackMedia")
+  avatarSellerProfiles SellerProfile[] @relation("AvatarMedia")
 
   @@index([ownerUserId])
   @@index([createdAt])
