@@ -10,4 +10,4 @@ This repository uses **Prisma + PostgreSQL**. Any change to `prisma/schema.prism
 
 Do not forget to add newly introduce env variables to `.env.example` file.
 
-Always write **unit or integration tests** for any new features or significant logic changes. Use **Jest** for `apps/api`.
+Always write **unit or integration tests** for any new features or significant logic changes. Use **Jest** for `apps/api`. For E2E tests requiring authentication, use the hardcoded OTP code `000000`.

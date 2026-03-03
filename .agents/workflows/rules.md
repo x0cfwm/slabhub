@@ -25,6 +25,7 @@ As an AI agent working on this repository, you must adhere to the following rule
 ## Testing
 - Always write **unit or integration tests** for any new features or significant logic changes.
 - For `apps/api`, use the existing **Jest** setup.
+- For E2E tests requiring authentication, use the hardcoded OTP code `000000`.
 - Ensure tests pass before considering a task complete.
 
 ## Workflow Integration
