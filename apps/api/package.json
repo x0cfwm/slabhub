@@ -27,6 +27,7 @@
         "@nestjs/core": "^11.0.0",
         "@nestjs/platform-express": "^11.0.0",
         "@nestjs/serve-static": "^5.0.4",
+        "@nestjs/swagger": "^11.2.6",
         "@nestjs/throttler": "^6.5.0",
         "@prisma/client": "^6.2.0",
         "@sentry/nestjs": "^10.38.0",
@@ -42,6 +43,7 @@
         "reflect-metadata": "^0.2.2",
         "resend": "^6.9.2",
         "rxjs": "^7.8.1",
+        "swagger-ui-express": "^5.0.1",
         "zod": "^4.3.5"
     },
     "devDependencies": {

@@ -30,3 +30,9 @@ As an AI agent working on this repository, you must adhere to the following rule
 
 ## Workflow Integration
 - Always check this file before performing database schema changes or adding new features that require configuration.
+
+## API Documentation (Swagger)
+- All new endpoints in `apps/api` **must** be documented with Swagger decorators (`@ApiTags`, `@ApiOperation`, `@ApiResponse`).
+- All DTOs in `apps/api` **must** use `@ApiProperty` to document their fields, providing descriptions and examples.
+- This is essential for cross-agent collaboration, particularly for the mobile app agent.
+- Ensure Swagger UI is available at `/api/docs` and the raw specification at `/api/docs-json`.
