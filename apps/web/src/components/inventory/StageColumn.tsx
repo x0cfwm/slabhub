@@ -7,11 +7,12 @@ interface StageColumnProps {
     id: string;
     label: string;
     count: number;
+    color?: string;
     children: React.ReactNode;
     itemIds: string[];
 }
 
-export function StageColumn({ id, label, count, children, itemIds }: StageColumnProps) {
+export function StageColumn({ id, label, count, color, children, itemIds }: StageColumnProps) {
     const { isOver, setNodeRef } = useDroppable({
         id: id,
     });
@@ -20,6 +21,10 @@ export function StageColumn({ id, label, count, children, itemIds }: StageColumn
         <div className="w-40 md:w-44 shrink-0 flex flex-col gap-4">
             <div className="flex items-center justify-between px-2">
                 <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <div
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: color || '#94a3b8' }}
+                    />
                     {label}
                     <Badge variant="secondary" className="text-[10px]">
                         {count}

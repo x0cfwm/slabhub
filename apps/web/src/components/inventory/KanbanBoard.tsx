@@ -1,6 +1,4 @@
-"use client";
-
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     DndContext,
     DragOverlay,
@@ -9,10 +7,10 @@ import {
     DragEndEvent,
     rectIntersection
 } from "@dnd-kit/core";
-import { InventoryItem, MarketProduct, InventoryStage } from "@/lib/types";
+import { InventoryItem, MarketProduct, InventoryStage, InventoryStatus } from "@/lib/types";
 import { ItemCard } from "./ItemCard";
 import { StageColumn } from "./StageColumn";
-import { COLUMNS, useDndSensors } from "./dnd";
+import { useDndSensors } from "./dnd";
 import { updateInventoryItem, reorderInventoryItems } from "@/lib/api";
 import { toast } from "sonner";
 import { arrayMove } from "@dnd-kit/sortable";
@@ -23,9 +21,10 @@ interface KanbanBoardProps {
     cards: MarketProduct[];
     onUpdate: () => void;
     onItemClick: (item: InventoryItem) => void;
+    statuses: InventoryStatus[];
 }
 
-export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: KanbanBoardProps) {
+export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, statuses }: KanbanBoardProps) {
     const [activeId, setActiveId] = useState<string | null>(null);
     const sensors = useDndSensors();
 
@@ -48,13 +47,13 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: K
         if (!activeItem) return;
 
         let newItems = [...items];
-        const isColumn = COLUMNS.some(c => c.id === overId);
+        const isColumn = statuses.some(s => s.id === overId);
 
         if (isColumn) {
-            const newStage = overId as InventoryStage;
-            if (activeItem.stage !== newStage) {
+            const newStatusId = overId;
+            if (activeItem.statusId !== newStatusId) {
                 // Moving to a column (end of it)
-                newItems = newItems.map(i => i.id === activeId ? { ...i, stage: newStage } : i);
+                newItems = newItems.map(i => i.id === activeId ? { ...i, statusId: newStatusId } : i);
                 // Move it to the end of the new column in the array for correct sortOrder calculation
                 const itemToMove = newItems.find(i => i.id === activeId)!;
                 const otherItems = newItems.filter(i => i.id !== activeId);
@@ -66,9 +65,9 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: K
                 const activeIndex = newItems.findIndex(i => i.id === activeId);
                 const overIndex = newItems.findIndex(i => i.id === overId);
 
-                if (activeItem.stage !== overItem.stage) {
+                if (activeItem.statusId !== overItem.statusId) {
                     // Moving to a different column at a specific position
-                    newItems[activeIndex] = { ...activeItem, stage: overItem.stage };
+                    newItems[activeIndex] = { ...activeItem, statusId: overItem.statusId };
                     newItems = arrayMove(newItems, activeIndex, overIndex);
                 } else if (activeIndex !== overIndex) {
                     // Reordering within the same column
@@ -80,21 +79,22 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: K
         }
 
         // Calculate new sort orders based on the new array positions
-        // We group by stage and assign incrementing sortOrder
-        const itemsByStage: Record<string, InventoryItem[]> = {};
-        COLUMNS.forEach(c => {
-            itemsByStage[c.id] = newItems.filter(i => i.stage === c.id);
+        // We group by statusId and assign incrementing sortOrder
+        const itemsByStatus: Record<string, InventoryItem[]> = {};
+        statuses.forEach(s => {
+            itemsByStatus[s.id] = newItems.filter(i => i.statusId === s.id);
         });
 
-        const updates: { id: string; sortOrder: number; stage: InventoryStage }[] = [];
+        const updates: { id: string; sortOrder: number; stage: InventoryStage; statusId: string }[] = [];
         const updatedNewItems = [...newItems];
 
-        Object.keys(itemsByStage).forEach(stage => {
-            itemsByStage[stage].forEach((item, index) => {
+        Object.keys(itemsByStatus).forEach(statusId => {
+            itemsByStatus[statusId].forEach((item, index) => {
                 updates.push({
                     id: item.id,
                     sortOrder: index,
-                    stage: stage as InventoryStage
+                    stage: item.stage, // Keep stage for backward compatibility if needed, but statusId is the lead
+                    statusId: statusId
                 });
 
                 // Update the item in the local array to reflect new sortOrder
@@ -103,7 +103,7 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: K
                     updatedNewItems[itemIndex] = {
                         ...updatedNewItems[itemIndex],
                         sortOrder: index,
-                        stage: stage as InventoryStage
+                        statusId: statusId
                     };
                 }
             });
@@ -142,16 +142,17 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: K
             onDragEnd={handleDragEnd}
         >
             <div className="flex justify-start lg:justify-center gap-4 p-4 md:px-8 pb-8 min-h-[calc(100vh-250px)] max-w-[2000px] mx-auto">
-                {COLUMNS.map((column) => (
+                {statuses.map((status) => (
                     <StageColumn
-                        key={column.id}
-                        id={column.id}
-                        label={column.label}
-                        count={items.filter(i => i.stage === column.id).length}
-                        itemIds={items.filter(i => i.stage === column.id).map(i => i.id)}
+                        key={status.id}
+                        id={status.id}
+                        label={status.name}
+                        color={status.color}
+                        count={items.filter(i => i.statusId === status.id).length}
+                        itemIds={items.filter(i => i.statusId === status.id).map(i => i.id)}
                     >
                         {items
-                            .filter(i => i.stage === column.id)
+                            .filter(i => i.statusId === status.id)
                             .map(item => {
                                 const vid = (item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId;
                                 const marketProduct = cards.find(p => p.id === vid) || item.cardProfile;

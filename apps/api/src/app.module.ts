@@ -19,6 +19,7 @@ import { MediaModule } from './modules/media/media.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
 import { OauthFacebookModule } from './modules/oauth-facebook/oauth-facebook.module';
 import { InviteModule } from './modules/invites/invite.module';
+import { WorkflowModule } from './modules/workflow/workflow.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { z } from 'zod';
@@ -96,6 +97,7 @@ import { z } from 'zod';
         WaitlistModule,
         OauthFacebookModule,
         InviteModule,
+        WorkflowModule,
     ],
     providers: [
         {

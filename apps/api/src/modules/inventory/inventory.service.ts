@@ -39,6 +39,7 @@ export class InventoryService {
                 },
                 frontMedia: true,
                 backMedia: true,
+                status: true,
             } as any,
         });
 
@@ -69,6 +70,7 @@ export class InventoryService {
                 },
                 frontMedia: true,
                 backMedia: true,
+                status: true,
             } as any,
         });
 
@@ -128,6 +130,9 @@ export class InventoryService {
                     backMedia: dto.backMediaId
                         ? { connect: { id: dto.backMediaId } }
                         : undefined,
+                    status: dto.statusId
+                        ? { connect: { id: dto.statusId } }
+                        : undefined,
                 } as any,
                 include: {
                     cardVariant: {
@@ -146,6 +151,7 @@ export class InventoryService {
                     },
                     frontMedia: true,
                     backMedia: true,
+                    status: true,
                 } as any,
             });
 
@@ -232,6 +238,9 @@ export class InventoryService {
                 backMedia: dto.backMediaId !== undefined
                     ? (dto.backMediaId ? { connect: { id: dto.backMediaId } } : { disconnect: true })
                     : undefined,
+                status: dto.statusId !== undefined
+                    ? (dto.statusId ? { connect: { id: dto.statusId } } : { disconnect: true })
+                    : undefined,
             } as any,
             include: {
                 cardVariant: {
@@ -250,6 +259,7 @@ export class InventoryService {
                 },
                 frontMedia: true,
                 backMedia: true,
+                status: true,
             } as any,
         });
 
@@ -297,6 +307,7 @@ export class InventoryService {
                     data: {
                         sortOrder: item.sortOrder,
                         stage: item.stage,
+                        statusId: (item as any).statusId,
                     },
                 }),
             ),
@@ -684,6 +695,8 @@ export class InventoryService {
             updatedAt: item.updatedAt.toISOString(),
             quantity: item.quantity,
             sortOrder: item.sortOrder,
+            statusId: item.statusId,
+            status: item.status,
             frontMediaId: item.frontMediaId,
             backMediaId: item.backMediaId,
             frontMediaUrl: item.frontMedia

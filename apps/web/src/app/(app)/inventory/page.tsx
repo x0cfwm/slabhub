@@ -2,8 +2,8 @@
 
 import { Suspense, useEffect, useState, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { listInventory, getMarketProducts } from "@/lib/api";
-import { InventoryItem, MarketProduct, InventoryStage } from "@/lib/types";
+import { listInventory, getMarketProducts, listStatuses } from "@/lib/api";
+import { InventoryItem, MarketProduct, InventoryStage, InventoryStatus } from "@/lib/types";
 import { ItemCard } from "@/components/inventory/ItemCard";
 import { ItemDrawer } from "@/components/inventory/ItemDrawer";
 import { KanbanBoard } from "@/components/inventory/KanbanBoard";
@@ -34,6 +34,7 @@ function InventoryContent() {
     const [stageFilter, setStageFilter] = useState<string>("all");
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+    const [statuses, setStatuses] = useState<InventoryStatus[]>([]);
 
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -57,12 +58,14 @@ function InventoryContent() {
 
     const fetchData = async () => {
         try {
-            const [inv, market] = await Promise.all([
+            const [inv, market, stats] = await Promise.all([
                 listInventory(),
-                getMarketProducts({ page: 1, limit: 100 })
+                getMarketProducts({ page: 1, limit: 100 }),
+                listStatuses()
             ]);
             setItems(inv);
             setMarketProducts(market.items);
+            setStatuses(stats);
         } catch (err) {
             toast.error("Failed to load inventory");
         } finally {
@@ -117,7 +120,7 @@ function InventoryContent() {
                     );
                 })();
 
-                const matchesStage = stageFilter === "all" || item.stage === stageFilter;
+                const matchesStage = stageFilter === "all" || item.statusId === stageFilter;
 
                 return matchesSearch && matchesStage;
             });
@@ -144,6 +147,18 @@ function InventoryContent() {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
+
+                    <Select value={stageFilter} onValueChange={setStageFilter}>
+                        <SelectTrigger className="w-[150px] hidden md:flex">
+                            <SelectValue placeholder="All Stages" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Stages</SelectItem>
+                            {statuses.map(s => (
+                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
 
                     <Tabs value={viewMode} onValueChange={handleViewChange} className="hidden sm:block">
                         <TabsList className="grid w-[160px] grid-cols-2">
@@ -175,6 +190,7 @@ function InventoryContent() {
                         cards={marketProducts as any}
                         onUpdate={fetchData}
                         onItemClick={openItem}
+                        statuses={statuses}
                     />
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
@@ -186,6 +202,7 @@ function InventoryContent() {
                         cards={marketProducts as any}
                         onUpdate={fetchData}
                         onItemClick={openItem}
+                        statuses={statuses}
                     />
                 </div>
             )}
@@ -199,6 +216,7 @@ function InventoryContent() {
                 }) as any}
                 onClose={closeItem}
                 onUpdate={fetchData}
+                statuses={statuses}
             />
         </div>
     );

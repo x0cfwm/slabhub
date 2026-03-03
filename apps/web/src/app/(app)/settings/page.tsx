@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { deleteAccount } from "@/lib/api";
+import { WorkflowSettings } from "@/components/settings/WorkflowSettings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -42,6 +43,8 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-6">
+                <WorkflowSettings />
+
                 <Card className="border-border bg-muted/30 shadow-sm">
                     <CardHeader>
                         <CardTitle className="text-muted-foreground uppercase text-[10px] tracking-[0.2em] font-bold">Account</CardTitle>

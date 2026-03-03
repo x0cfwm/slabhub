@@ -1,4 +1,4 @@
-import { IsString, IsInt, IsEnum, Min } from 'class-validator';
+import { IsString, IsInt, IsEnum, Min, IsOptional } from 'class-validator';
 import { InventoryStage } from '@prisma/client';
 
 export class ReorderInventoryItemDto {
@@ -11,4 +11,8 @@ export class ReorderInventoryItemDto {
 
     @IsEnum(InventoryStage)
     stage: InventoryStage;
+
+    @IsOptional()
+    @IsString()
+    statusId?: string;
 }

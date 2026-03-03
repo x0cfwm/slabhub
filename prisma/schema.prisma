@@ -21,6 +21,7 @@ model User {
   oauthIdentities    OAuthIdentity[]
   invites            Invite[]
   acceptedInvites    InviteAcceptance[]
+  inventoryStatuses  InventoryStatus[]
 }
 
 /// OTP codes for email verification
@@ -171,6 +172,8 @@ model InventoryItem {
   userId                    String
   sellingDescription        String?
   sortOrder                 Int                      @default(0)
+  statusId                  String?
+  status                    InventoryStatus?         @relation(fields: [statusId], references: [id])
   cardVariant               CardVariant?             @relation(fields: [cardVariantId], references: [id])
   refPriceChartingProduct   RefPriceChartingProduct? @relation(fields: [refPriceChartingProductId], references: [id])
   seller                    SellerProfile?           @relation(fields: [sellerId], references: [id], onDelete: Cascade)
@@ -185,10 +188,27 @@ model InventoryItem {
   @@index([sellerId])
   @@index([userId])
   @@index([stage])
+  @@index([statusId])
   @@index([itemType])
   @@index([cardVariantId])
   @@index([refPriceChartingProductId])
   @@index([certificationNumber])
+}
+
+model InventoryStatus {
+  id        String   @id @default(cuid())
+  name      String
+  color     String?
+  position  Int      @default(0)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items InventoryItem[]
+
+  @@index([userId])
+  @@index([position])
 }
 
 model RefGame {

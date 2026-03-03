@@ -14,6 +14,15 @@ export type InventoryStage =
     | "SOLD"
     | "ARCHIVED";
 
+export interface InventoryStatus {
+    id: string;
+    name: string;
+    color?: string;
+    position: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export type SealedIntegrity = "MINT" | "MINOR_DENTS" | "DAMAGED" | "OPENED";
 
 export type ProductType =
@@ -58,6 +67,8 @@ export interface InventoryBase {
     acquisitionSource?: string;
     storageLocation?: string;
     stage: InventoryStage;
+    statusId?: string;
+    status?: InventoryStatus;
     sortOrder: number;
     notes?: string;
     photos?: string[];

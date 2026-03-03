@@ -103,6 +103,10 @@ export class UpdateInventoryItemDto {
     stage?: InventoryStage;
 
     @IsOptional()
+    @IsString()
+    statusId?: string;
+
+    @IsOptional()
     @IsNumber()
     listingPrice?: number;
 

@@ -30,7 +30,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { InventoryItem, CardProfile, InventoryStage, GradingCompany, Condition } from "@/lib/types";
+import { InventoryItem, CardProfile, InventoryStage, GradingCompany, Condition, InventoryStatus } from "@/lib/types";
 import { Trash2, Save, Info, ShoppingCart, Award, Calendar, DollarSign, StickyNote, Layers, Plus, Loader2, Check, ArrowLeft, Maximize2, X } from "lucide-react";
 import { updateInventoryItem, deleteInventoryItem, uploadFile, deleteFile } from "@/lib/api";
 import { toast } from "sonner";
@@ -42,6 +42,7 @@ interface ItemDrawerProps {
     isOpen: boolean;
     onClose: () => void;
     onUpdate: () => void | Promise<void>;
+    statuses: InventoryStatus[];
 }
 
 const STAGES: { value: InventoryStage; label: string }[] = [
@@ -62,7 +63,7 @@ const CONDITIONS: { value: Condition; label: string }[] = [
     { value: "DMG", label: "Damaged" },
 ];
 
-export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDrawerProps) {
+export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses }: ItemDrawerProps) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -201,15 +202,31 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                         <div className="space-y-2 col-span-2">
                                             <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Workflow State</Label>
                                             <Select
-                                                value={formData.stage}
-                                                onValueChange={(v) => setFormData({ ...formData, stage: v as InventoryStage })}
+                                                value={formData.statusId || ""}
+                                                onValueChange={(v) => {
+                                                    const selectedStatus = statuses.find(s => s.id === v);
+                                                    setFormData({
+                                                        ...formData,
+                                                        statusId: v,
+                                                        // Fallback stage for backward compatibility if needed by some UI
+                                                        stage: selectedStatus?.name.toUpperCase().replace(/\s+/g, '_') as any
+                                                    });
+                                                }}
                                             >
                                                 <SelectTrigger className="h-11 bg-background/50 border-primary/10 focus:ring-primary/20">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {STAGES.map(s => (
-                                                        <SelectItem key={s.value} value={s.value} className="text-sm font-semibold">{s.label}</SelectItem>
+                                                    {statuses.map(s => (
+                                                        <SelectItem key={s.id} value={s.id} className="text-sm font-semibold">
+                                                            <div className="flex items-center gap-2">
+                                                                <div
+                                                                    className="w-2 h-2 rounded-full"
+                                                                    style={{ backgroundColor: s.color || '#94a3b8' }}
+                                                                />
+                                                                {s.name}
+                                                            </div>
+                                                        </SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>

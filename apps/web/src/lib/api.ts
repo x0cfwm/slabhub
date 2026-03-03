@@ -1,5 +1,5 @@
 import { Grader } from "../../../api/src/modules/grading/types/grading.types";
-import { MarketPriceHistory, MarketProduct, MarketProductsResponse, MarketSet, InventoryItem, SellerProfile, PortfolioHistoryEntry } from "./types";
+import { MarketPriceHistory, MarketProduct, MarketProductsResponse, MarketSet, InventoryItem, SellerProfile, PortfolioHistoryEntry, InventoryStatus } from "./types";
 
 export interface GradingLookupResult {
     grader: string;
@@ -371,4 +371,60 @@ export async function getInvitePreview(token: string) {
     const response = await fetch(url.toString());
     if (!response.ok) throw new Error('Invite invalid or expired');
     return response.json();
+}
+
+// Workflow Statuses
+export async function listStatuses(): Promise<InventoryStatus[]> {
+    const url = getFullUrl('/v1/workflow/statuses');
+    const response = await fetch(url.toString(), { credentials: 'include' });
+    if (!response.ok) throw new Error('Failed to fetch statuses');
+    return response.json();
+}
+
+export async function createStatus(dto: { name: string, color?: string, position?: number }): Promise<InventoryStatus> {
+    const url = getFullUrl('/v1/workflow/statuses');
+    const response = await fetch(url.toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dto),
+        credentials: 'include',
+    });
+    if (!response.ok) throw new Error('Failed to create status');
+    return response.json();
+}
+
+export async function updateStatus(id: string, dto: { name?: string, color?: string, position?: number }): Promise<InventoryStatus> {
+    const url = getFullUrl(`/v1/workflow/statuses/${id}`);
+    const response = await fetch(url.toString(), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dto),
+        credentials: 'include',
+    });
+    if (!response.ok) throw new Error('Failed to update status');
+    return response.json();
+}
+
+export async function deleteStatus(id: string, moveTo?: string): Promise<void> {
+    const url = getFullUrl(`/v1/workflow/statuses/${id}`);
+    if (moveTo) url.searchParams.set('moveTo', moveTo);
+    const response = await fetch(url.toString(), {
+        method: 'DELETE',
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete status');
+    }
+}
+
+export async function reorderStatuses(items: { id: string; position: number }[]): Promise<void> {
+    const url = getFullUrl('/v1/workflow/statuses/reorder');
+    const response = await fetch(url.toString(), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(items),
+        credentials: 'include',
+    });
+    if (!response.ok) throw new Error('Failed to reorder statuses');
 }
