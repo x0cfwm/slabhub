@@ -478,10 +478,12 @@ const styles = StyleSheet.create({
     color: c.text,
     borderWidth: 1,
     borderColor: c.border,
+    letterSpacing: 0,
   },
   textArea: {
     minHeight: 80,
     textAlignVertical: 'top',
+    letterSpacing: 0,
   },
   handleRow: {
     flexDirection: 'row',

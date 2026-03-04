@@ -541,10 +541,12 @@ const styles = StyleSheet.create({
     color: c.text,
     borderWidth: 1,
     borderColor: c.border,
+    letterSpacing: 0,
   },
   textArea: {
     minHeight: 70,
     textAlignVertical: 'top',
+    letterSpacing: 0,
   },
   row: {
     flexDirection: 'row',

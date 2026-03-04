@@ -138,6 +138,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         borderWidth: 1,
         borderColor: '#333',
+        letterSpacing: 0,
     },
     button: {
         backgroundColor: c.tint,

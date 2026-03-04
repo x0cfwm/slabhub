@@ -229,6 +229,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: c.text,
+    letterSpacing: 0,
   },
   filtersRow: {
     flexDirection: 'row',
