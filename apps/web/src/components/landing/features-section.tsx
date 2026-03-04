@@ -164,7 +164,7 @@ function ShopVisual() {
             </div>
             <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground">
                 <ExternalLink className="h-3 w-3" />
-                slabhub.com/shop/yourname
+                slabhub.gg/shop/yourname
             </div>
         </div>
     );
@@ -515,21 +515,21 @@ export function FeaturesSection() {
                                                 }
                                             }}
                                             className={`group relative flex flex-col gap-1 rounded-2xl px-4 py-3 text-left transition-all duration-200 ${isActive
-                                                    ? "bg-card shadow-[0_0_16px_rgba(251,172,0,0.06)]"
-                                                    : "hover:bg-card/50"
+                                                ? "bg-card shadow-[0_0_16px_rgba(251,172,0,0.06)]"
+                                                : "hover:bg-card/50"
                                                 }`}
                                         >
                                             <div className="flex items-center gap-2.5">
                                                 <Icon
                                                     className={`h-4 w-4 shrink-0 transition-colors ${isActive
-                                                            ? "text-primary"
-                                                            : "text-muted-foreground group-hover:text-foreground"
+                                                        ? "text-primary"
+                                                        : "text-muted-foreground group-hover:text-foreground"
                                                         }`}
                                                 />
                                                 <span
                                                     className={`text-sm font-semibold transition-colors ${isActive
-                                                            ? "text-foreground"
-                                                            : "text-muted-foreground group-hover:text-foreground"
+                                                        ? "text-foreground"
+                                                        : "text-muted-foreground group-hover:text-foreground"
                                                         }`}
                                                 >
                                                     {feat.title}
@@ -537,8 +537,8 @@ export function FeaturesSection() {
                                             </div>
                                             <p
                                                 className={`pl-[26px] text-xs leading-relaxed transition-colors ${isActive
-                                                        ? "text-muted-foreground"
-                                                        : "text-muted-foreground/60"
+                                                    ? "text-muted-foreground"
+                                                    : "text-muted-foreground/60"
                                                     }`}
                                             >
                                                 {feat.description}

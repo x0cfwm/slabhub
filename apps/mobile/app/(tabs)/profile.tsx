@@ -164,7 +164,7 @@ export default function ProfileScreen() {
             <Text style={styles.fieldLabel}>Handle (URL slug)</Text>
             {editing ? (
               <View style={styles.handleRow}>
-                <Text style={styles.handlePrefix}>slabhub.com/</Text>
+                <Text style={styles.handlePrefix}>slabhub.gg/</Text>
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
                   value={localProfile.handle}
@@ -176,7 +176,7 @@ export default function ProfileScreen() {
               </View>
             ) : (
               <Text style={styles.fieldValue}>
-                {displayProfile.handle ? `slabhub.com/${displayProfile.handle}` : 'Not set'}
+                {displayProfile.handle ? `slabhub.gg/${displayProfile.handle}` : 'Not set'}
               </Text>
             )}
           </View>
