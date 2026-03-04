@@ -187,6 +187,9 @@ importers:
       expo:
         specifier: ~54.0.27
         version: 54.0.27(@babel/core@7.28.6)(@expo/metro-runtime@6.1.2)(expo-router@6.0.17)(react-native@0.81.5)(react@19.1.0)
+      expo-asset:
+        specifier: ~12.0.12
+        version: 12.0.12(expo@54.0.27)(react-native@0.81.5)(react@19.1.0)
       expo-blur:
         specifier: ~15.0.8
         version: 15.0.8(expo@54.0.27)(react-native@0.81.5)(react@19.1.0)
