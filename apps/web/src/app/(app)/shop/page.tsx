@@ -361,7 +361,7 @@ export default function ShopSettingsPage() {
                             <div className="flex items-center justify-between">
                                 <Label className="flex items-center gap-2">
                                     <Link className="w-4 h-4 text-primary" />
-                                    Reference Links
+                                    References
                                 </Label>
                                 <Button
                                     type="button"
@@ -370,7 +370,7 @@ export default function ShopSettingsPage() {
                                     onClick={() => appendLink({ title: "", url: "" })}
                                     className="h-8 px-2 text-xs"
                                 >
-                                    <Plus className="w-3 h-3 mr-1" /> Add Link
+                                    <Plus className="w-3 h-3 mr-1" /> Add Reference
                                 </Button>
                             </div>
                             <div className="space-y-3">
@@ -411,7 +411,7 @@ export default function ShopSettingsPage() {
                                 ))}
                                 {linkFields.length === 0 && (
                                     <p className="text-xs text-muted-foreground italic text-center py-2 bg-muted/20 rounded-lg border border-dashed">
-                                        No reference links added yet.
+                                        No references added yet.
                                     </p>
                                 )}
                             </div>
@@ -421,7 +421,7 @@ export default function ShopSettingsPage() {
                             <div className="flex items-center justify-between">
                                 <Label className="flex items-center gap-2">
                                     <Calendar className="w-4 h-4 text-primary" />
-                                    Upcoming Events
+                                    Tradeshows
                                 </Label>
                                 <Button
                                     type="button"
@@ -430,7 +430,7 @@ export default function ShopSettingsPage() {
                                     onClick={() => appendEvent({ name: "", date: "", location: "" })}
                                     className="h-8 px-2 text-xs"
                                 >
-                                    <Plus className="w-3 h-3 mr-1" /> Add Event
+                                    <Plus className="w-3 h-3 mr-1" /> Add Tradeshow
                                 </Button>
                             </div>
                             <div className="space-y-3">
@@ -471,7 +471,7 @@ export default function ShopSettingsPage() {
                                 ))}
                                 {eventFields.length === 0 && (
                                     <p className="text-xs text-muted-foreground italic text-center py-2 bg-muted/20 rounded-lg border border-dashed">
-                                        No upcoming events added yet.
+                                        No tradeshows added yet.
                                     </p>
                                 )}
                             </div>
