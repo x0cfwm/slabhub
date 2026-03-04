@@ -60,9 +60,58 @@ export default function AddItemScreen() {
   const [showPricingSuggestions, setShowPricingSuggestions] = useState(false);
   const [pricingSuggestions, setPricingSuggestions] = useState<typeof PRICING_DATABASE>([]);
 
+  const handleImageAction = async () => {
+    if (Platform.OS === 'web') {
+      await pickImage();
+      return;
+    }
+
+    Alert.alert(
+      'Add Photo',
+      'Choose a source',
+      [
+        {
+          text: 'Take Photo',
+          onPress: takePhoto,
+        },
+        {
+          text: 'Choose from Gallery',
+          onPress: pickImage,
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
   const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'We need gallery permissions to pick an image.');
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'We need camera permissions to take a photo.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [3, 4],
       quality: 0.8,
@@ -152,7 +201,7 @@ export default function AddItemScreen() {
         keyboardShouldPersistTaps="handled"
         bottomOffset={60}
       >
-        <Pressable style={styles.imageSection} onPress={pickImage}>
+        <Pressable style={styles.imageSection} onPress={handleImageAction}>
           {imageUri ? (
             <Image source={{ uri: imageUri }} style={styles.image} contentFit="cover" />
           ) : (
