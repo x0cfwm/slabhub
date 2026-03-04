@@ -180,14 +180,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshInventory = async () => {
+  const refreshInventory = useCallback(async () => {
     try {
       const apiItems = await api.listInventory();
       setInventory(apiItems.map(mapApiToUiItem));
     } catch (e) {
       console.error('Failed to refresh inventory:', e);
     }
-  };
+  }, []);
 
   const saveProfile = async (p: UserProfile) => {
     try {
@@ -279,7 +279,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       getSoldItems,
       refreshInventory,
     }),
-    [inventory, profile, isLoading, addItem, updateItem, deleteItem, moveItem, updateProfile, getItemsByStage, getTotalMarketValue, getForSaleCount, getSoldItems]
+    [inventory, profile, isLoading, addItem, updateItem, deleteItem, moveItem, updateProfile, getItemsByStage, getTotalMarketValue, getForSaleCount, getSoldItems, refreshInventory]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
