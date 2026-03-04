@@ -66,6 +66,7 @@ model SellerProfile {
   paymentsAccepted String[]
   meetupsEnabled   Boolean         @default(false)
   shippingEnabled  Boolean         @default(false)
+  fulfillmentOptions String[]      @default([])
   socials          Json            @default("{}")
   wishlistText     String          @default("")
   referenceLinks   Json            @default("[]")

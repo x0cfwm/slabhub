@@ -26,6 +26,7 @@ const profileSchema = z.object({
     paymentsAccepted: z.array(z.string()).default([]),
     meetupsEnabled: z.boolean(),
     shippingEnabled: z.boolean(),
+    fulfillmentOptions: z.array(z.string()).default([]),
     wishlistText: z.string().optional(),
     referenceLinks: z.array(z.object({
         title: z.string().min(1, "Title is required"),
@@ -88,6 +89,7 @@ export default function ShopSettingsPage() {
             locationCity: "",
             meetupsEnabled: false,
             shippingEnabled: false,
+            fulfillmentOptions: [],
             wishlistText: "",
             paymentsAccepted: [],
             referenceLinks: [],
@@ -133,6 +135,7 @@ export default function ShopSettingsPage() {
                 paymentsAccepted: user.profile.paymentsAccepted || [],
                 meetupsEnabled: user.profile.meetupsEnabled ?? false,
                 shippingEnabled: user.profile.shippingEnabled ?? false,
+                fulfillmentOptions: user.profile.fulfillmentOptions || [],
                 wishlistText: user.profile.wishlistText || "",
                 referenceLinks: Array.isArray(user.profile.referenceLinks)
                     ? user.profile.referenceLinks.filter((l: any) => l && typeof l === 'object' && !Array.isArray(l))
@@ -482,25 +485,53 @@ export default function ShopSettingsPage() {
                                 <Truck className="w-4 h-4 text-primary" />
                                 Fulfillment Options
                             </Label>
-                            <div className="flex gap-6 pt-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
-                                        id="shipping"
-                                        checked={watch("shippingEnabled")}
-                                        onCheckedChange={checked => setValue("shippingEnabled", !!checked)}
+                                        id="fulfillment-shipping"
+                                        checked={(watch("fulfillmentOptions") || []).includes("shipping")}
+                                        onCheckedChange={checked => {
+                                            const current = watch("fulfillmentOptions") || [];
+                                            const updated = checked
+                                                ? [...current, "shipping"]
+                                                : current.filter((o: string) => o !== "shipping");
+                                            setValue("fulfillmentOptions", updated);
+                                        }}
                                     />
-                                    <Label htmlFor="shipping" className="text-sm font-normal cursor-pointer">
-                                        Shipping Available
+                                    <Label htmlFor="fulfillment-shipping" className="text-sm font-normal cursor-pointer">
+                                        Shipping
                                     </Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
-                                        id="meetups"
-                                        checked={watch("meetupsEnabled")}
-                                        onCheckedChange={checked => setValue("meetupsEnabled", !!checked)}
+                                        id="fulfillment-meetups-local"
+                                        checked={(watch("fulfillmentOptions") || []).includes("meetups_local")}
+                                        onCheckedChange={checked => {
+                                            const current = watch("fulfillmentOptions") || [];
+                                            const updated = checked
+                                                ? [...current, "meetups_local"]
+                                                : current.filter((o: string) => o !== "meetups_local");
+                                            setValue("fulfillmentOptions", updated);
+                                        }}
                                     />
-                                    <Label htmlFor="meetups" className="text-sm font-normal cursor-pointer">
-                                        Meetups Available
+                                    <Label htmlFor="fulfillment-meetups-local" className="text-sm font-normal cursor-pointer">
+                                        Local Meetups
+                                    </Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="fulfillment-meetups-travel"
+                                        checked={(watch("fulfillmentOptions") || []).includes("meetups_travel")}
+                                        onCheckedChange={checked => {
+                                            const current = watch("fulfillmentOptions") || [];
+                                            const updated = checked
+                                                ? [...current, "meetups_travel"]
+                                                : current.filter((o: string) => o !== "meetups_travel");
+                                            setValue("fulfillmentOptions", updated);
+                                        }}
+                                    />
+                                    <Label htmlFor="fulfillment-meetups-travel" className="text-sm font-normal cursor-pointer">
+                                        Travel Meetups
                                     </Label>
                                 </div>
                             </div>

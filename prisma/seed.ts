@@ -66,6 +66,7 @@ async function main() {
             paymentsAccepted: ['PayNow', 'Cash', 'PayPal'],
             meetupsEnabled: true,
             shippingEnabled: true,
+            fulfillmentOptions: ['shipping', 'meetups_local'],
             userId: user.id,
             socials: {
                 instagram: 'namitreasure',

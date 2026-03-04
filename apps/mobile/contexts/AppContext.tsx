@@ -7,6 +7,7 @@ import {
   ItemType,
   CardCondition,
   GradingCompany,
+  FulfillmentOption,
 } from '@/constants/types';
 import * as api from '@/lib/api';
 import { InventoryItem as ApiInventoryItem } from '@/lib/types';
@@ -140,6 +141,7 @@ interface AppContextValue {
   getForSaleCount: () => number;
   getSoldItems: () => InventoryItem[];
   refreshInventory: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -172,13 +174,50 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const profileData = await AsyncStorage.getItem(PROFILE_KEY);
       if (profileData) setProfile(JSON.parse(profileData));
 
-      await refreshInventory();
+      await Promise.all([
+        refreshInventory(),
+        refreshProfile()
+      ]);
     } catch (e) {
       console.error('Failed to load data:', e);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const refreshProfile = useCallback(async () => {
+    try {
+      const data = await api.getMe();
+      if (data?.profile) {
+        const p = data.profile;
+        const updatedProfile: UserProfile = {
+          username: p.shopName,
+          handle: p.handle,
+          location: [p.locationCity, p.locationCountry].filter(Boolean).join(', '),
+          paymentMethods: (p.paymentsAccepted || []).map((m: any) => {
+            const map: any = {
+              'Paypal G&S': 'paypal_gs',
+              'Venmo': 'venmo',
+              'Zelle': 'zelle',
+              'Cashapp': 'cashapp',
+              'Cash': 'cash',
+              'Crypto': 'crypto',
+              'Other': 'other'
+            };
+            return map[m] || m;
+          }),
+          fulfillmentOptions: (p.fulfillmentOptions || []) as FulfillmentOption[],
+          wishlist: p.wishlistText || '',
+          tradeshows: (p.upcomingEvents as any[])?.map(e => ({ name: e.name, link: e.location || '' })) || [],
+          references: (p.referenceLinks as any[])?.map(l => ({ name: l.title, link: l.url || '' })) || [],
+        };
+        setProfile(updatedProfile);
+        await saveProfile(updatedProfile);
+      }
+    } catch (e) {
+      console.error('Failed to refresh profile:', e);
+    }
+  }, []);
 
   const refreshInventory = useCallback(async () => {
     try {
@@ -242,9 +281,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [updateItem]);
 
   const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
-    const updated = { ...profile, ...updates };
-    setProfile(updated);
-    await saveProfile(updated);
+    try {
+      const updated = { ...profile, ...updates };
+
+      // Sync with API
+      // Note: UserProfile on mobile has different names than UpdateProfileDto on API
+      // Map relevant fields
+      const apiDto: any = {};
+      if (updates.username) apiDto.shopName = updates.username;
+      if (updates.handle) apiDto.handle = updates.handle;
+      if (updates.location) {
+        const [city, country] = updates.location.split(',').map(s => s.trim());
+        apiDto.locationCity = city;
+        apiDto.locationCountry = country;
+      }
+      if (updates.paymentMethods) apiDto.paymentsAccepted = updates.paymentMethods.map(m => {
+        const map: any = {
+          'paypal_gs': 'Paypal G&S',
+          'venmo': 'Venmo',
+          'zelle': 'Zelle',
+          'cashapp': 'Cashapp',
+          'cash': 'Cash',
+          'crypto': 'Crypto',
+          'other': 'Other'
+        };
+        return map[m] || m;
+      });
+      if (updates.fulfillmentOptions) apiDto.fulfillmentOptions = updates.fulfillmentOptions;
+      if (updates.wishlist) apiDto.wishlistText = updates.wishlist;
+      if (updates.tradeshows) apiDto.upcomingEvents = updates.tradeshows.map(t => ({ name: t.name, location: t.link }));
+      if (updates.references) apiDto.referenceLinks = updates.references.map(r => ({ title: r.name, url: r.link }));
+
+      if (Object.keys(apiDto).length > 0) {
+        await api.updateProfile(apiDto);
+      }
+
+      setProfile(updated);
+      await saveProfile(updated);
+    } catch (e) {
+      console.error('Failed to update profile:', e);
+      throw e;
+    }
   }, [profile]);
 
   const getItemsByStage = useCallback((stage: ItemStage) => {
@@ -278,8 +355,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       getForSaleCount,
       getSoldItems,
       refreshInventory,
+      refreshProfile,
     }),
-    [inventory, profile, isLoading, addItem, updateItem, deleteItem, moveItem, updateProfile, getItemsByStage, getTotalMarketValue, getForSaleCount, getSoldItems, refreshInventory]
+    [inventory, profile, isLoading, addItem, updateItem, deleteItem, moveItem, updateProfile, getItemsByStage, getTotalMarketValue, getForSaleCount, getSoldItems, refreshInventory, refreshProfile]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -81,6 +81,11 @@ export interface SellerProfile {
     locationCountry: string;
     locationCity: string;
     avatarUrl?: string | null;
+    paymentsAccepted: string[];
+    fulfillmentOptions: string[];
+    wishlistText: string;
+    upcomingEvents: { name: string; date?: string; location?: string }[];
+    referenceLinks: { title: string; url: string }[];
 }
 
 export interface MarketProduct {

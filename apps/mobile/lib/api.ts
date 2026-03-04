@@ -60,6 +60,11 @@ export async function uploadMedia(uri: string): Promise<{ mediaId: string; url: 
     return res.json();
 }
 
+export async function updateProfile(data: any): Promise<{ profile: SellerProfile }> {
+    const response = await apiRequest("PATCH", "/me", data);
+    return response.json();
+}
+
 export async function getMe(): Promise<{ profile: SellerProfile } | null> {
     try {
         const response = await apiRequest("GET", "/me");

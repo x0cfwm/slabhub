@@ -74,6 +74,12 @@ export class UpdateProfileDto {
     @IsBoolean()
     shippingEnabled?: boolean;
 
+    @ApiProperty({ required: false, type: [String], example: ['shipping', 'meetups_local'] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    fulfillmentOptions?: string[];
+
     @ApiProperty({ required: false })
     @IsOptional()
     socials?: {

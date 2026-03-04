@@ -144,6 +144,7 @@ export interface SellerProfile {
     paymentsAccepted: string[];
     meetupsEnabled: boolean;
     shippingEnabled: boolean;
+    fulfillmentOptions: string[];
     socials: {
         instagram?: string;
         tiktok?: string;

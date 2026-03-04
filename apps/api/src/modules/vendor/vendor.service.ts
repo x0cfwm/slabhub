@@ -77,6 +77,12 @@ export class VendorService {
                 shippingEnabled: seller.shippingEnabled,
                 socials: seller.socials,
                 wishlistText: seller.wishlistText,
+                fulfillmentOptions: seller.fulfillmentOptions?.length > 0
+                    ? seller.fulfillmentOptions
+                    : [
+                        seller.shippingEnabled ? 'shipping' : null,
+                        seller.meetupsEnabled ? 'meetups_local' : null,
+                    ].filter(Boolean),
                 referenceLinks: (seller.referenceLinks as any[]) || [],
                 upcomingEvents: (seller.upcomingEvents as any[]) || [],
                 avatarUrl: seller.avatarMedia ? this.mediaService.getPublicUrl(seller.avatarMedia, { preferCdn: true }) : null,

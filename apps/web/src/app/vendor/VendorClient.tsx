@@ -278,14 +278,19 @@ export default function VendorClient() {
                             </div>
 
                             <div className="flex flex-wrap gap-2">
-                                {profile.meetupsEnabled && (
-                                    <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
-                                        <Users className="h-3 w-3 mr-1" /> Meetups
-                                    </Badge>
-                                )}
-                                {profile.shippingEnabled && (
+                                {(profile.fulfillmentOptions || []).includes("shipping") && (
                                     <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
                                         <Truck className="h-3 w-3 mr-1" /> Shipping
+                                    </Badge>
+                                )}
+                                {(profile.fulfillmentOptions || []).includes("meetups_local") && (
+                                    <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
+                                        <Users className="h-3 w-3 mr-1" /> Local Meetups
+                                    </Badge>
+                                )}
+                                {(profile.fulfillmentOptions || []).includes("meetups_travel") && (
+                                    <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
+                                        <Users className="h-3 w-3 mr-1" /> Travel Meetups
                                     </Badge>
                                 )}
                                 <Badge variant="outline" className="border-border bg-muted/50">
