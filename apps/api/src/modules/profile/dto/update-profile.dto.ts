@@ -48,15 +48,10 @@ export class UpdateProfileDto {
     @IsBoolean()
     isActive?: boolean;
 
-    @ApiProperty({ required: false, example: 'USA' })
+    @ApiProperty({ required: false, example: 'Singapore, Singapore City' })
     @IsOptional()
     @IsString()
-    locationCountry?: string;
-
-    @ApiProperty({ required: false, example: 'Los Angeles' })
-    @IsOptional()
-    @IsString()
-    locationCity?: string;
+    location?: string;
 
     @ApiProperty({ required: false, type: [String], example: ['PayPal', 'Stripe'] })
     @IsOptional()

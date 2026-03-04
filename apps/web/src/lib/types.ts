@@ -139,8 +139,7 @@ export interface SellerProfile {
     handle: string;
     shopName: string;
     isActive: boolean;
-    locationCountry: string;
-    locationCity: string;
+    location: string;
     paymentsAccepted: string[];
     meetupsEnabled: boolean;
     shippingEnabled: boolean;

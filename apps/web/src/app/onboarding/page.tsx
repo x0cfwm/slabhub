@@ -17,8 +17,7 @@ export default function OnboardingPage() {
     const [formData, setFormData] = useState({
         shopName: "Nami's Treasure Shop",
         handle: "nami-treasures",
-        locationCountry: "Singapore",
-        locationCity: "Singapore",
+        location: "Singapore, Singapore",
         paymentsAccepted: ["PayNow", "Cash"],
         meetupsEnabled: true,
         shippingEnabled: true,
@@ -88,25 +87,15 @@ export default function OnboardingPage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="country">Country</Label>
-                                <Input
-                                    id="country"
-                                    value={formData.locationCountry}
-                                    onChange={e => setFormData({ ...formData, locationCountry: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="city">City</Label>
-                                <Input
-                                    id="city"
-                                    value={formData.locationCity}
-                                    onChange={e => setFormData({ ...formData, locationCity: e.target.value })}
-                                    required
-                                />
-                            </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="location">Location</Label>
+                            <Input
+                                id="location"
+                                placeholder="City, State"
+                                value={formData.location}
+                                onChange={e => setFormData({ ...formData, location: e.target.value })}
+                                required
+                            />
                         </div>
 
                         <div className="space-y-3">

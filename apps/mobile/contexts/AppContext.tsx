@@ -193,7 +193,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const updatedProfile: UserProfile = {
           username: p.shopName,
           handle: p.handle,
-          location: [p.locationCity, p.locationCountry].filter(Boolean).join(', '),
+          location: p.location || '',
           paymentMethods: (p.paymentsAccepted || []).map((m: any) => {
             const map: any = {
               'Paypal G&S': 'paypal_gs',
@@ -291,9 +291,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (updates.username) apiDto.shopName = updates.username;
       if (updates.handle) apiDto.handle = updates.handle;
       if (updates.location) {
-        const [city, country] = updates.location.split(',').map(s => s.trim());
-        apiDto.locationCity = city;
-        apiDto.locationCountry = country;
+        apiDto.location = updates.location;
       }
       if (updates.paymentMethods) apiDto.paymentsAccepted = updates.paymentMethods.map(m => {
         const map: any = {

@@ -78,8 +78,7 @@ export interface SellerProfile {
     handle: string;
     shopName: string;
     isActive: boolean;
-    locationCountry: string;
-    locationCity: string;
+    location: string;
     avatarUrl?: string | null;
     paymentsAccepted: string[];
     fulfillmentOptions: string[];

@@ -21,8 +21,7 @@ const profileSchema = z.object({
     shopName: z.string().optional(),
     handle: z.string().optional(),
     isActive: z.boolean(),
-    locationCountry: z.string().optional(),
-    locationCity: z.string().optional(),
+    location: z.string().optional(),
     paymentsAccepted: z.array(z.string()).default([]),
     meetupsEnabled: z.boolean(),
     shippingEnabled: z.boolean(),
@@ -85,8 +84,7 @@ export default function ShopSettingsPage() {
             shopName: "",
             handle: "",
             isActive: true,
-            locationCountry: "",
-            locationCity: "",
+            location: "",
             meetupsEnabled: false,
             shippingEnabled: false,
             fulfillmentOptions: [],
@@ -130,8 +128,7 @@ export default function ShopSettingsPage() {
                 shopName: user.profile.shopName || "",
                 handle: user.profile.handle || "",
                 isActive: user.profile.isActive ?? true,
-                locationCountry: user.profile.locationCountry || "",
-                locationCity: user.profile.locationCity || "",
+                location: user.profile.location || "",
                 paymentsAccepted: user.profile.paymentsAccepted || [],
                 meetupsEnabled: user.profile.meetupsEnabled ?? false,
                 shippingEnabled: user.profile.shippingEnabled ?? false,
@@ -268,25 +265,14 @@ export default function ShopSettingsPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-6 pt-2">
-                            <div className="space-y-2">
+                            <div className="space-y-2 col-span-2">
                                 <Label className="flex items-center gap-2">
                                     <MapPin className="w-4 h-4 text-primary" />
-                                    Location (Country)
+                                    Location
                                 </Label>
                                 <Input
-                                    {...register("locationCountry")}
-                                    placeholder="Singapore"
-                                    className="bg-card shadow-sm"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="flex items-center gap-2">
-                                    <MapPin className="w-4 h-4 text-primary" />
-                                    Location (City)
-                                </Label>
-                                <Input
-                                    {...register("locationCity")}
-                                    placeholder="Singapore City"
+                                    {...register("location")}
+                                    placeholder="City, State"
                                     className="bg-card shadow-sm"
                                 />
                             </div>
