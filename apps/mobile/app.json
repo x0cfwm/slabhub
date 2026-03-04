@@ -4,12 +4,12 @@
     "slug": "slabhub-crm",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/slabhub_s_icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/slabhub_splash_icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0A0A0C"
     },
@@ -20,8 +20,8 @@
     "android": {
       "package": "com.myapp",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundColor": "#0A0A0C",
+        "foregroundImage": "./assets/images/slabhub_android_foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       }
