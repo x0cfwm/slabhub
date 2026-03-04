@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/colors';
 import {
   PaymentMethod,
@@ -29,6 +30,7 @@ const ALL_FULFILLMENTS: FulfillmentOption[] = ['shipping', 'meetups_local', 'mee
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { profile, updateProfile } = useApp();
+  const { signOut, user } = useAuth();
   const [editing, setEditing] = useState(false);
   const [localProfile, setLocalProfile] = useState(profile);
   const [newTradeshow, setNewTradeshow] = useState({ name: '', link: '' });
@@ -152,6 +154,11 @@ export default function ProfileScreen() {
             ) : (
               <Text style={styles.fieldValue}>{displayProfile.username || 'Not set'}</Text>
             )}
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Email Address</Text>
+            <Text style={styles.fieldValue}>{user?.email || 'N/A'}</Text>
           </View>
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Handle (URL slug)</Text>
@@ -341,6 +348,31 @@ export default function ProfileScreen() {
             <Text style={styles.emptyField}>No references added</Text>
           )}
         </View>
+
+        {!editing && (
+          <Pressable
+            style={({ pressed }) => [styles.logoutBtn, { opacity: pressed ? 0.7 : 1 }]}
+            onPress={() => {
+              if (Platform.OS === 'web') {
+                if (window.confirm('Are you sure you want to log out?')) {
+                  signOut();
+                }
+              } else {
+                Alert.alert(
+                  'Logout',
+                  'Are you sure you want to log out?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Logout', style: 'destructive', onPress: signOut },
+                  ]
+                );
+              }
+            }}
+          >
+            <Ionicons name="log-out-outline" size={20} color={c.error} />
+            <Text style={styles.logoutText}>Logout</Text>
+          </Pressable>
+        )}
       </ScrollView>
     </View>
   );
@@ -526,5 +558,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: c.textTertiary,
     fontStyle: 'italic',
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: c.surface,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+    marginTop: 8,
+  },
+  logoutText: {
+    color: c.error,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

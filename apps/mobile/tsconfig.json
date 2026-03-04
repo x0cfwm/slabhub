@@ -10,7 +10,8 @@
       "@shared/*": [
         "./shared/*"
       ]
-    }
+    },
+    "jsx": "react-native"
   },
   "include": [
     "**/*.ts",

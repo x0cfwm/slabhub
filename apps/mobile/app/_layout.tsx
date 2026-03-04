@@ -1,7 +1,8 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -14,7 +15,32 @@ SplashScreen.preventAutoHideAsync();
 
 const c = Colors.dark;
 
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useRouter, useSegments } from "expo-router";
+
 function RootLayoutNav() {
+  const { sessionToken, isLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAuthGroup = (segments[0] as string) === "(auth)";
+
+    if (!sessionToken && !inAuthGroup) {
+      // Redirect to the login page if they are not signed in.
+      router.replace("/(auth)/login" as any);
+    } else if (sessionToken && inAuthGroup) {
+      // Redirect away from the login page if they are signed in.
+      router.replace("/(tabs)/inventory");
+    }
+  }, [sessionToken, isLoading, segments]);
+
+  if (isLoading) {
+    return null; // Or a dedicated splash screen/loader
+  }
+
   return (
     <Stack
       screenOptions={{
@@ -25,6 +51,8 @@ function RootLayoutNav() {
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)/otp" options={{ headerShown: false }} />
       <Stack.Screen
         name="add-item"
         options={{
@@ -52,10 +80,12 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView>
           <KeyboardProvider>
-            <AppProvider>
-              <StatusBar style="light" />
-              <RootLayoutNav />
-            </AppProvider>
+            <AuthProvider>
+              <AppProvider>
+                <StatusBar style="light" />
+                <RootLayoutNav />
+              </AppProvider>
+            </AuthProvider>
           </KeyboardProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>

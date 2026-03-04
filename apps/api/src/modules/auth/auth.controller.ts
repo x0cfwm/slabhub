@@ -37,6 +37,7 @@ export class AuthController {
         @Req() req: Request,
         @Res({ passthrough: true }) res: Response
     ) {
+        console.log(`[AuthController] Verifying OTP for ${dto.email}...`);
         const userAgent = req.headers['user-agent'];
         const ip = req.ip;
 
@@ -50,7 +51,7 @@ export class AuthController {
 
         CookieUtils.setSessionCookie(res, sessionToken);
 
-        return { ok: true, user };
+        return { ok: true, user, sessionToken };
     }
 
     @Post('logout')

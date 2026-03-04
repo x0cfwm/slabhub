@@ -14,7 +14,7 @@ async function bootstrap() {
     // Enable CORS for web app
     const allowedOrigins = process.env.ALLOWED_ORIGINS
         ? process.env.ALLOWED_ORIGINS.split(',')
-        : ['http://localhost:3000', 'http://127.0.0.1:3000', 'https://slabhub.netlify.app', 'https://slabhub.gg'];
+        : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:8081', 'https://slabhub.netlify.app', 'https://slabhub.gg'];
 
     app.enableCors({
         origin: (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {

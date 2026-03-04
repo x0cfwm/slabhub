@@ -12,16 +12,45 @@ export function getApiUrl(): string {
     throw new Error("EXPO_PUBLIC_DOMAIN is not set");
   }
 
-  let url = new URL(`https://${host}`);
+  // If host already contains protocol, use it. Otherwise, assume http for localhost, https otherwise.
+  const protocol = host.includes('://') ? '' : (host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http://' : 'https://');
+  const fullUrl = `${protocol}${host}`;
 
-  return url.href;
+  // Ensure it ends with a slash for proper relative URL joining
+  return fullUrl.endsWith('/') ? fullUrl : `${fullUrl}/`;
 }
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    const text = await res.text();
+    let errorMessage = text || res.statusText;
+
+    try {
+      const json = JSON.parse(text);
+      if (json.message) {
+        // NestJS often returns message as an array for validation errors
+        errorMessage = Array.isArray(json.message) ? json.message[0] : json.message;
+      } else if (json.error) {
+        errorMessage = json.error;
+      }
+    } catch (e) {
+      // Not JSON, use fallback text
+    }
+
+    throw new Error(errorMessage);
   }
+}
+
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
+
+const TOKEN_KEY = "slabhub_session_token";
+
+async function getStoredToken(): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    return localStorage.getItem(TOKEN_KEY);
+  }
+  return await SecureStore.getItemAsync(TOKEN_KEY);
 }
 
 export async function apiRequest(
@@ -30,11 +59,18 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   const baseUrl = getApiUrl();
-  const url = new URL(route, baseUrl);
+  // Remove leading slash from route to ensure it appends to the baseUrl path instead of replacing it
+  const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
+  const url = new URL(cleanRoute, baseUrl);
+
+  const token = await getStoredToken();
 
   const res = await fetch(url.toString(), {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: {
+      ...(data ? { "Content-Type": "application/json" } : {}),
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    },
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -50,9 +86,16 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
     async ({ queryKey }) => {
       const baseUrl = getApiUrl();
-      const url = new URL(queryKey.join("/") as string, baseUrl);
+      const route = queryKey.join("/");
+      const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
+      const url = new URL(cleanRoute, baseUrl);
+
+      const token = await getStoredToken();
 
       const res = await fetch(url.toString(), {
+        headers: {
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         credentials: "include",
       });
 
