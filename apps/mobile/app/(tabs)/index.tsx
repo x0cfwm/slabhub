@@ -6,63 +6,161 @@ import {
   ScrollView,
   Platform,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useApp } from '@/contexts/AppContext';
+import { useQuery } from '@tanstack/react-query';
+import {
+  listInventory,
+  getMe,
+  getMarketProducts,
+} from '@/lib/api';
 import Colors from '@/constants/colors';
-import { STAGE_ORDER, STAGE_LABELS, CHANNEL_LABELS, SaleChannel } from '@/constants/types';
 
 const c = Colors.dark;
 
+const STAGE_ORDER = ['ACQUIRED', 'IN_TRANSIT', 'BEING_GRADED', 'IN_STOCK', 'LISTED', 'SOLD'] as const;
+const STAGE_LABELS: Record<string, string> = {
+  ACQUIRED: 'Acquired',
+  IN_TRANSIT: 'In Transit',
+  BEING_GRADED: 'Grading',
+  IN_STOCK: 'In Stock',
+  LISTED: 'Listed',
+  SOLD: 'Sold',
+};
+
 const STAGE_COLORS: Record<string, string> = {
-  acquired: c.acquired,
-  in_transit: c.inTransit,
-  grading: c.grading,
-  in_stock: c.inStock,
-  listed: c.listed,
-  sold: c.sold,
+  ACQUIRED: c.acquired,
+  IN_TRANSIT: c.inTransit,
+  BEING_GRADED: c.grading,
+  IN_STOCK: c.inStock,
+  LISTED: c.listed,
+  SOLD: c.sold,
 };
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
-  const { inventory, getTotalMarketValue, getForSaleCount, getSoldItems } = useApp();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
-  const totalItems = inventory.length;
-  const forSale = getForSaleCount();
-  const marketValue = getTotalMarketValue();
-  const soldItems = getSoldItems();
-
-  const singleCards = inventory.filter((i) => i.type === 'single_card').length;
-  const gradedCards = inventory.filter((i) => i.type === 'graded_card').length;
-  const sealedProducts = inventory.filter((i) => i.type === 'sealed_product').length;
-
-  const stageCounts = STAGE_ORDER.map((stage) => ({
-    stage,
-    label: STAGE_LABELS[stage],
-    count: inventory.filter((i) => i.stage === stage).length,
-    color: STAGE_COLORS[stage],
-  }));
-
-  const maxStageCount = Math.max(...stageCounts.map((s) => s.count), 1);
-
-  const channelCounts: { channel: SaleChannel; count: number }[] = [];
-  const channelMap = new Map<SaleChannel, number>();
-  soldItems.forEach((item) => {
-    if (item.soldChannel) {
-      channelMap.set(item.soldChannel, (channelMap.get(item.soldChannel) || 0) + 1);
-    }
+  const { data: inventory = [], isLoading: invLoading } = useQuery({
+    queryKey: ['inventory'],
+    queryFn: listInventory,
   });
-  channelMap.forEach((count, channel) => {
-    channelCounts.push({ channel, count });
-  });
-  channelCounts.sort((a, b) => b.count - a.count);
 
-  const totalRevenue = soldItems.reduce((sum, i) => sum + (i.soldPrice || 0), 0);
-  const totalCost = soldItems.reduce((sum, i) => sum + i.acquisitionPrice, 0);
-  const profit = totalRevenue - totalCost;
+  const { data: marketData, isLoading: marketLoading } = useQuery({
+    queryKey: ['market-products'],
+    queryFn: () => getMarketProducts({ page: 1, limit: 100 }),
+  });
+
+  const { data: me, isLoading: profileLoading } = useQuery({
+    queryKey: ['me'],
+    queryFn: getMe,
+  });
+
+  const loading = invLoading || marketLoading || profileLoading;
+  const marketProducts = marketData?.items || [];
+
+  const stats = React.useMemo(() => {
+    // Basic stats
+    const totalItems = inventory.reduce((acc, i) => acc + (i.quantity || 1), 0);
+    const forSaleItems = inventory.filter(i => i.stage === "LISTED").reduce((acc, i) => acc + (i.quantity || 1), 0);
+    const soldItems = inventory.filter(i => i.stage === "SOLD");
+
+    // Revenue and Profit
+    const totalRevenue = soldItems.reduce((sum, i) => sum + (i.soldPrice || 0), 0);
+    const totalCost = soldItems.reduce((sum, i) => sum + (i.acquisitionPrice || 0), 0);
+    const profit = totalRevenue - totalCost;
+
+    // Market Value calculation matching web
+    const marketValue = inventory.reduce((acc, item) => {
+      // Don't include ARCHIVED items in market value if there were any, 
+      // but here we follow original layout which doesn't explicitly exclude ARCHIVED.
+      // However, typical dashboard logic excludes ARCHIVED.
+      if (item.stage === "ARCHIVED") return acc;
+
+      const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
+      const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
+      let unitPrice = item.marketPrice ?? 0;
+
+      if (!unitPrice) {
+        const vid = (item as any).cardVariantId || (item as any).cardProfileId;
+        const refId = item.refPriceChartingProductId;
+        const marketProduct = marketProducts.find(p => p.id === refId || p.id === vid);
+
+        if (marketProduct) {
+          if (isSealed) {
+            unitPrice = marketProduct.sealedPrice ?? 0;
+          } else if (itType === "SINGLE_CARD_GRADED") {
+            const gradeStr = String((item as any).gradeValue || (item as any).grade || "").toLowerCase();
+            const numericGrade = gradeStr.match(/\d+(\.\d+)?/)?.[0];
+
+            if (numericGrade === '10') unitPrice = marketProduct.grade10Price ?? marketProduct.rawPrice ?? 0;
+            else if (numericGrade === '9.5') unitPrice = marketProduct.grade95Price ?? marketProduct.rawPrice ?? 0;
+            else if (numericGrade === '9') unitPrice = marketProduct.grade9Price ?? marketProduct.rawPrice ?? 0;
+            else if (numericGrade === '8') unitPrice = marketProduct.grade8Price ?? marketProduct.rawPrice ?? 0;
+            else if (numericGrade === '7') unitPrice = marketProduct.grade7Price ?? marketProduct.rawPrice ?? 0;
+            else unitPrice = marketProduct.rawPrice ?? 0;
+          } else {
+            unitPrice = marketProduct.rawPrice ?? 0;
+          }
+        } else if (item.marketPriceSnapshot) {
+          unitPrice = Number(item.marketPriceSnapshot);
+        } else {
+          unitPrice = Number(item.acquisitionPrice) || 0;
+        }
+      }
+
+      return acc + (unitPrice * (item.quantity || 1));
+    }, 0);
+
+    // Items by Stage counts
+    const stageCounts = STAGE_ORDER.map((stage) => ({
+      stage,
+      label: STAGE_LABELS[stage],
+      count: inventory.filter((i) => i.stage === stage).reduce((acc, i) => acc + (i.quantity || 1), 0),
+      color: STAGE_COLORS[stage],
+    }));
+    const maxStageCount = Math.max(...stageCounts.map((s) => s.count), 1);
+
+    // Inventory Breakdown counts
+    const rawCards = inventory.filter((i) => {
+      const type = (i as any).type || (i as any).itemType;
+      return type === 'SINGLE_CARD_RAW' || type === 'SINGLE_CARD' || type === 'raw';
+    }).reduce((acc, i) => acc + (i.quantity || 1), 0);
+
+    const gradedCards = inventory.filter((i) => {
+      const type = (i as any).type || (i as any).itemType;
+      return type === 'SINGLE_CARD_GRADED' || type === 'graded';
+    }).reduce((acc, i) => acc + (i.quantity || 1), 0);
+
+    const sealedProducts = inventory.filter((i) => {
+      const type = (i as any).type || (i as any).itemType;
+      return type === 'SEALED_PRODUCT' || type === 'sealed';
+    }).reduce((acc, i) => acc + (i.quantity || 1), 0);
+
+    return {
+      totalItems,
+      forSaleItems,
+      marketValue,
+      totalRevenue,
+      profit,
+      stageCounts,
+      maxStageCount,
+      rawCards,
+      gradedCards,
+      sealedProducts
+    };
+  }, [inventory, marketProducts]);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top + webTopInset, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={c.accent} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
@@ -85,25 +183,23 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.statsRow}>
-          <StatCard icon="cube" label="Total Items" value={totalItems.toString()} />
-          <StatCard icon="pricetag" label="For Sale" value={forSale.toString()} accent />
+          <StatCard icon="cube" label="Total Items" value={stats.totalItems.toString()} />
+          <StatCard icon="pricetag" label="For Sale" value={stats.forSaleItems.toString()} accentColor={c.warning} />
         </View>
         <View style={styles.statsRow}>
-          <StatCard icon="trending-up" label="Market Value" value={`$${marketValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} wide />
+          <StatCard icon="trending-up" label="Market Value" value={`$${stats.marketValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} wide />
         </View>
 
-        {soldItems.length > 0 && (
-          <View style={styles.statsRow}>
-            <StatCard icon="cash" label="Revenue" value={`$${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`} />
-            <StatCard icon="analytics" label="Profit" value={`$${profit.toLocaleString('en-US', { minimumFractionDigits: 2 })}`} accent={profit > 0} />
-          </View>
-        )}
+        <View style={styles.statsRow}>
+          <StatCard icon="cash" label="Revenue" value={`$${stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+          <StatCard icon="analytics" label="Profit" value={`$${stats.profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+        </View>
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Items by Stage</Text>
           <Text style={styles.cardSubtitle}>Distribution across pipeline</Text>
           <View style={styles.barChart}>
-            {stageCounts.map((s) => (
+            {stats.stageCounts.map((s) => (
               <View key={s.stage} style={styles.barRow}>
                 <Text style={styles.barLabel}>{s.label}</Text>
                 <View style={styles.barTrack}>
@@ -111,7 +207,7 @@ export default function DashboardScreen() {
                     style={[
                       styles.barFill,
                       {
-                        width: `${(s.count / maxStageCount) * 100}%`,
+                        width: `${(s.count / stats.maxStageCount) * 100}%`,
                         backgroundColor: s.color,
                       },
                     ]}
@@ -126,24 +222,11 @@ export default function DashboardScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Inventory Breakdown</Text>
           <View style={styles.breakdownRow}>
-            <BreakdownItem icon="card" label="Raw Cards" count={singleCards} color={c.info} />
-            <BreakdownItem icon="shield-checkmark" label="Graded" count={gradedCards} color={c.success} />
-            <BreakdownItem icon="gift" label="Sealed" count={sealedProducts} color={c.warning} />
+            <BreakdownItem icon="card" label="Raw Cards" count={stats.rawCards} color={c.info} />
+            <BreakdownItem icon="shield-checkmark" label="Graded" count={stats.gradedCards} color={c.success} />
+            <BreakdownItem icon="gift" label="Sealed" count={stats.sealedProducts} color={c.warning} />
           </View>
         </View>
-
-        {channelCounts.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Sales by Channel</Text>
-            {channelCounts.map((ch) => (
-              <View key={ch.channel} style={styles.channelRow}>
-                <View style={[styles.channelDot, { backgroundColor: c.accent }]} />
-                <Text style={styles.channelLabel}>{CHANNEL_LABELS[ch.channel]}</Text>
-                <Text style={styles.channelCount}>{ch.count}</Text>
-              </View>
-            ))}
-          </View>
-        )}
 
         {inventory.length === 0 && (
           <View style={styles.emptyCard}>
@@ -163,20 +246,20 @@ export default function DashboardScreen() {
   );
 }
 
-function StatCard({ icon, label, value, accent, wide }: {
+function StatCard({ icon, label, value, wide, accentColor }: {
   icon: string;
   label: string;
   value: string;
-  accent?: boolean;
   wide?: boolean;
+  accentColor?: string;
 }) {
   return (
     <View style={[styles.statCard, wide && styles.statCardWide]}>
       <View style={styles.statHeader}>
-        <Ionicons name={icon as any} size={16} color={c.textSecondary} />
+        <Ionicons name={icon as any} size={14} color={c.textSecondary} />
         <Text style={styles.statLabel}>{label}</Text>
       </View>
-      <Text style={[styles.statValue, accent && { color: c.accent }]}>{value}</Text>
+      <Text style={[styles.statValue, accentColor && { color: accentColor }]}>{value}</Text>
     </View>
   );
 }
@@ -293,12 +376,12 @@ const styles = StyleSheet.create({
   barRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
   barLabel: {
     fontSize: 12,
     color: c.textSecondary,
-    width: 70,
+    width: 60,
     fontWeight: '500' as const,
   },
   barTrack: {
@@ -317,7 +400,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: c.text,
     fontWeight: '600' as const,
-    width: 28,
+    width: 14,
     textAlign: 'right' as const,
   },
   breakdownRow: {
@@ -346,28 +429,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: c.textSecondary,
     fontWeight: '500' as const,
-  },
-  channelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    gap: 8,
-  },
-  channelDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  channelLabel: {
-    flex: 1,
-    fontSize: 14,
-    color: c.text,
-    fontWeight: '500' as const,
-  },
-  channelCount: {
-    fontSize: 14,
-    color: c.textSecondary,
-    fontWeight: '600' as const,
   },
   emptyCard: {
     backgroundColor: c.surface,

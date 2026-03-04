@@ -31,7 +31,13 @@ export class AuthMiddleware implements NestMiddleware {
     async use(req: AuthenticatedRequest, res: Response, next: NextFunction) {
         const handleFromHeader = req.headers['x-user-handle'] as string | undefined;
         const idFromHeader = req.headers['x-user-id'] as string | undefined;
-        const sessionToken = req.cookies[process.env.SESSION_COOKIE_NAME || 'slabhub_session'];
+        const authHeader = req.headers['authorization'];
+        let sessionToken = req.cookies[process.env.SESSION_COOKIE_NAME || 'slabhub_session'];
+
+        // If no cookie, check Authorization: Bearer token
+        if (!sessionToken && authHeader?.startsWith('Bearer ')) {
+            sessionToken = authHeader.substring(7);
+        }
 
         let seller = null;
 
