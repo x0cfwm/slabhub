@@ -33,8 +33,14 @@ export default function ProfileScreen() {
   const { signOut, user } = useAuth();
   const [editing, setEditing] = useState(false);
   const [localProfile, setLocalProfile] = useState(profile);
-  const [newTradeshow, setNewTradeshow] = useState({ name: '', link: '' });
+  const [newTradeshow, setNewTradeshow] = useState({ name: '', date: '', link: '' });
   const [newReference, setNewReference] = useState({ name: '', link: '' });
+
+  React.useEffect(() => {
+    if (!editing) {
+      setLocalProfile(profile);
+    }
+  }, [profile, editing]);
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
   const handleSave = async () => {
@@ -72,7 +78,7 @@ export default function ProfileScreen() {
         ...localProfile,
         tradeshows: [...localProfile.tradeshows, { ...newTradeshow }],
       });
-      setNewTradeshow({ name: '', link: '' });
+      setNewTradeshow({ name: '', date: '', link: '' });
     }
   };
 
@@ -245,7 +251,10 @@ export default function ProfileScreen() {
           {displayProfile.tradeshows.map((show, i) => (
             <View key={i} style={styles.listItem}>
               <View style={styles.listItemInfo}>
-                <Text style={styles.listItemName}>{show.name}</Text>
+                <View style={styles.tradeshowHeader}>
+                  <Text style={styles.listItemName}>{show.name}</Text>
+                  {show.date ? <Text style={styles.listItemDate}>{show.date}</Text> : null}
+                </View>
                 {show.link ? <Text style={styles.listItemLink} numberOfLines={1}>{show.link}</Text> : null}
               </View>
               {editing && (
@@ -256,29 +265,40 @@ export default function ProfileScreen() {
             </View>
           ))}
           {editing && (
-            <View style={styles.addItemForm}>
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                value={newTradeshow.name}
-                onChangeText={(t) => setNewTradeshow({ ...newTradeshow, name: t })}
-                placeholder="Event name"
-                placeholderTextColor={c.textTertiary}
-              />
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                value={newTradeshow.link}
-                onChangeText={(t) => setNewTradeshow({ ...newTradeshow, link: t })}
-                placeholder="Link (optional)"
-                placeholderTextColor={c.textTertiary}
-                autoCapitalize="none"
-              />
-              <Pressable
-                style={[styles.addSmallBtn, !newTradeshow.name.trim() && { opacity: 0.4 }]}
-                onPress={addTradeshow}
-                disabled={!newTradeshow.name.trim()}
-              >
-                <Ionicons name="add" size={18} color={c.accentText} />
-              </Pressable>
+            <View style={styles.addItemFormVertical}>
+              <View style={styles.addItemRow}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  value={newTradeshow.name}
+                  onChangeText={(t) => setNewTradeshow({ ...newTradeshow, name: t })}
+                  placeholder="Event name"
+                  placeholderTextColor={c.textTertiary}
+                />
+                <TextInput
+                  style={[styles.input, { width: 120 }]}
+                  value={newTradeshow.date}
+                  onChangeText={(t) => setNewTradeshow({ ...newTradeshow, date: t })}
+                  placeholder="e.g. March 10"
+                  placeholderTextColor={c.textTertiary}
+                />
+              </View>
+              <View style={styles.addItemRow}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  value={newTradeshow.link}
+                  onChangeText={(t) => setNewTradeshow({ ...newTradeshow, link: t })}
+                  placeholder="Link (optional)"
+                  placeholderTextColor={c.textTertiary}
+                  autoCapitalize="none"
+                />
+                <Pressable
+                  style={[styles.addSmallBtn, !newTradeshow.name.trim() && { opacity: 0.4 }]}
+                  onPress={addTradeshow}
+                  disabled={!newTradeshow.name.trim()}
+                >
+                  <Ionicons name="add" size={18} color={c.accentText} />
+                </Pressable>
+              </View>
             </View>
           )}
           {displayProfile.tradeshows.length === 0 && !editing && (
@@ -286,22 +306,6 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Wishlist</Text>
-          {editing ? (
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={localProfile.wishlist}
-              onChangeText={(t) => setLocalProfile({ ...localProfile, wishlist: t })}
-              placeholder="What are you looking to buy?"
-              placeholderTextColor={c.textTertiary}
-              multiline
-              numberOfLines={4}
-            />
-          ) : (
-            <Text style={styles.fieldValue}>{displayProfile.wishlist || 'Not set'}</Text>
-          )}
-        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>References</Text>
@@ -346,6 +350,23 @@ export default function ProfileScreen() {
           )}
           {displayProfile.references.length === 0 && !editing && (
             <Text style={styles.emptyField}>No references added</Text>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Wishlist</Text>
+          {editing ? (
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={localProfile.wishlist}
+              onChangeText={(t) => setLocalProfile({ ...localProfile, wishlist: t })}
+              placeholder="What are you looking to buy?"
+              placeholderTextColor={c.textTertiary}
+              multiline
+              numberOfLines={4}
+            />
+          ) : (
+            <Text style={styles.fieldValue}>{displayProfile.wishlist || 'Not set'}</Text>
           )}
         </View>
 
@@ -555,6 +576,24 @@ const styles = StyleSheet.create({
     backgroundColor: c.accent,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  addItemFormVertical: {
+    gap: 8,
+  },
+  addItemRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  tradeshowHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  listItemDate: {
+    fontSize: 12,
+    color: c.textTertiary,
+    fontWeight: '500',
   },
   emptyField: {
     fontSize: 14,

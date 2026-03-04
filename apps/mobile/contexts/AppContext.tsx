@@ -208,8 +208,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }),
           fulfillmentOptions: (p.fulfillmentOptions || []) as FulfillmentOption[],
           wishlist: p.wishlistText || '',
-          tradeshows: (p.upcomingEvents as any[])?.map(e => ({ name: e.name, link: e.location || '' })) || [],
+          tradeshows: (p.upcomingEvents as any[])?.map(e => ({ name: e.name, date: e.date || '', link: e.location || '' })) || [],
           references: (p.referenceLinks as any[])?.map(l => ({ name: l.title, link: l.url || '' })) || [],
+          socials: p.socials,
         };
         setProfile(updatedProfile);
         await saveProfile(updatedProfile);
@@ -307,11 +308,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
       if (updates.fulfillmentOptions) apiDto.fulfillmentOptions = updates.fulfillmentOptions;
       if (updates.wishlist) apiDto.wishlistText = updates.wishlist;
-      if (updates.tradeshows) apiDto.upcomingEvents = updates.tradeshows.map(t => ({ name: t.name, location: t.link }));
+      if (updates.tradeshows) apiDto.upcomingEvents = updates.tradeshows.map(t => ({ name: t.name, date: t.date, location: t.link }));
       if (updates.references) apiDto.referenceLinks = updates.references.map(r => ({ title: r.name, url: r.link }));
+      if (updates.socials) apiDto.socials = updates.socials;
 
       if (Object.keys(apiDto).length > 0) {
-        await api.updateProfile(apiDto);
+        const response = await api.updateProfile(apiDto);
+        // Update local state with the returned profile from API to ensure sync
+        if (response?.profile) {
+          const p = response.profile;
+          const syncedProfile: UserProfile = {
+            username: p.shopName,
+            handle: p.handle,
+            location: p.location || '',
+            paymentMethods: (p.paymentsAccepted || []).map((m: any) => {
+              const map: any = {
+                'Paypal G&S': 'paypal_gs',
+                'Venmo': 'venmo',
+                'Zelle': 'zelle',
+                'Cashapp': 'cashapp',
+                'Cash': 'cash',
+                'Crypto': 'crypto',
+                'Other': 'other'
+              };
+              return map[m] || m;
+            }),
+            fulfillmentOptions: (p.fulfillmentOptions || []) as FulfillmentOption[],
+            wishlist: p.wishlistText || '',
+            tradeshows: (p.upcomingEvents as any[])?.map(e => ({ name: e.name, date: e.date || '', link: e.location || '' })) || [],
+            references: (p.referenceLinks as any[])?.map(l => ({ name: l.title, link: l.url || '' })) || [],
+            socials: p.socials,
+          };
+          setProfile(syncedProfile);
+          await saveProfile(syncedProfile);
+          return;
+        }
       }
 
       setProfile(updated);

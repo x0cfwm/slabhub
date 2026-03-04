@@ -82,9 +82,18 @@ export interface SellerProfile {
     avatarUrl?: string | null;
     paymentsAccepted: string[];
     fulfillmentOptions: string[];
+    meetupsEnabled?: boolean;
+    shippingEnabled?: boolean;
     wishlistText: string;
     upcomingEvents: { name: string; date?: string; location?: string }[];
     referenceLinks: { title: string; url: string }[];
+    socials?: {
+        instagram?: string;
+        tiktok?: string;
+        discord?: string;
+        tcgplayer?: string;
+        ebay?: string;
+    };
 }
 
 export interface MarketProduct {

@@ -44,9 +44,16 @@ export interface UserProfile {
   location: string;
   paymentMethods: PaymentMethod[];
   fulfillmentOptions: FulfillmentOption[];
-  tradeshows: { name: string; link: string }[];
+  tradeshows: { name: string; date?: string; link: string }[];
   wishlist: string;
   references: { name: string; link: string }[];
+  socials?: {
+    instagram?: string;
+    tiktok?: string;
+    discord?: string;
+    tcgplayer?: string;
+    ebay?: string;
+  };
 }
 
 export interface PricingCard {

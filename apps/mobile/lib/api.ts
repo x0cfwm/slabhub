@@ -68,8 +68,10 @@ export async function updateProfile(data: any): Promise<{ profile: SellerProfile
 export async function getMe(): Promise<{ profile: SellerProfile } | null> {
     try {
         const response = await apiRequest("GET", "/me");
-        return response.json();
+        const data = await response.json();
+        return data;
     } catch (e) {
+        console.error("[api.getMe] Error fetching current user:", e);
         return null;
     }
 }
