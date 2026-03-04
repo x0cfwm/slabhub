@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,6 +8,9 @@ import {
   Platform,
   Alert,
   TextInput,
+  Dimensions,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -24,6 +27,7 @@ import {
   TYPE_LABELS,
 } from '@/constants/types';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const c = Colors.dark;
 
 const STAGE_COLORS: Record<ItemStage, string> = {
@@ -35,6 +39,12 @@ const STAGE_COLORS: Record<ItemStage, string> = {
   sold: c.sold,
 };
 
+type TabItem = {
+  stage: ItemStage | 'all';
+  label: string;
+  count: number;
+};
+
 export default function InventoryScreen() {
   const insets = useSafeAreaInsets();
   const { inventory, deleteItem, moveItem } = useApp();
@@ -42,16 +52,41 @@ export default function InventoryScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
-  const filteredItems = inventory.filter((item) => {
-    const matchesStage = activeStage === 'all' || item.stage === activeStage;
-    const matchesSearch = !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStage && matchesSearch;
-  });
+  const pagerRef = useRef<FlatList>(null);
+  const tabsRef = useRef<FlatList>(null);
 
-  const stageCountMap = new Map<string, number>();
-  inventory.forEach((item) => {
-    stageCountMap.set(item.stage, (stageCountMap.get(item.stage) || 0) + 1);
-  });
+  const stageCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    inventory.forEach((item) => {
+      map.set(item.stage, (map.get(item.stage) || 0) + 1);
+    });
+    return map;
+  }, [inventory]);
+
+  const tabs: TabItem[] = useMemo(() => [
+    { stage: 'all' as const, label: 'All', count: inventory.length },
+    ...STAGE_ORDER.map((s) => ({
+      stage: s,
+      label: STAGE_LABELS[s],
+      count: stageCountMap.get(s) || 0,
+    })),
+  ], [inventory.length, stageCountMap]);
+
+  const handleStageChange = useCallback((stage: ItemStage | 'all') => {
+    setActiveStage(stage);
+    const index = tabs.findIndex((t) => t.stage === stage);
+    if (index !== -1) {
+      pagerRef.current?.scrollToIndex({ index, animated: true });
+      tabsRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+    }
+  }, [tabs]);
+
+  const onMomentumScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+    const stage = tabs[index].stage;
+    setActiveStage(stage);
+    tabsRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+  }, [tabs]);
 
   const handleDelete = useCallback((item: InventoryItem) => {
     if (Platform.OS === 'web') {
@@ -86,7 +121,7 @@ export default function InventoryScreen() {
     }
   }, [moveItem]);
 
-  const renderItem = useCallback(({ item }: { item: InventoryItem }) => (
+  const renderInventoryItem = useCallback(({ item }: { item: InventoryItem }) => (
     <InventoryCard
       item={item}
       onDelete={() => handleDelete(item)}
@@ -94,6 +129,38 @@ export default function InventoryScreen() {
       onPress={() => router.push({ pathname: '/item/[id]', params: { id: item.id } })}
     />
   ), [handleDelete, handleMoveItem]);
+
+  const renderPage = useCallback(({ item: tab }: { item: TabItem }) => {
+    const filteredItems = inventory.filter((item) => {
+      const matchesStage = tab.stage === 'all' || item.stage === tab.stage;
+      const matchesSearch = !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesStage && matchesSearch;
+    });
+
+    return (
+      <View style={{ width: SCREEN_WIDTH }}>
+        <FlatList
+          data={filteredItems}
+          renderItem={renderInventoryItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={filteredItems.length > 0}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <MaterialCommunityIcons name="cards-playing-outline" size={48} color={c.textTertiary} />
+              <Text style={styles.emptyTitle}>
+                {tab.stage === 'all' ? 'No items yet' : `No ${STAGE_LABELS[tab.stage as ItemStage]} items`}
+              </Text>
+              <Text style={styles.emptyText}>
+                {tab.stage === 'all' ? 'Tap + to add your first item' : 'Items will appear here when moved to this stage'}
+              </Text>
+            </View>
+          }
+        />
+      </View>
+    );
+  }, [inventory, searchQuery, renderInventoryItem, insets.bottom]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
@@ -126,55 +193,56 @@ export default function InventoryScreen() {
         )}
       </View>
 
-      <FlatList
-        horizontal
-        data={[{ stage: 'all' as const, label: 'All', count: inventory.length }, ...STAGE_ORDER.map((s) => ({ stage: s, label: STAGE_LABELS[s], count: stageCountMap.get(s) || 0 }))]}
-        renderItem={({ item: tab }) => (
-          <Pressable
-            style={[
-              styles.stageTab,
-              activeStage === tab.stage && styles.stageTabActive,
-              activeStage === tab.stage && tab.stage !== 'all' && { borderColor: STAGE_COLORS[tab.stage as ItemStage] },
-            ]}
-            onPress={() => setActiveStage(tab.stage)}
-          >
-            {tab.stage !== 'all' && (
-              <View style={[styles.stageDot, { backgroundColor: STAGE_COLORS[tab.stage as ItemStage] }]} />
-            )}
-            <Text style={[styles.stageTabText, activeStage === tab.stage && styles.stageTabTextActive]}>
-              {tab.label}
-            </Text>
-            <View style={[styles.stageBadge, activeStage === tab.stage && styles.stageBadgeActive]}>
-              <Text style={[styles.stageBadgeText, activeStage === tab.stage && styles.stageBadgeTextActive]}>
-                {tab.count}
+      <View style={styles.stageTabsContainer}>
+        <FlatList
+          ref={tabsRef}
+          horizontal
+          data={tabs}
+          renderItem={({ item: tab }) => (
+            <Pressable
+              style={[
+                styles.stageTab,
+                activeStage === tab.stage && styles.stageTabActive,
+                activeStage === tab.stage && tab.stage !== 'all' && { borderColor: STAGE_COLORS[tab.stage as ItemStage] },
+              ]}
+              onPress={() => handleStageChange(tab.stage)}
+            >
+              {tab.stage !== 'all' && (
+                <View style={[styles.stageDot, { backgroundColor: STAGE_COLORS[tab.stage as ItemStage] }]} />
+              )}
+              <Text style={[styles.stageTabText, activeStage === tab.stage && styles.stageTabTextActive]}>
+                {tab.label}
               </Text>
-            </View>
-          </Pressable>
-        )}
-        keyExtractor={(item) => item.stage}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.stageTabs}
-        style={styles.stageTabsContainer}
-      />
+              <View style={[styles.stageBadge, activeStage === tab.stage && styles.stageBadgeActive]}>
+                <Text style={[styles.stageBadgeText, activeStage === tab.stage && styles.stageBadgeTextActive]}>
+                  {tab.count}
+                </Text>
+              </View>
+            </Pressable>
+          )}
+          keyExtractor={(item) => item.stage}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.stageTabs}
+          getItemLayout={(_, index) => ({
+            length: 100, // Approximate tab width
+            offset: 100 * index,
+            index,
+          })}
+        />
+      </View>
 
       <FlatList
-        data={filteredItems}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
-        showsVerticalScrollIndicator={false}
-        scrollEnabled={filteredItems.length > 0}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="cards-playing-outline" size={48} color={c.textTertiary} />
-            <Text style={styles.emptyTitle}>
-              {activeStage === 'all' ? 'No items yet' : `No ${STAGE_LABELS[activeStage as ItemStage]} items`}
-            </Text>
-            <Text style={styles.emptyText}>
-              {activeStage === 'all' ? 'Tap + to add your first item' : 'Items will appear here when moved to this stage'}
-            </Text>
-          </View>
-        }
+        ref={pagerRef}
+        horizontal
+        pagingEnabled
+        data={tabs}
+        renderItem={renderPage}
+        keyExtractor={(item) => item.stage}
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={onMomentumScrollEnd}
+        removeClippedSubviews={Platform.OS === 'android'}
+        initialNumToRender={2}
+        windowSize={3}
       />
     </View>
   );
