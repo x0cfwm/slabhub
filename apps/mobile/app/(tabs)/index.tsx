@@ -13,60 +13,50 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import {
-  listInventory,
-  getMe,
-  getMarketProducts,
+  getMarketProducts as apiGetMarketProducts,
 } from '@/lib/api';
+import { useApp } from '@/contexts/AppContext';
 import Colors from '@/constants/colors';
 
 const c = Colors.dark;
 
-const STAGE_ORDER = ['ACQUIRED', 'IN_TRANSIT', 'BEING_GRADED', 'IN_STOCK', 'LISTED', 'SOLD'] as const;
+const STAGE_ORDER = ['acquired', 'in_transit', 'grading', 'in_stock', 'listed', 'sold'] as const;
 const STAGE_LABELS: Record<string, string> = {
-  ACQUIRED: 'Acquired',
-  IN_TRANSIT: 'In Transit',
-  BEING_GRADED: 'Grading',
-  IN_STOCK: 'In Stock',
-  LISTED: 'Listed',
-  SOLD: 'Sold',
+  acquired: 'Acquired',
+  in_transit: 'In Transit',
+  grading: 'Grading',
+  in_stock: 'In Stock',
+  listed: 'Listed',
+  sold: 'Sold',
 };
 
 const STAGE_COLORS: Record<string, string> = {
-  ACQUIRED: c.acquired,
-  IN_TRANSIT: c.inTransit,
-  BEING_GRADED: c.grading,
-  IN_STOCK: c.inStock,
-  LISTED: c.listed,
-  SOLD: c.sold,
+  acquired: c.acquired,
+  in_transit: c.inTransit,
+  grading: c.grading,
+  in_stock: c.inStock,
+  listed: c.listed,
+  sold: c.sold,
 };
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
+  const { inventory, profile, isLoading: appLoading } = useApp();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
-
-  const { data: inventory = [], isLoading: invLoading } = useQuery({
-    queryKey: ['inventory'],
-    queryFn: listInventory,
-  });
 
   const { data: marketData, isLoading: marketLoading } = useQuery({
     queryKey: ['market-products'],
-    queryFn: () => getMarketProducts({ page: 1, limit: 100 }),
+    queryFn: () => apiGetMarketProducts({ page: 1, limit: 100 }),
   });
 
-  const { data: me, isLoading: profileLoading } = useQuery({
-    queryKey: ['me'],
-    queryFn: getMe,
-  });
-
-  const loading = invLoading || marketLoading || profileLoading;
+  const loading = appLoading || marketLoading;
   const marketProducts = marketData?.items || [];
 
   const stats = React.useMemo(() => {
     // Basic stats
     const totalItems = inventory.reduce((acc, i) => acc + (i.quantity || 1), 0);
-    const forSaleItems = inventory.filter(i => i.stage === "LISTED").reduce((acc, i) => acc + (i.quantity || 1), 0);
-    const soldItems = inventory.filter(i => i.stage === "SOLD");
+    const forSaleItems = inventory.filter(i => i.stage === "listed").reduce((acc, i) => acc + (i.quantity || 1), 0);
+    const soldItems = inventory.filter(i => i.stage === "sold");
 
     // Revenue and Profit
     const totalRevenue = soldItems.reduce((sum, i) => sum + (i.soldPrice || 0), 0);
@@ -75,24 +65,22 @@ export default function DashboardScreen() {
 
     // Market Value calculation matching web
     const marketValue = inventory.reduce((acc, item) => {
-      // Don't include ARCHIVED items in market value if there were any, 
-      // but here we follow original layout which doesn't explicitly exclude ARCHIVED.
-      // However, typical dashboard logic excludes ARCHIVED.
-      if (item.stage === "ARCHIVED") return acc;
+      // Don't include ARCHIVED items in market value if there were any
+      if ((item.stage as string) === "archived" || (item.stage as string) === "ARCHIVED") return acc;
 
       const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
-      const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
+      const isSealed = itType === "SEALED_PRODUCT" || itType === "sealed_product";
       let unitPrice = item.marketPrice ?? 0;
 
       if (!unitPrice) {
         const vid = (item as any).cardVariantId || (item as any).cardProfileId;
         const refId = item.refPriceChartingProductId;
-        const marketProduct = marketProducts.find(p => p.id === refId || p.id === vid);
+        const marketProduct = marketProducts.find((p: any) => p.id === refId || p.id === vid);
 
         if (marketProduct) {
           if (isSealed) {
             unitPrice = marketProduct.sealedPrice ?? 0;
-          } else if (itType === "SINGLE_CARD_GRADED") {
+          } else if (itType === "SINGLE_CARD_GRADED" || itType === "graded_card") {
             const gradeStr = String((item as any).gradeValue || (item as any).grade || "").toLowerCase();
             const numericGrade = gradeStr.match(/\d+(\.\d+)?/)?.[0];
 
@@ -127,17 +115,17 @@ export default function DashboardScreen() {
     // Inventory Breakdown counts
     const rawCards = inventory.filter((i) => {
       const type = (i as any).type || (i as any).itemType;
-      return type === 'SINGLE_CARD_RAW' || type === 'SINGLE_CARD' || type === 'raw';
+      return type === 'SINGLE_CARD_RAW' || type === 'single_card' || type === 'raw';
     }).reduce((acc, i) => acc + (i.quantity || 1), 0);
 
     const gradedCards = inventory.filter((i) => {
       const type = (i as any).type || (i as any).itemType;
-      return type === 'SINGLE_CARD_GRADED' || type === 'graded';
+      return type === 'SINGLE_CARD_GRADED' || type === 'graded_card' || type === 'graded';
     }).reduce((acc, i) => acc + (i.quantity || 1), 0);
 
     const sealedProducts = inventory.filter((i) => {
       const type = (i as any).type || (i as any).itemType;
-      return type === 'SEALED_PRODUCT' || type === 'sealed';
+      return type === 'SEALED_PRODUCT' || type === 'sealed_product' || type === 'sealed';
     }).reduce((acc, i) => acc + (i.quantity || 1), 0);
 
     return {

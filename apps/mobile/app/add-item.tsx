@@ -17,6 +17,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
+import * as api from '@/lib/api';
 import Colors from '@/constants/colors';
 import {
   ItemStage,
@@ -152,30 +153,44 @@ export default function AddItemScreen() {
       return;
     }
 
-    await addItem({
-      name: name.trim(),
-      setCode,
-      setName: setName2,
-      cardNumber,
-      imageUri,
-      type,
-      stage,
-      condition,
-      gradingCompany: type === 'graded_card' ? gradingCompany : undefined,
-      grade: type === 'graded_card' ? grade : undefined,
-      acquisitionPrice: parseFloat(acquisitionPrice) || 0,
-      marketPrice: parseFloat(marketPrice) || 0,
-      listedPrice: listedPrice ? parseFloat(listedPrice) : undefined,
-      soldPrice: soldPrice ? parseFloat(soldPrice) : undefined,
-      soldChannel: stage === 'sold' ? soldChannel : undefined,
-      soldDate: stage === 'sold' ? new Date().toISOString() : undefined,
-      notes,
-    });
+    try {
+      let finalImageUri = imageUri;
 
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // If we have a local image, upload it first
+      if (imageUri && !imageUri.startsWith('http')) {
+        const { url } = await api.uploadMedia(imageUri);
+        finalImageUri = url;
+      }
+
+      await addItem({
+        name: name.trim(),
+        setCode,
+        setName: setName2,
+        cardNumber: cardNumber,
+        imageUri: finalImageUri,
+        type,
+        stage,
+        condition,
+        gradingCompany: type === 'graded_card' ? gradingCompany : undefined,
+        grade: type === 'graded_card' ? grade : undefined,
+        quantity: 1,
+        acquisitionPrice: parseFloat(acquisitionPrice) || 0,
+        marketPrice: parseFloat(marketPrice) || 0,
+        listedPrice: listedPrice ? parseFloat(listedPrice) : undefined,
+        soldPrice: soldPrice ? parseFloat(soldPrice) : undefined,
+        soldChannel: stage === 'sold' ? soldChannel : undefined,
+        soldDate: stage === 'sold' ? new Date().toISOString() : undefined,
+        notes,
+      });
+
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      router.back();
+    } catch (e) {
+      console.error('Failed to save item:', e);
+      Alert.alert('Error', 'Failed to save item. Please try again.');
     }
-    router.back();
   };
 
   return (

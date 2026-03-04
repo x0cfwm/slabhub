@@ -11,7 +11,7 @@ import { GradingHttpClient } from './http/grading-http.client';
         HttpModule,
         ThrottlerModule.forRoot([{
             ttl: 60000,
-            limit: 100,
+            limit: 1000,
         }]),
     ],
     controllers: [GradingController],

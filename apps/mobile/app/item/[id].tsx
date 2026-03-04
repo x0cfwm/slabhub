@@ -85,7 +85,8 @@ export default function ItemDetailScreen() {
     const nextStages = STAGE_ORDER.filter((_, i) => i !== currentIndex);
 
     if (Platform.OS === 'web') {
-      const nextStage = STAGE_ORDER[Math.min(currentIndex + 1, STAGE_ORDER.length - 1)];
+      const nextIndex = (currentIndex + 1) % STAGE_ORDER.length;
+      const nextStage = STAGE_ORDER[nextIndex];
       moveItem(item.id, nextStage);
       if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } else {
@@ -144,13 +145,13 @@ export default function ItemDetailScreen() {
           <View style={styles.priceCard}>
             <Text style={styles.priceLabel}>Market Price</Text>
             <Text style={styles.priceValue}>
-              ${item.marketPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              ${(Number(item.marketPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </Text>
           </View>
           <View style={styles.priceCard}>
             <Text style={styles.priceLabel}>Cost</Text>
             <Text style={styles.priceCost}>
-              ${item.acquisitionPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              ${(Number(item.acquisitionPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </Text>
           </View>
         </View>
@@ -159,9 +160,9 @@ export default function ItemDetailScreen() {
           <View style={styles.soldSection}>
             <View style={styles.soldRow}>
               <Text style={styles.soldLabel}>Sold For</Text>
-              <Text style={styles.soldValue}>${item.soldPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
+              <Text style={styles.soldValue}>${(Number(item.soldPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
             </View>
-            {item.soldChannel && (
+            {item.soldChannel && CHANNEL_LABELS[item.soldChannel] && (
               <View style={styles.soldRow}>
                 <Text style={styles.soldLabel}>Channel</Text>
                 <Text style={styles.soldChannelText}>{CHANNEL_LABELS[item.soldChannel]}</Text>
@@ -170,21 +171,21 @@ export default function ItemDetailScreen() {
             <View style={styles.soldRow}>
               <Text style={styles.soldLabel}>Profit</Text>
               <Text style={[styles.soldProfit, { color: profit >= 0 ? c.success : c.error }]}>
-                {profit >= 0 ? '+' : ''}${profit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                {profit >= 0 ? '+' : ''}${(Number(profit) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </Text>
             </View>
           </View>
         )}
 
         <View style={styles.detailsSection}>
-          <DetailRow label="Type" value={TYPE_LABELS[item.type]} />
-          <DetailRow label="Condition" value={CONDITION_LABELS[item.condition]} />
+          <DetailRow label="Type" value={TYPE_LABELS[item.type] || item.type} />
+          <DetailRow label="Condition" value={CONDITION_LABELS[item.condition] || item.condition} />
           {item.gradingCompany && <DetailRow label="Grading Company" value={item.gradingCompany} />}
           {item.grade && <DetailRow label="Grade" value={item.grade} />}
           {item.listedPrice !== undefined && (
-            <DetailRow label="Listed Price" value={`$${item.listedPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}`} />
+            <DetailRow label="Listed Price" value={`$${(Number(item.listedPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`} />
           )}
-          <DetailRow label="Added" value={new Date(item.createdAt).toLocaleDateString()} />
+          <DetailRow label="Added" value={item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'} />
         </View>
 
         {item.notes ? (

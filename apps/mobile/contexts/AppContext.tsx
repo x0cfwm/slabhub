@@ -1,15 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Crypto from 'expo-crypto';
 import {
   InventoryItem,
   UserProfile,
   ItemStage,
-  PaymentMethod,
-  FulfillmentOption,
+  ItemType,
+  CardCondition,
+  GradingCompany,
 } from '@/constants/types';
+import * as api from '@/lib/api';
+import { InventoryItem as ApiInventoryItem } from '@/lib/types';
 
-const INVENTORY_KEY = '@slabhub_inventory';
+import { AppState, AppStateStatus } from 'react-native';
+
 const PROFILE_KEY = '@slabhub_profile';
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -21,6 +24,106 @@ const DEFAULT_PROFILE: UserProfile = {
   tradeshows: [],
   wishlist: '',
   references: [],
+};
+
+// Helper to map API items to UI items
+const mapApiToUiItem = (item: ApiInventoryItem): InventoryItem => {
+  const stageMap: Record<string, ItemStage> = {
+    'ACQUIRED': 'acquired',
+    'IN_TRANSIT': 'in_transit',
+    'BEING_GRADED': 'grading',
+    'AUTHENTICATED': 'in_stock', // Map to in_stock for now
+    'IN_STOCK': 'in_stock',
+    'LISTED': 'listed',
+    'SOLD': 'sold',
+    'ARCHIVED': 'acquired', // Fallback
+  };
+
+  const typeMap: Record<string, ItemType> = {
+    'SINGLE_CARD_RAW': 'single_card',
+    'SINGLE_CARD_GRADED': 'graded_card',
+    'SEALED_PRODUCT': 'sealed_product',
+  };
+
+  const conditionMap: Record<string, CardCondition> = {
+    'RAW': 'raw',
+    'NM': 'near_mint',
+    'LP': 'lightly_played',
+    'MP': 'moderately_played',
+    'HP': 'heavily_played',
+    'DMG': 'damaged',
+  };
+
+  return {
+    id: item.id,
+    name: item.cardProfile?.name || item.productName || 'Unknown Item',
+    setCode: item.cardProfile?.set || item.setName || '',
+    setName: item.cardProfile?.set || item.setName || '',
+    cardNumber: item.cardProfile?.cardNumber || '',
+    imageUri: (item.photos && item.photos.length > 0) ? item.photos[0] : (item.cardProfile?.imageUrl || ''),
+    type: typeMap[item.type] || 'single_card',
+    stage: stageMap[item.stage] || 'acquired',
+    condition: conditionMap[(item as any).condition || ''] || 'raw',
+    gradingCompany: (item as any).gradingCompany as GradingCompany,
+    grade: (item as any).grade?.toString(),
+    quantity: item.quantity || 1,
+    acquisitionPrice: Number(item.acquisitionPrice) || 0,
+    marketPrice: Number(item.marketPrice) || 0,
+    listedPrice: item.listingPrice ? Number(item.listingPrice) : undefined,
+    soldPrice: item.stage === 'SOLD' && item.listingPrice ? Number(item.listingPrice) : undefined,
+    notes: item.notes || '',
+    createdAt: item.createdAt,
+    updatedAt: item.createdAt, // Fallback
+  };
+};
+
+// Helper to map UI item to API DTO
+const mapUiToApiDto = (item: any) => {
+  const stageMap: Record<ItemStage, string> = {
+    'acquired': 'ACQUIRED',
+    'in_transit': 'IN_TRANSIT',
+    'grading': 'BEING_GRADED',
+    'in_stock': 'IN_STOCK',
+    'listed': 'LISTED',
+    'sold': 'SOLD',
+  };
+
+  const typeMap: Record<ItemType, string> = {
+    'single_card': 'SINGLE_CARD_RAW',
+    'graded_card': 'SINGLE_CARD_GRADED',
+    'sealed_product': 'SEALED_PRODUCT',
+  };
+
+  const conditionMap: Record<string, string | undefined> = {
+    'raw': undefined,
+    'near_mint': 'NM',
+    'lightly_played': 'LP',
+    'moderately_played': 'MP',
+    'heavily_played': 'HP',
+    'damaged': 'DMG',
+    // Shorthands as fallbacks
+    'NM': 'NM',
+    'LP': 'LP',
+    'MP': 'MP',
+    'HP': 'HP',
+    'DMG': 'DMG',
+  };
+
+  return {
+    itemType: typeMap[item.type as ItemType],
+    stage: stageMap[item.stage as ItemStage],
+    condition: conditionMap[item.condition as CardCondition],
+    productName: item.name,
+    setName: item.setName,
+    gradeProvider: (item as any).gradingCompany,
+    gradeValue: (item as any).grade,
+    quantity: item.quantity || 1,
+    acquisitionPrice: item.acquisitionPrice,
+    listingPrice: item.stage === 'sold' ? item.soldPrice : item.listedPrice,
+    notes: item.notes,
+    photos: item.imageUri ? [item.imageUri] : [],
+    // Add more fields as needed based on the DTO
+  };
 };
 
 interface AppContextValue {
@@ -36,6 +139,7 @@ interface AppContextValue {
   getTotalMarketValue: () => number;
   getForSaleCount: () => number;
   getSoldItems: () => InventoryItem[];
+  refreshInventory: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -49,14 +153,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadData();
   }, []);
 
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        refreshInventory();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   const loadData = async () => {
     try {
-      const [inventoryData, profileData] = await Promise.all([
-        AsyncStorage.getItem(INVENTORY_KEY),
-        AsyncStorage.getItem(PROFILE_KEY),
-      ]);
-      if (inventoryData) setInventory(JSON.parse(inventoryData));
+      const profileData = await AsyncStorage.getItem(PROFILE_KEY);
       if (profileData) setProfile(JSON.parse(profileData));
+
+      await refreshInventory();
     } catch (e) {
       console.error('Failed to load data:', e);
     } finally {
@@ -64,11 +180,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const saveInventory = async (items: InventoryItem[]) => {
+  const refreshInventory = async () => {
     try {
-      await AsyncStorage.setItem(INVENTORY_KEY, JSON.stringify(items));
+      const apiItems = await api.listInventory();
+      setInventory(apiItems.map(mapApiToUiItem));
     } catch (e) {
-      console.error('Failed to save inventory:', e);
+      console.error('Failed to refresh inventory:', e);
     }
   };
 
@@ -81,31 +198,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addItem = useCallback(async (item: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const now = new Date().toISOString();
-    const newItem: InventoryItem = {
-      ...item,
-      id: Crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-    };
-    const updated = [...inventory, newItem];
-    setInventory(updated);
-    await saveInventory(updated);
-  }, [inventory]);
+    try {
+      const dto = mapUiToApiDto(item);
+      const newItem = await api.createInventoryItem(dto);
+      setInventory(prev => [...prev, mapApiToUiItem(newItem)]);
+    } catch (e) {
+      console.error('Failed to add item:', e);
+      throw e;
+    }
+  }, []);
 
   const updateItem = useCallback(async (id: string, updates: Partial<InventoryItem>) => {
-    const updated = inventory.map((item) =>
-      item.id === id ? { ...item, ...updates, updatedAt: new Date().toISOString() } : item
-    );
-    setInventory(updated);
-    await saveInventory(updated);
+    try {
+      // Find current item to merge updates for DTO mapping
+      const current = inventory.find(i => i.id === id);
+      if (!current) return;
+
+      const merged = { ...current, ...updates };
+      const dto = mapUiToApiDto(merged);
+      const updatedItem = await api.updateInventoryItem(id, dto);
+
+      setInventory(prev => prev.map((item) =>
+        item.id === id ? mapApiToUiItem(updatedItem) : item
+      ));
+    } catch (e) {
+      console.error('Failed to update item:', e);
+      throw e;
+    }
   }, [inventory]);
 
   const deleteItem = useCallback(async (id: string) => {
-    const updated = inventory.filter((item) => item.id !== id);
-    setInventory(updated);
-    await saveInventory(updated);
-  }, [inventory]);
+    try {
+      await api.deleteInventoryItem(id);
+      setInventory(prev => prev.filter((item) => item.id !== id));
+    } catch (e) {
+      console.error('Failed to delete item:', e);
+      throw e;
+    }
+  }, []);
 
   const moveItem = useCallback(async (id: string, stage: ItemStage) => {
     await updateItem(id, { stage });
@@ -147,6 +277,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       getTotalMarketValue,
       getForSaleCount,
       getSoldItems,
+      refreshInventory,
     }),
     [inventory, profile, isLoading, addItem, updateItem, deleteItem, moveItem, updateProfile, getItemsByStage, getTotalMarketValue, getForSaleCount, getSoldItems]
   );

@@ -1,4 +1,5 @@
-import { apiRequest } from "./query-client";
+import * as SecureStore from "expo-secure-store";
+import { apiRequest, getApiUrl } from "./query-client";
 import {
     InventoryItem,
     MarketProduct,
@@ -10,6 +11,53 @@ import {
 export async function listInventory(): Promise<InventoryItem[]> {
     const response = await apiRequest("GET", "/inventory");
     return response.json();
+}
+
+export async function createInventoryItem(data: any): Promise<InventoryItem> {
+    const response = await apiRequest("POST", "/inventory", data);
+    return response.json();
+}
+
+export async function updateInventoryItem(id: string, data: any): Promise<InventoryItem> {
+    const response = await apiRequest("PATCH", `/inventory/${id}`, data);
+    return response.json();
+}
+
+export async function deleteInventoryItem(id: string): Promise<void> {
+    await apiRequest("DELETE", `/inventory/${id}`);
+}
+
+export async function uploadMedia(uri: string): Promise<{ mediaId: string; url: string }> {
+    const formData = new FormData();
+
+    // For mobile, we need to handle the URI properly
+    const filename = uri.split('/').pop() || 'upload.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : `image`;
+
+    // Note: React Native's FormData.append expects an object with uri, name, type for files
+    formData.append('file', {
+        uri,
+        name: filename,
+        type,
+    } as any);
+
+    const baseUrl = getApiUrl();
+    const token = await SecureStore.getItemAsync("slabhub_session_token");
+
+    const res = await fetch(`${baseUrl}media/upload`, {
+        method: 'POST',
+        headers: {
+            ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
+        body: formData,
+    });
+
+    if (!res.ok) {
+        throw new Error("Upload failed");
+    }
+
+    return res.json();
 }
 
 export async function getMe(): Promise<{ profile: SellerProfile } | null> {

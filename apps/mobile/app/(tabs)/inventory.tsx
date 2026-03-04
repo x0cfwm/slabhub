@@ -11,10 +11,11 @@ import {
   Dimensions,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { useApp } from '@/contexts/AppContext';
 import Colors from '@/constants/colors';
@@ -47,10 +48,23 @@ type TabItem = {
 
 export default function InventoryScreen() {
   const insets = useSafeAreaInsets();
-  const { inventory, deleteItem, moveItem } = useApp();
+  const { inventory, deleteItem, moveItem, refreshInventory } = useApp();
   const [activeStage, setActiveStage] = useState<ItemStage | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
+
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refreshInventory();
+    setIsRefreshing(false);
+  }, [refreshInventory]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshInventory();
+    }, [refreshInventory])
+  );
 
   const pagerRef = useRef<FlatList>(null);
   const tabsRef = useRef<FlatList>(null);
@@ -104,7 +118,8 @@ export default function InventoryScreen() {
     const nextStages = STAGE_ORDER.filter((_, i) => i !== currentIndex);
 
     if (Platform.OS === 'web') {
-      const nextStage = STAGE_ORDER[Math.min(currentIndex + 1, STAGE_ORDER.length - 1)];
+      const nextIndex = (currentIndex + 1) % STAGE_ORDER.length;
+      const nextStage = STAGE_ORDER[nextIndex];
       moveItem(item.id, nextStage);
     } else {
       Alert.alert(
@@ -145,7 +160,15 @@ export default function InventoryScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
           showsVerticalScrollIndicator={false}
-          scrollEnabled={filteredItems.length > 0}
+          alwaysBounceVertical={true}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              tintColor={c.accent}
+              colors={[c.accent]}
+            />
+          }
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <MaterialCommunityIcons name="cards-playing-outline" size={48} color={c.textTertiary} />
@@ -243,6 +266,14 @@ export default function InventoryScreen() {
         removeClippedSubviews={Platform.OS === 'android'}
         initialNumToRender={2}
         windowSize={3}
+        getItemLayout={(_, index) => ({
+          length: SCREEN_WIDTH,
+          offset: SCREEN_WIDTH * index,
+          index,
+        })}
+        onScrollToIndexFailed={(info) => {
+          pagerRef.current?.scrollToIndex({ index: info.index, animated: true });
+        }}
       />
     </View>
   );
@@ -417,6 +448,7 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 20,
     gap: 12,
+    flexGrow: 1,
   },
   card: {
     backgroundColor: c.surface,

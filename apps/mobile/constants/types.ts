@@ -24,13 +24,16 @@ export interface InventoryItem {
   condition: CardCondition;
   gradingCompany?: GradingCompany;
   grade?: string;
+  quantity: number;
   acquisitionPrice: number;
   marketPrice: number;
+  marketPriceSnapshot?: number;
   listedPrice?: number;
   soldPrice?: number;
   soldChannel?: SaleChannel;
   soldDate?: string;
   notes: string;
+  refPriceChartingProductId?: string;
   createdAt: string;
   updatedAt: string;
 }
