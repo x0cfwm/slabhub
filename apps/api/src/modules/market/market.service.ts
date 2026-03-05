@@ -20,9 +20,19 @@ export class MarketPricingService {
     ) { }
 
     async getSyncStatus() {
-        return this.prisma.refSyncProgress.findUnique({
+        const status = await this.prisma.refSyncProgress.findUnique({
             where: { mappingName: 'inventory:sync:prices' }
         });
+
+        if (!status) {
+            return {
+                mappingName: 'inventory:sync:prices',
+                status: 'IDLE',
+                lastSyncAt: null,
+            };
+        }
+
+        return status;
     }
 
     async listProducts(query: GetMarketProductsDto, userId?: string) {
