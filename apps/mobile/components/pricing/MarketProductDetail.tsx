@@ -32,7 +32,7 @@ export default function MarketProductDetail({ product, onClose }: MarketProductD
         enabled: !!product,
     });
 
-    if (!product) return null;
+    if (!product) return <View style={styles.container} />;
 
     const handleRefresh = async () => {
         setRefreshing(true);

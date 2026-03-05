@@ -40,6 +40,7 @@ export default function PricingScreen() {
   const [onlyInInventory, setOnlyInInventory] = useState(false);
   const [showSetFilter, setShowSetFilter] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<MarketProduct | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
@@ -86,7 +87,7 @@ export default function PricingScreen() {
   }, [productsData]);
 
   const renderCard = useCallback(({ item }: { item: MarketProduct }) => (
-    <Pressable onPress={() => setSelectedProduct(item)}>
+    <Pressable onPress={() => { setSelectedProduct(item); setModalVisible(true); }}>
       <PricingRow card={item} />
     </Pressable>
   ), []);
@@ -232,16 +233,16 @@ export default function PricingScreen() {
         />
       )}
 
-      {/* Detail Modal */}
       <Modal
-        visible={!!selectedProduct}
+        visible={modalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setSelectedProduct(null)}
+        onRequestClose={() => setModalVisible(false)}
+        onDismiss={() => setSelectedProduct(null)}
       >
         <MarketProductDetail
           product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
+          onClose={() => setModalVisible(false)}
         />
       </Modal>
     </View>
