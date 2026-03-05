@@ -33,6 +33,7 @@ import {
   ProductType,
   SealedIntegrity,
 } from '@/constants/types';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 
 const c = Colors.dark;
@@ -262,7 +263,7 @@ export default function AddItemScreen() {
       >
         <Pressable style={styles.imageSection} onPress={handleImageAction}>
           {imageUri ? (
-            <Image source={{ uri: imageUri }} style={styles.image} contentFit="cover" />
+            <Image source={{ uri: getOptimizedImageUrl(imageUri, { height: 600 }) }} style={styles.image} contentFit="cover" />
           ) : (
             <View style={styles.imagePlaceholder}>
               <Ionicons name="camera" size={32} color={c.textTertiary} />
@@ -290,6 +291,13 @@ export default function AddItemScreen() {
                     style={styles.suggestionItem}
                     onPress={() => selectSuggestion(card)}
                   >
+                    {card.imageUrl ? (
+                      <Image source={{ uri: getOptimizedImageUrl(card.imageUrl, { height: 100 }) }} style={styles.suggestionImage} contentFit="cover" />
+                    ) : (
+                      <View style={styles.suggestionImagePlaceholder}>
+                        <Ionicons name="image-outline" size={14} color={c.textTertiary} />
+                      </View>
+                    )}
                     <View style={styles.suggestionInfo}>
                       <Text style={styles.suggestionName} numberOfLines={1}>{card.name}</Text>
                       <Text style={styles.suggestionMeta}>{card.set} {card.number ? `#${card.number}` : ''}</Text>
@@ -727,5 +735,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600' as const,
     color: c.accent,
+  },
+  suggestionImage: {
+    width: 32,
+    height: 44,
+    borderRadius: 4,
+    backgroundColor: c.surfaceHighlight,
+    marginRight: 10,
+  },
+  suggestionImagePlaceholder: {
+    width: 32,
+    height: 44,
+    borderRadius: 4,
+    backgroundColor: c.surfaceHighlight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
 });

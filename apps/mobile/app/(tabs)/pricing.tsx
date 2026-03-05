@@ -10,13 +10,14 @@ import {
   ActivityIndicator,
   Switch,
   Modal,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
 import { getMarketProducts, getMarketSets } from '@/lib/api';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { MarketProduct, MarketSet } from '@/lib/types';
 import MarketProductDetail from '@/components/pricing/MarketProductDetail';
 
@@ -262,7 +263,7 @@ function PricingRow({ card }: { card: MarketProduct }) {
     <View style={styles.pricingRow}>
       <View style={styles.pricingImageContainer}>
         {card.imageUrl ? (
-          <Image source={{ uri: card.imageUrl }} style={styles.pricingImage} />
+          <Image source={{ uri: getOptimizedImageUrl(card.imageUrl, { height: 200 }) }} style={styles.pricingImage} contentFit="cover" />
         ) : (
           <View style={styles.pricingImagePlaceholder}>
             <Ionicons name="image-outline" size={16} color={c.textTertiary} />

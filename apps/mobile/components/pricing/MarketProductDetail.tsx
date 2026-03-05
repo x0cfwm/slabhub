@@ -6,14 +6,15 @@ import {
     ScrollView,
     Pressable,
     ActivityIndicator,
-    Image,
     Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
 import { MarketProduct, MarketPriceHistory } from '@/lib/types';
 import { getProductPriceHistory } from '@/lib/api';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 const c = Colors.dark;
 
@@ -67,7 +68,7 @@ export default function MarketProductDetail({ product, onClose }: MarketProductD
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <View style={styles.productInfo}>
                     {product.imageUrl && (
-                        <Image source={{ uri: product.imageUrl }} style={styles.productImage} />
+                        <Image source={{ uri: getOptimizedImageUrl(product.imageUrl, { height: 400 }) }} style={styles.productImage} contentFit="cover" />
                     )}
                     <View style={styles.productMeta}>
                         <Text style={styles.productName}>{product.name}</Text>
