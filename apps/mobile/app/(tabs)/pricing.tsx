@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,55 +7,112 @@ import {
   Pressable,
   Platform,
   TextInput,
+  ActivityIndicator,
+  Switch,
+  Modal,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
-import { PRICING_DATABASE, ONE_PIECE_SETS } from '@/constants/pricing-data';
-import { PricingCard, TYPE_LABELS, ItemType } from '@/constants/types';
+import { getMarketProducts, getMarketSets } from '@/lib/api';
+import { MarketProduct, MarketSet } from '@/lib/types';
+import MarketProductDetail from '@/components/pricing/MarketProductDetail';
 
 const c = Colors.dark;
 
-const TYPE_FILTERS: { key: ItemType | 'all'; label: string }[] = [
+const PRODUCT_TYPES = [
   { key: 'all', label: 'All Types' },
-  { key: 'single_card', label: 'Singles' },
-  { key: 'sealed_product', label: 'Sealed' },
+  { key: 'SINGLE_CARD', label: 'Singles' },
+  { key: 'SEALED_PACK', label: 'Packs' },
+  { key: 'SEALED_BOX', label: 'Boxes' },
 ];
+
+const PAGE_SIZE = 25;
 
 export default function PricingScreen() {
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedSet, setSelectedSet] = useState<string>('all');
-  const [selectedType, setSelectedType] = useState<ItemType | 'all'>('all');
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [onlyInInventory, setOnlyInInventory] = useState(false);
   const [showSetFilter, setShowSetFilter] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<MarketProduct | null>(null);
+
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
-  const filteredCards = useMemo(() => {
-    return PRICING_DATABASE.filter((card) => {
-      const matchesSearch = !searchQuery || card.name.toLowerCase().includes(searchQuery.toLowerCase()) || card.cardNumber.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesSet = selectedSet === 'all' || card.setCode === selectedSet;
-      const matchesType = selectedType === 'all' || card.type === selectedType;
-      return matchesSearch && matchesSet && matchesType;
-    }).sort((a, b) => b.marketPrice - a.marketPrice);
-  }, [searchQuery, selectedSet, selectedType]);
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  const renderCard = useCallback(({ item }: { item: PricingCard }) => (
-    <PricingRow card={item} />
+  const { data: setsData } = useQuery({
+    queryKey: ['marketSets'],
+    queryFn: getMarketSets,
+  });
+
+  const {
+    data: productsData,
+    isLoading,
+    isFetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch
+  } = useInfiniteQuery({
+    queryKey: ['marketProducts', debouncedSearch, selectedSet, selectedType, onlyInInventory],
+    queryFn: ({ pageParam = 1 }) => getMarketProducts({
+      page: pageParam,
+      limit: PAGE_SIZE,
+      search: debouncedSearch,
+      setExternalId: selectedSet === 'all' ? undefined : selectedSet,
+      productType: selectedType === 'all' ? undefined : selectedType,
+      onlyInInventory,
+    }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const totalPages = Math.ceil(lastPage.total / PAGE_SIZE);
+      return lastPage.page < totalPages ? lastPage.page + 1 : undefined;
+    },
+  });
+
+  const products = useMemo(() => {
+    return productsData?.pages.flatMap(page => page.items) || [];
+  }, [productsData]);
+
+  const renderCard = useCallback(({ item }: { item: MarketProduct }) => (
+    <Pressable onPress={() => setSelectedProduct(item)}>
+      <PricingRow card={item} />
+    </Pressable>
   ), []);
+
+  const renderFooter = () => {
+    if (!isFetchingNextPage) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator color={c.accent} size="small" />
+      </View>
+    );
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
       <View style={styles.header}>
         <Text style={styles.brand}>SlabHub</Text>
         <Text style={styles.title}>Market Pricing</Text>
-        <Text style={styles.subtitle}>One Piece TCG reference prices</Text>
+        <Text style={styles.subtitle}>Reference prices for TCG collectibles</Text>
       </View>
 
       <View style={styles.searchBar}>
         <Ionicons name="search" size={18} color={c.textTertiary} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search card names..."
+          placeholder="Search items..."
           placeholderTextColor={c.textTertiary}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -81,7 +138,7 @@ export default function PricingScreen() {
 
         <FlatList
           horizontal
-          data={TYPE_FILTERS}
+          data={PRODUCT_TYPES}
           renderItem={({ item: filter }) => (
             <Pressable
               style={[styles.typeChip, selectedType === filter.key && styles.typeChipActive]}
@@ -99,86 +156,144 @@ export default function PricingScreen() {
       </View>
 
       {showSetFilter && (
+        <View style={styles.setFilterContainer}>
+          <FlatList
+            horizontal
+            data={[{ externalId: 'all', name: 'All Sets' }, ...(setsData || [])]}
+            renderItem={({ item: set }) => (
+              <Pressable
+                style={[styles.setChip, selectedSet === set.externalId && styles.setChipActive]}
+                onPress={() => { setSelectedSet(set.externalId); setShowSetFilter(false); }}
+              >
+                <Text style={[styles.setChipText, selectedSet === set.externalId && { color: c.accent }]}>
+                  {set.externalId === 'all' ? 'All' : set.externalId.split('-').pop()}
+                </Text>
+                <Text style={styles.setChipName} numberOfLines={1}>{set.name}</Text>
+              </Pressable>
+            )}
+            keyExtractor={(item) => item.externalId}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.setChipsContent}
+          />
+        </View>
+      )}
+
+      <View style={styles.inventoryToggleRow}>
+        <View style={styles.toggleTextCol}>
+          <Text style={styles.toggleLabel}>In My Inventory Only</Text>
+          <Text style={styles.toggleSub}>Show prices for items you own</Text>
+        </View>
+        <Switch
+          value={onlyInInventory}
+          onValueChange={setOnlyInInventory}
+          trackColor={{ false: c.surfaceHighlight, true: c.accent }}
+          thumbColor={Platform.OS === 'ios' ? '#fff' : onlyInInventory ? '#fff' : '#f4f3f4'}
+        />
+      </View>
+
+      <View style={styles.tableHeader}>
+        <Text style={[styles.tableHeaderText, { flex: 1 }]}>Item</Text>
+        <Text style={[styles.tableHeaderText, { width: 90, textAlign: 'right' }]}>Market Prices</Text>
+      </View>
+
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color={c.accent} size="large" />
+          <Text style={styles.loadingText}>Loading pricing data...</Text>
+        </View>
+      ) : (
         <FlatList
-          horizontal
-          data={[{ code: 'all', name: 'All Sets' }, ...ONE_PIECE_SETS]}
-          renderItem={({ item: set }) => (
-            <Pressable
-              style={[styles.setChip, selectedSet === set.code && styles.setChipActive]}
-              onPress={() => { setSelectedSet(set.code); setShowSetFilter(false); }}
-            >
-              <Text style={[styles.setChipText, selectedSet === set.code && { color: c.accent }]}>
-                {set.code === 'all' ? 'All' : set.code}
-              </Text>
-              <Text style={styles.setChipName} numberOfLines={1}>{set.name}</Text>
-            </Pressable>
-          )}
-          keyExtractor={(item) => item.code}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.setChipsContent}
-          style={styles.setChipsContainer}
+          data={products}
+          renderItem={renderCard}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="search-outline" size={48} color={c.textTertiary} />
+              <Text style={styles.emptyTitle}>No results found</Text>
+              <Text style={styles.emptyText}>Try adjusting your search or filters</Text>
+            </View>
+          }
+          refreshing={isFetching && !isLoading && !isFetchingNextPage}
+          onRefresh={refetch}
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) {
+              fetchNextPage();
+            }
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
         />
       )}
 
-      <View style={styles.tableHeader}>
-        <Text style={[styles.tableHeaderText, { flex: 1 }]}>Card</Text>
-        <Text style={[styles.tableHeaderText, { width: 90, textAlign: 'right' }]}>Market Price</Text>
-      </View>
-
-      <FlatList
-        data={filteredCards}
-        renderItem={renderCard}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
-        showsVerticalScrollIndicator={false}
-        scrollEnabled={filteredCards.length > 0}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Ionicons name="search-outline" size={48} color={c.textTertiary} />
-            <Text style={styles.emptyTitle}>No results found</Text>
-            <Text style={styles.emptyText}>Try adjusting your search or filters</Text>
-          </View>
-        }
-      />
+      {/* Detail Modal */}
+      <Modal
+        visible={!!selectedProduct}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setSelectedProduct(null)}
+      >
+        <MarketProductDetail
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+        />
+      </Modal>
     </View>
   );
 }
 
-function PricingRow({ card }: { card: PricingCard }) {
+function PricingRow({ card }: { card: MarketProduct }) {
+  const gradedPrices = [
+    { label: "10", price: card.grade10Price },
+    { label: "9.5", price: card.grade95Price },
+    { label: "9", price: card.grade9Price },
+    { label: "8", price: card.grade8Price },
+    { label: "7", price: card.grade7Price },
+  ].filter(g => g.price && g.price > 0);
+
   return (
     <View style={styles.pricingRow}>
+      <View style={styles.pricingImageContainer}>
+        {card.imageUrl ? (
+          <Image source={{ uri: card.imageUrl }} style={styles.pricingImage} />
+        ) : (
+          <View style={styles.pricingImagePlaceholder}>
+            <Ionicons name="image-outline" size={16} color={c.textTertiary} />
+          </View>
+        )}
+      </View>
       <View style={styles.pricingInfo}>
-        <Text style={styles.pricingName} numberOfLines={1}>{card.name}</Text>
+        <Text style={styles.pricingName} numberOfLines={2}>{card.name}</Text>
         <View style={styles.pricingMeta}>
-          <Text style={styles.pricingId}>#{card.cardNumber}</Text>
+          <Text style={styles.pricingId}>{card.number}</Text>
           <View style={styles.pricingTypeBadge}>
             <Text style={styles.pricingTypeText}>
-              {card.type === 'single_card' ? 'SINGLE' : card.type === 'sealed_product' ? 'SEALED' : 'GRADED'}
+              {card.productType?.replace('SEALED_', '') || 'SINGLE'}
             </Text>
           </View>
-          <Text style={styles.pricingRarity}>{card.rarity}</Text>
+          <Text style={styles.pricingSet} numberOfLines={1}>{card.set}</Text>
         </View>
+
       </View>
       <View style={styles.pricingPriceCol}>
-        <Text style={styles.pricingPrice}>
-          ${card.marketPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-        </Text>
-        <View style={styles.pricingSubPrices}>
-          {card.lastSoldEbay !== undefined && (
-            <View style={[styles.subPriceBadge, { backgroundColor: '#0064D220' }]}>
-              <Text style={[styles.subPriceText, { color: '#5BA3F5' }]}>
-                ${card.lastSoldEbay.toFixed(2)}
-              </Text>
-            </View>
-          )}
-          {card.lastSoldTcgplayer !== undefined && (
-            <View style={[styles.subPriceBadge, { backgroundColor: '#FF620020' }]}>
-              <Text style={[styles.subPriceText, { color: '#FF9050' }]}>
-                ${card.lastSoldTcgplayer.toFixed(2)}
-              </Text>
-            </View>
-          )}
+        <View style={styles.mainPriceRow}>
+          <Text style={styles.pricingPrice}>
+            ${card.rawPrice ? Math.round(card.rawPrice).toLocaleString() : '-'}
+          </Text>
+          <Text style={styles.rawLabel}>RAW</Text>
         </View>
+
+        {gradedPrices.length > 0 && (
+          <View style={styles.badgeRow}>
+            {gradedPrices.map((g) => (
+              <View key={g.label} style={styles.gradedBadge}>
+                <Text style={styles.gradedLabel}>{g.label}</Text>
+                <Text style={styles.gradedPrice}>${Math.round(g.price!).toLocaleString()}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -277,8 +392,7 @@ const styles = StyleSheet.create({
   typeChipTextActive: {
     color: c.accent,
   },
-  setChipsContainer: {
-    maxHeight: 60,
+  setFilterContainer: {
     marginBottom: 8,
   },
   setChipsContent: {
@@ -310,6 +424,32 @@ const styles = StyleSheet.create({
     marginTop: 2,
     maxWidth: 80,
   },
+  inventoryToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: c.surface,
+    marginHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+  },
+  toggleTextCol: {
+    flex: 1,
+  },
+  toggleLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.text,
+  },
+  toggleSub: {
+    fontSize: 11,
+    color: c.textTertiary,
+    marginTop: 1,
+  },
   tableHeader: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -335,6 +475,26 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.borderLight,
   },
+  pricingImageContainer: {
+    width: 32,
+    height: 44,
+    borderRadius: 4,
+    backgroundColor: c.surface,
+    overflow: 'hidden',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+  },
+  pricingImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  pricingImagePlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pricingInfo: {
     flex: 1,
     marginRight: 12,
@@ -352,7 +512,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   pricingId: {
-    fontSize: 12,
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     color: c.textTertiary,
   },
   pricingTypeBadge: {
@@ -362,16 +523,51 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   pricingTypeText: {
-    fontSize: 10,
+    fontSize: 9,
     color: c.textSecondary,
     fontWeight: '600' as const,
   },
-  pricingRarity: {
-    fontSize: 12,
+  pricingSet: {
+    fontSize: 11,
     color: c.textTertiary,
+    flex: 1,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginTop: 4,
+    justifyContent: 'flex-end',
+  },
+  gradedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: c.surfaceHighlight,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 0.5,
+    borderColor: c.borderLight,
+  },
+  gradedLabel: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: c.textTertiary,
+  },
+  gradedPrice: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: c.text,
   },
   pricingPriceCol: {
     alignItems: 'flex-end',
+    minWidth: 100,
+    justifyContent: 'center',
+  },
+  mainPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
     gap: 4,
   },
   pricingPrice: {
@@ -379,18 +575,25 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: c.text,
   },
-  pricingSubPrices: {
-    flexDirection: 'row',
-    gap: 4,
+  rawLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: c.textTertiary,
+    textTransform: 'uppercase',
   },
-  subPriceBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: 'center',
   },
-  subPriceText: {
-    fontSize: 10,
-    fontWeight: '600' as const,
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: c.textSecondary,
   },
   emptyState: {
     alignItems: 'center',

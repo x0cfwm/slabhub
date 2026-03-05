@@ -102,6 +102,8 @@ export interface MarketProduct {
     number: string | null;
     imageUrl: string | null;
     set: string;
+    productType?: string | null;
+    priceChartingUrl?: string | null;
     rawPrice: number;
     sealedPrice?: number | null;
     grade7Price?: number | null;
@@ -110,6 +112,38 @@ export interface MarketProduct {
     grade95Price?: number | null;
     grade10Price?: number | null;
     lastUpdated: string;
+    source: string;
+}
+
+export interface MarketPriceHistoryEntry {
+    date: string;
+    title: string;
+    price: number;
+    source: string;
+    link?: string;
+    grade?: string;
+}
+
+export interface MarketPriceHistory {
+    productId: string;
+    mode: "parsed" | "mock";
+    parseError: string | null;
+    prices: MarketPriceHistoryEntry[];
+    summary?: {
+        ungraded?: number;
+        grade7?: number;
+        grade8?: number;
+        grade9?: number;
+        grade95?: number;
+        psa10?: number;
+    };
+    updatedRawPrice?: number | null;
+}
+
+export interface MarketSet {
+    externalId: string;
+    name: string;
+    code?: string | null;
 }
 
 export interface MarketProductsResponse {

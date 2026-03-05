@@ -4,6 +4,8 @@ import {
     InventoryItem,
     MarketProduct,
     MarketProductsResponse,
+    MarketSet,
+    MarketPriceHistory,
     SellerProfile,
     PortfolioHistoryEntry
 } from "./types";
@@ -76,13 +78,39 @@ export async function getMe(): Promise<{ profile: SellerProfile } | null> {
     }
 }
 
-export async function getMarketProducts(params: { page: number; limit: number; search?: string }): Promise<MarketProductsResponse> {
+export async function getMarketProducts(params: {
+    page: number;
+    limit: number;
+    search?: string;
+    setExternalId?: string;
+    productType?: string;
+    onlyInInventory?: boolean;
+}): Promise<MarketProductsResponse> {
     const searchParams = new URLSearchParams();
     searchParams.set("page", params.page.toString());
     searchParams.set("limit", params.limit.toString());
     if (params.search) searchParams.set("search", params.search);
+    if (params.setExternalId) searchParams.set("setExternalId", params.setExternalId);
+    if (params.productType) searchParams.set("productType", params.productType);
+    if (params.onlyInInventory) searchParams.set("onlyInInventory", "true");
 
     const response = await apiRequest("GET", `/market/products?${searchParams.toString()}`);
+    return response.json();
+}
+
+export async function getMarketProduct(id: string): Promise<MarketProduct> {
+    const response = await apiRequest("GET", `/market/products/${id}`);
+    return response.json();
+}
+
+export async function getMarketSets(): Promise<MarketSet[]> {
+    const response = await apiRequest("GET", "/market/sets");
+    return response.json();
+}
+
+export async function getProductPriceHistory(productId: string, refresh = false): Promise<MarketPriceHistory> {
+    const path = `/market/products/${productId}/prices${refresh ? "?refresh=true" : ""}`;
+    const response = await apiRequest("GET", path);
     return response.json();
 }
 
