@@ -213,7 +213,7 @@ function PricingContent() {
                                     <SelectItem value="all">All Sets</SelectItem>
                                     {sets.map((s) => (
                                         <SelectItem key={s.externalId} value={s.externalId}>
-                                            {s.name}
+                                            {s.code ? `[${s.code}] ${s.name}` : s.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

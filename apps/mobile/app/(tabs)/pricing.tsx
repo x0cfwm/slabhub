@@ -131,7 +131,9 @@ export default function PricingScreen() {
         >
           <Ionicons name="albums-outline" size={16} color={showSetFilter ? c.accent : c.textSecondary} />
           <Text style={[styles.filterBtnText, showSetFilter && { color: c.accent }]}>
-            {selectedSet === 'all' ? 'All Sets' : selectedSet}
+            {selectedSet === 'all'
+              ? 'All Sets'
+              : (setsData?.find(s => s.externalId === selectedSet)?.code || selectedSet)}
           </Text>
           <Ionicons name="chevron-down" size={14} color={showSetFilter ? c.accent : c.textSecondary} />
         </Pressable>
@@ -159,14 +161,17 @@ export default function PricingScreen() {
         <View style={styles.setFilterContainer}>
           <FlatList
             horizontal
-            data={[{ externalId: 'all', name: 'All Sets' }, ...(setsData || [])]}
+            data={[
+              { externalId: 'all', name: 'All Sets' } as MarketSet,
+              ...(setsData?.filter(s => !!s.code) || [])
+            ]}
             renderItem={({ item: set }) => (
               <Pressable
                 style={[styles.setChip, selectedSet === set.externalId && styles.setChipActive]}
                 onPress={() => { setSelectedSet(set.externalId); setShowSetFilter(false); }}
               >
                 <Text style={[styles.setChipText, selectedSet === set.externalId && { color: c.accent }]}>
-                  {set.externalId === 'all' ? 'All' : set.externalId.split('-').pop()}
+                  {set.externalId === 'all' ? 'All' : (set.code || set.externalId.split('-').pop())}
                 </Text>
                 <Text style={styles.setChipName} numberOfLines={1}>{set.name}</Text>
               </Pressable>

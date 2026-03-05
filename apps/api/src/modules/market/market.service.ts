@@ -325,7 +325,7 @@ export class MarketPricingService {
         return sets.map((s: any) => ({
             externalId: s.id,
             name: s.name,
-            code: s.slug
+            code: s.code
         }));
     }
 
