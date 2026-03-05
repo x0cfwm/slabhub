@@ -39,6 +39,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { SimpleThemeToggle } from "@/components/common/SimpleThemeToggle";
+import { getOptimizedImageUrl } from "@/lib/image-utils";
 
 export default function VendorClient() {
     const searchParams = useSearchParams();
@@ -251,7 +252,7 @@ export default function VendorClient() {
                     <div className="flex flex-col md:flex-row gap-8 items-start">
                         {profile.avatarUrl ? (
                             <img
-                                src={profile.avatarUrl}
+                                src={getOptimizedImageUrl(profile.avatarUrl, { width: 112, height: 112, fit: 'cover' })}
                                 alt={profile.shopName}
                                 className="w-28 h-28 rounded-3xl object-cover border-4 border-primary/20 rotate-3 shadow-xl"
                             />
@@ -397,7 +398,7 @@ export default function VendorClient() {
                                         <Card className="relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md border-primary/10 bg-card/50 backdrop-blur-md">
                                             <div className="aspect-[3/4] overflow-hidden relative bg-accent/5">
                                                 <img
-                                                    src={item.photos?.[0] || (item as any).frontMediaUrl || marketProduct?.imageUrl || "https://placehold.co/300x400?text=Asset"}
+                                                    src={getOptimizedImageUrl(item.photos?.[0] || (item as any).frontMediaUrl || marketProduct?.imageUrl || "https://placehold.co/300x400?text=Asset", { height: 400 })}
                                                     className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-110"
                                                     alt={displayName}
                                                 />
@@ -490,7 +491,7 @@ export default function VendorClient() {
                                                 onClick={() => setIsZoomed(!isZoomed)}
                                             >
                                                 <img
-                                                    src={activePhoto || `https://placehold.co/800x1200?text=${((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? 'Sealed' : 'Card'}`}
+                                                    src={getOptimizedImageUrl(activePhoto || `https://placehold.co/800x1200?text=${((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? 'Sealed' : 'Card'}`, { height: 1200 })}
                                                     alt={((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? (selectedItem as any).productName : (marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || "Asset Details")}
                                                     className="max-w-full max-h-full w-auto h-auto object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.8)] rounded-lg pointer-events-none"
                                                 />
@@ -542,7 +543,7 @@ export default function VendorClient() {
                                                                 activePhoto === photo ? "border-primary scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-100"
                                                             )}
                                                         >
-                                                            <img src={photo} className="w-full h-full object-cover" alt="prev" />
+                                                            <img src={getOptimizedImageUrl(photo, { width: 48, height: 64, fit: 'cover' })} className="w-full h-full object-cover" alt="prev" />
                                                         </button>
                                                     ))}
                                                 </div>

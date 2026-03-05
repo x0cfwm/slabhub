@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RefreshCw, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getOptimizedImageUrl } from "@/lib/image-utils";
 
 interface MarketPricingDrawerProps {
     product: MarketProduct | null;
@@ -67,7 +68,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                         {product.imageUrl && (
                             <div className="w-24 h-32 flex-shrink-0 rounded-xl overflow-hidden border bg-muted/30 shadow-sm mx-auto sm:mx-0">
                                 <img
-                                    src={product.imageUrl}
+                                    src={getOptimizedImageUrl(product.imageUrl, { height: 300 })}
                                     alt={product.name}
                                     className="w-full h-full object-cover"
                                 />

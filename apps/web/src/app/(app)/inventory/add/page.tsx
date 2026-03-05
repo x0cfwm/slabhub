@@ -16,6 +16,7 @@ import {
     Language,
     MarketProduct
 } from "@/lib/types";
+import { getOptimizedImageUrl } from "@/lib/image-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -348,7 +349,7 @@ export default function AddItemPage() {
                                                     (formData.refPriceChartingProductId === card.id || formData.baseCardId === card.id) ? "border-primary bg-primary/5" : "bg-card"
                                                 )}
                                             >
-                                                <img src={card.imageUrl || undefined} className="h-10 rounded-md shadow-lg" alt="" />
+                                                <img src={getOptimizedImageUrl(card.imageUrl, { height: 100 })} className="h-10 rounded-md shadow-lg" alt="" />
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-bold text-xs truncate">{card.name}</p>
                                                     <p className="text-[10px] text-muted-foreground uppercase">{card.set} {card.number ? `• ${card.number}` : ''}</p>
@@ -375,7 +376,7 @@ export default function AddItemPage() {
                                         <div className="flex items-center gap-4">
                                             <div className="relative h-24 w-16 shrink-0 rounded-lg overflow-hidden border-2 border-primary/20 shadow-2xl">
                                                 <img
-                                                    src={selectedCard?.imageUrl || undefined}
+                                                    src={getOptimizedImageUrl(selectedCard?.imageUrl, { height: 200 })}
                                                     className={cn(
                                                         "h-full w-full object-cover transition-all duration-500",
                                                         formData.variantType === "ALTERNATE_ART" && "hue-rotate-15 scale-110",
@@ -752,7 +753,7 @@ export default function AddItemPage() {
                                     {uploadingPhotos[label] ? (
                                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                     ) : uploadedPhotos[idx] ? (
-                                        <img src={uploadedPhotos[idx]} className="absolute inset-0 w-full h-full object-cover" alt={label} />
+                                        <img src={getOptimizedImageUrl(uploadedPhotos[idx], { height: 400 })} className="absolute inset-0 w-full h-full object-cover" alt={label} />
                                     ) : (
                                         <>
                                             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">

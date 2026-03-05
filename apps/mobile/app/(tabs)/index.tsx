@@ -14,8 +14,10 @@ import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import {
   getMarketProducts as apiGetMarketProducts,
+  getMarketValueHistory,
 } from '@/lib/api';
 import { useApp } from '@/contexts/AppContext';
+import { MarketValueChart } from '@/components/MarketValueChart';
 import Colors from '@/constants/colors';
 
 const c = Colors.dark;
@@ -49,7 +51,12 @@ export default function DashboardScreen() {
     queryFn: () => apiGetMarketProducts({ page: 1, limit: 100 }),
   });
 
-  const loading = appLoading || marketLoading;
+  const { data: historyData, isLoading: historyLoading } = useQuery({
+    queryKey: ['market-value-history', 30],
+    queryFn: () => getMarketValueHistory(30),
+  });
+
+  const loading = appLoading || marketLoading || historyLoading;
   const marketProducts = marketData?.items || [];
 
   const stats = React.useMemo(() => {
@@ -178,10 +185,7 @@ export default function DashboardScreen() {
           <StatCard icon="trending-up" label="Market Value" value={`$${stats.marketValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} wide />
         </View>
 
-        <View style={styles.statsRow}>
-          <StatCard icon="cash" label="Revenue" value={`$${stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
-          <StatCard icon="analytics" label="Profit" value={`$${stats.profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
-        </View>
+        <MarketValueChart history={historyData || []} />
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Items by Stage</Text>

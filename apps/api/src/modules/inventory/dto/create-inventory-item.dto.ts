@@ -92,8 +92,12 @@ export class CreateInventoryItemDto {
 
     @ApiProperty({ required: false, example: '10' })
     @IsOptional()
+    gradeValue?: string | number;
+
+    @ApiProperty({ required: false, example: 'PSA 10' })
+    @IsOptional()
     @IsString()
-    gradeValue?: string;
+    grade?: string;
 
     @ApiProperty({ required: false, example: '12345678' })
     @IsOptional()

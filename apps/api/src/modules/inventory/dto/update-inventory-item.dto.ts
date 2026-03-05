@@ -87,8 +87,12 @@ export class UpdateInventoryItemDto {
 
     @ApiProperty({ required: false })
     @IsOptional()
+    gradeValue?: string | number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
     @IsString()
-    gradeValue?: string;
+    grade?: string;
 
     @ApiProperty({ required: false })
     @IsOptional()

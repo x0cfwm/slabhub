@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { AlertTriangle, CreditCard, MapPin, Save, Truck, Check, Facebook, Link, Calendar, User, X, Plus, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
+import { getOptimizedImageUrl } from "@/lib/image-utils";
 
 const profileSchema = z.object({
     shopName: z.string().optional(),
@@ -287,7 +288,7 @@ export default function ShopSettingsPage() {
                                 <div className="flex items-center gap-4">
                                     <div className="relative h-20 w-20 rounded-full overflow-hidden bg-muted border-2 border-primary/20 flex items-center justify-center">
                                         {avatarUrl ? (
-                                            <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                                            <img src={getOptimizedImageUrl(avatarUrl, { width: 80, height: 80, fit: 'cover' })} alt="Avatar" className="h-full w-full object-cover" />
                                         ) : (
                                             <ImageIcon className="h-8 w-8 text-muted-foreground" />
                                         )}
