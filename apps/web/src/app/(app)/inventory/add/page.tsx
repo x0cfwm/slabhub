@@ -350,7 +350,13 @@ export default function AddItemPage() {
                                                     <p className="font-bold text-xs truncate">{card.name}</p>
                                                     <p className="text-[10px] text-muted-foreground uppercase">{card.set} {card.number ? `• ${card.number}` : ''}</p>
                                                 </div>
-                                                {(formData.refPriceChartingProductId === card.id || formData.baseCardId === card.id) && <Check className="h-4 w-4 text-primary" />}
+                                                <div className="text-right shrink-0">
+                                                    <p className="font-bold text-xs text-primary">
+                                                        ${Math.round((category === "SEALED_PRODUCT" ? card.sealedPrice : card.rawPrice) || 0).toLocaleString()}
+                                                    </p>
+                                                    <p className="text-[8px] text-muted-foreground uppercase">Market</p>
+                                                </div>
+                                                {(formData.refPriceChartingProductId === card.id || formData.baseCardId === card.id) && <Check className="h-4 w-4 text-primary ml-2" />}
                                             </div>
                                         ))}
                                     </div>

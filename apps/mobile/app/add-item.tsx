@@ -59,7 +59,7 @@ export default function AddItemScreen() {
   const [soldChannel, setSoldChannel] = useState<SaleChannel | undefined>();
   const [notes, setNotes] = useState('');
   const [showPricingSuggestions, setShowPricingSuggestions] = useState(false);
-  const [pricingSuggestions, setPricingSuggestions] = useState<typeof PRICING_DATABASE>([]);
+  const [pricingSuggestions, setPricingSuggestions] = useState<any[]>([]);
 
   const handleImageAction = async () => {
     if (Platform.OS === 'web') {
@@ -122,26 +122,38 @@ export default function AddItemScreen() {
     }
   };
 
-  const handleNameChange = (text: string) => {
+  const handleNameChange = async (text: string) => {
     setName(text);
     if (text.length >= 2) {
-      const matches = PRICING_DATABASE.filter((card) =>
-        card.name.toLowerCase().includes(text.toLowerCase())
-      ).slice(0, 5);
-      setPricingSuggestions(matches);
-      setShowPricingSuggestions(matches.length > 0);
+      try {
+        const response = await api.getMarketProducts({
+          page: 1,
+          limit: 5,
+          search: text,
+        });
+        setPricingSuggestions(response.items);
+        setShowPricingSuggestions(response.items.length > 0);
+      } catch (error) {
+        console.error("Failed to fetch suggestions", error);
+      }
     } else {
       setShowPricingSuggestions(false);
     }
   };
 
-  const selectSuggestion = (card: typeof PRICING_DATABASE[0]) => {
+  const selectSuggestion = (card: any) => {
     setName(card.name);
-    setSetCode(card.setCode);
-    setSetName2(card.setName);
-    setCardNumber(card.cardNumber);
-    setMarketPrice(card.marketPrice.toString());
-    setType(card.type);
+    setSetCode(card.setCode || '');
+    setSetName2(card.set || '');
+    setCardNumber(card.number || '');
+    setMarketPrice((card.rawPrice || 0).toString());
+    // Map backend product types to mobile item types if possible
+    if (card.productType?.includes('BOX') || card.productType?.includes('PACK')) {
+      setType('sealed_product');
+      setMarketPrice((card.sealedPrice || 0).toString());
+    } else {
+      setType('single_card');
+    }
     setShowPricingSuggestions(false);
   };
 
@@ -248,10 +260,10 @@ export default function AddItemScreen() {
                   >
                     <View style={styles.suggestionInfo}>
                       <Text style={styles.suggestionName} numberOfLines={1}>{card.name}</Text>
-                      <Text style={styles.suggestionMeta}>{card.setCode} #{card.cardNumber}</Text>
+                      <Text style={styles.suggestionMeta}>{card.set} {card.number ? `#${card.number}` : ''}</Text>
                     </View>
                     <Text style={styles.suggestionPrice}>
-                      ${card.marketPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      ${((card.sealedPrice || card.rawPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </Text>
                   </Pressable>
                 ))}
