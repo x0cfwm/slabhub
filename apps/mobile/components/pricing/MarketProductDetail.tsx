@@ -7,7 +7,6 @@ import {
     Pressable,
     ActivityIndicator,
     Image,
-    Linking,
     Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -74,15 +73,13 @@ export default function MarketProductDetail({ product, onClose }: MarketProductD
                         <Text style={styles.productName}>{product.name}</Text>
                         <View style={styles.badgeRow}>
                             <Text style={styles.productNumber}>{product.number}</Text>
-                            <View style={styles.sourceBadge}>
-                                <Text style={styles.sourceText}>{product.source}</Text>
-                            </View>
+                            {Boolean(product.source && !product.source.toLowerCase().includes('pricecharting')) && (
+                                <View style={styles.sourceBadge}>
+                                    <Text style={styles.sourceText}>{product.source}</Text>
+                                </View>
+                            )}
                         </View>
-                        {product.priceChartingUrl && (
-                            <Pressable onPress={() => Linking.openURL(product.priceChartingUrl!)}>
-                                <Text style={styles.linkText}>View on PriceCharting <Ionicons name="open-outline" size={12} /></Text>
-                            </Pressable>
-                        )}
+
                     </View>
                 </View>
 
@@ -117,11 +114,7 @@ export default function MarketProductDetail({ product, onClose }: MarketProductD
                 <View style={styles.section}>
                     <View style={styles.salesHeader}>
                         <Text style={styles.sectionTitle}>RECENT SALES</Text>
-                        {history?.mode === 'parsed' && (
-                            <View style={styles.liveBadge}>
-                                <Text style={styles.liveBadgeText}>LIVE: PRICECHARTING</Text>
-                            </View>
-                        )}
+
                     </View>
 
                     {isLoading ? (
@@ -144,17 +137,19 @@ export default function MarketProductDetail({ product, onClose }: MarketProductD
                                     </View>
                                     <View style={styles.saleSide}>
                                         <Text style={styles.salePrice}>${sale.price.toFixed(2)}</Text>
-                                        <View style={[
-                                            styles.sourceBadgeSmall,
-                                            { borderColor: sale.source === 'eBay' ? '#0064D240' : '#FF620040' }
-                                        ]}>
-                                            <Text style={[
-                                                styles.sourceTextSmall,
-                                                { color: sale.source === 'eBay' ? '#5BA3F5' : '#FF9050' }
+                                        {Boolean(sale.source && !sale.source.toLowerCase().includes('pricecharting')) && (
+                                            <View style={[
+                                                styles.sourceBadgeSmall,
+                                                { borderColor: sale.source === 'eBay' ? '#0064D240' : '#FF620040' }
                                             ]}>
-                                                {sale.source}
-                                            </Text>
-                                        </View>
+                                                <Text style={[
+                                                    styles.sourceTextSmall,
+                                                    { color: sale.source === 'eBay' ? '#5BA3F5' : '#FF9050' }
+                                                ]}>
+                                                    {sale.source}
+                                                </Text>
+                                            </View>
+                                        )}
                                     </View>
                                 </View>
                             ))}
@@ -240,11 +235,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: c.textSecondary,
     },
-    linkText: {
-        fontSize: 12,
-        color: c.accent,
-        textDecorationLine: 'underline',
-    },
+
     section: {
         marginTop: 20,
     },
@@ -315,19 +306,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingRight: 20,
     },
-    liveBadge: {
-        backgroundColor: '#22C55E10',
-        borderColor: '#22C55E40',
-        borderWidth: 1,
-        paddingHorizontal: 6,
-        paddingVertical: 1,
-        borderRadius: 4,
-    },
-    liveBadgeText: {
-        fontSize: 8,
-        fontWeight: '700',
-        color: '#22C55E',
-    },
+
     salesList: {
         marginHorizontal: 20,
         backgroundColor: c.surface,

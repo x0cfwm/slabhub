@@ -154,7 +154,7 @@ export default function VendorClient() {
                             rawPrice: cp.rawPrice || 0,
                             sealedPrice: cp.sealedPrice || 0,
                             lastUpdated: (i as any).updatedAt || new Date().toISOString(),
-                            source: "PriceCharting",
+                            source: "SlabHub",
                         } as MarketProduct;
                     });
 
