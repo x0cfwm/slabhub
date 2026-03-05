@@ -145,14 +145,25 @@ export default function AddItemScreen() {
     setName(card.name);
     setSetCode(card.setCode || '');
     setSetName2(card.set || '');
-    setCardNumber(card.number || '');
-    setMarketPrice((card.rawPrice || 0).toString());
-    // Map backend product types to mobile item types if possible
-    if (card.productType?.includes('BOX') || card.productType?.includes('PACK')) {
+
+    const isSealed =
+      card.productType?.includes('BOX') ||
+      card.productType?.includes('PACK') ||
+      card.productType?.includes('DECK') ||
+      card.productType?.includes('TIN') ||
+      card.productType?.includes('BUNDLE') ||
+      card.productType?.includes('CASE') ||
+      card.productType === 'SEALED_OTHER' ||
+      /BOX|PACK|DECK|TIN|BUNDLE|CASE|ETB|COLLECTION/i.test(card.name);
+
+    if (isSealed) {
       setType('sealed_product');
-      setMarketPrice((card.sealedPrice || 0).toString());
+      setMarketPrice((card.sealedPrice || card.rawPrice || 0).toString());
+      setCardNumber('');
     } else {
       setType('single_card');
+      setCardNumber(card.number || '');
+      setMarketPrice((card.rawPrice || 0).toString());
     }
     setShowPricingSuggestions(false);
   };

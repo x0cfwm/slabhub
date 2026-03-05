@@ -127,6 +127,7 @@ export class MarketPricingService {
             number: product.cardNumber,
             imageUrl: this.mediaService.ensureCdnUrl(product.imageUrl),
             set: product.set?.name || 'Unknown Set',
+            setCode: product.set?.code,
             productType: product.productType,
             priceChartingUrl: product.productUrl,
             tcgplayerId: product.tcgPlayerId?.toString(),

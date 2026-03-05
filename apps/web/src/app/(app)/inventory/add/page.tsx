@@ -329,14 +329,17 @@ export default function AddItemPage() {
                                                             ...formData,
                                                             refPriceChartingProductId: card.id,
                                                             productName: card.name,
-                                                            setName: card.set
+                                                            setName: card.set,
+                                                            setCode: card.setCode
                                                         });
                                                     } else {
                                                         setFormData({
                                                             ...formData,
                                                             refPriceChartingProductId: card.id,
                                                             baseCardId: card.id,
-                                                            cardVariantId: card.id
+                                                            cardVariantId: card.id,
+                                                            setCode: card.setCode,
+                                                            cardNumber: card.number
                                                         });
                                                     }
                                                 }}

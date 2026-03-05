@@ -102,6 +102,7 @@ export interface MarketProduct {
     number: string | null;
     imageUrl: string | null;
     set: string;
+    setCode?: string | null;
     productType?: string | null;
     priceChartingUrl?: string | null;
     rawPrice: number;
