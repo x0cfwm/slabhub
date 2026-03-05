@@ -116,6 +116,8 @@ const mapUiToApiDto = (item: any) => {
     condition: conditionMap[item.condition as CardCondition],
     productName: item.name,
     setName: item.setName,
+    setCode: item.setCode,
+    cardNumber: item.cardNumber,
     gradeProvider: (item as any).gradingCompany,
     gradeValue: (item as any).grade,
     quantity: item.quantity || 1,

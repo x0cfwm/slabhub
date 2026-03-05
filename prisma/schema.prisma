@@ -166,6 +166,8 @@ model InventoryItem {
   createdAt                 DateTime                 @default(now())
   updatedAt                 DateTime                 @updatedAt
   certificationNumber       String?
+  cardNumber                String?
+  setCode                   String?
   gradingMeta               Json?
   refPriceChartingProductId String?
   userId                    String

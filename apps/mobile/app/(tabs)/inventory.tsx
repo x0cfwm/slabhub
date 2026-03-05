@@ -19,6 +19,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { useApp } from '@/contexts/AppContext';
 import Colors from '@/constants/colors';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 import {
   ItemStage,
   STAGE_ORDER,
@@ -281,7 +282,7 @@ function InventoryCard({ item, onMove, onPress }: {
     >
       <View style={styles.cardContent}>
         {item.imageUri ? (
-          <Image source={{ uri: item.imageUri }} style={styles.cardImage} contentFit="cover" />
+          <Image source={{ uri: getOptimizedImageUrl(item.imageUri, { height: 300 }) }} style={styles.cardImage} contentFit="cover" />
         ) : (
           <View style={styles.cardImagePlaceholder}>
             <MaterialCommunityIcons name="cards-playing-outline" size={28} color={c.textTertiary} />

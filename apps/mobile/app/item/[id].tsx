@@ -23,6 +23,7 @@ import {
   CHANNEL_LABELS,
   ItemStage,
 } from '@/constants/types';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 const c = Colors.dark;
 
@@ -122,7 +123,7 @@ export default function ItemDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {item.imageUri ? (
-          <Image source={{ uri: item.imageUri }} style={styles.heroImage} contentFit="cover" />
+          <Image source={{ uri: getOptimizedImageUrl(item.imageUri, { height: 800 }) }} style={styles.heroImage} contentFit="cover" />
         ) : (
           <View style={styles.heroImagePlaceholder}>
             <MaterialCommunityIcons name="cards-playing-outline" size={64} color={c.textTertiary} />

@@ -54,6 +54,16 @@ export class CreateInventoryItemDto {
     @IsString()
     setName?: string;
 
+    @ApiProperty({ required: false, example: 'OP01' })
+    @IsOptional()
+    @IsString()
+    setCode?: string;
+
+    @ApiProperty({ required: false, example: '001' })
+    @IsOptional()
+    @IsString()
+    cardNumber?: string;
+
     @ApiProperty({ required: false, example: '1st Edition' })
     @IsOptional()
     @IsString()

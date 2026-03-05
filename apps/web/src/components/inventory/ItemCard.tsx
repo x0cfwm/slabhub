@@ -9,6 +9,7 @@ import { CreditCard, Tag } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
+import { getOptimizedImageUrl } from "@/lib/image-utils";
 
 interface ItemCardProps {
     item: InventoryItem;
@@ -62,6 +63,9 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
         transition,
     };
 
+    const imageUrl = item.photos?.[0] || (item as any).frontMediaUrl || finalProfile?.imageUrl || `https://placehold.co/300x400?text=${isSealed ? 'Sealed' : 'Card'}`;
+    const optimizedImageUrl = getOptimizedImageUrl(imageUrl, { height: 400, quality: 85 });
+
     return (
         <Card
             ref={setNodeRef}
@@ -82,7 +86,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
                 <AspectRatio ratio={2.5 / 3.5}>
                     <div className="flex items-center justify-center w-full h-full bg-accent/10 relative overflow-hidden">
                         <img
-                            src={item.photos?.[0] || (item as any).frontMediaUrl || finalProfile?.imageUrl || `https://placehold.co/300x400?text=${isSealed ? 'Sealed' : 'Card'}`}
+                            src={optimizedImageUrl}
                             alt={displayName}
                             className={cn(
                                 "object-contain w-full h-full transition-all duration-500 group-hover:scale-110",

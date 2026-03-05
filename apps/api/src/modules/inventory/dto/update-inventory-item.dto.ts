@@ -52,6 +52,16 @@ export class UpdateInventoryItemDto {
     @ApiProperty({ required: false })
     @IsOptional()
     @IsString()
+    setCode?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    cardNumber?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
     edition?: string;
 
     @ApiProperty({ required: false, enum: SealedIntegrity })
