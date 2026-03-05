@@ -18,6 +18,7 @@ export interface ParsedProductDetails {
     categorySlug?: string;
     setSlug?: string;
     setName?: string;
+    setCode?: string;
     productSlug?: string;
     title?: string;
     imageUrl?: string;

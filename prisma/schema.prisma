@@ -312,6 +312,7 @@ model PriceChartingSales {
 model RefPriceChartingSet {
   id        String                    @id @default(cuid())
   name      String                    @unique
+  code      String?
   slug      String?                   @unique
   createdAt DateTime                  @default(now())
   updatedAt DateTime                  @updatedAt

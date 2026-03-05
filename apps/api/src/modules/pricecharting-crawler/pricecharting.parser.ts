@@ -25,10 +25,30 @@ export class PriceChartingParser {
         return [...new Set(setUrls)];
     }
 
-    parseSetPage(html: string, baseUrl: string): { productUrls: string[]; nextPages: string[] } {
+    parseSetPage(html: string, baseUrl: string): { productUrls: string[]; nextPages: string[]; setCode?: string; setName?: string } {
         const $ = cheerio.load(html);
         const productUrls: string[] = [];
         const nextPages: string[] = [];
+
+        // Extract Set Name
+        const setName = $('.breadcrumbs a:last-of-type').text().trim() || $('h1').text().trim().replace(/^Prices For /i, '').replace(/ (One Piece Cards|Cards)$/i, '').trim();
+
+        // Extract Set Code from description header
+        let setCode: string | undefined;
+        const descriptionText = $('.section-description, .description').text();
+        const setCodeMatch = descriptionText.match(/Set Code:\s*([A-Z0-9]+)/i);
+        if (setCodeMatch) {
+            setCode = setCodeMatch[1].trim();
+        } else {
+            // Fallback: look in all bold tags
+            $('b').each((_, el) => {
+                const text = $(el).text();
+                if (text.includes('Set Code:')) {
+                    setCode = text.replace('Set Code:', '').trim();
+                    return false;
+                }
+            });
+        }
 
         // Product links look like /game/<set-slug>/<product-slug>
         $('a[href^="/game/"]').each((_, el) => {
@@ -53,6 +73,8 @@ export class PriceChartingParser {
         return {
             productUrls: [...new Set(productUrls)],
             nextPages: [...new Set(nextPages)],
+            setCode,
+            setName,
         };
     }
 
@@ -82,11 +104,20 @@ export class PriceChartingParser {
 
             const cardNumMatch = text.match(/Card Number:\s*([^\n]+)/i);
             if (cardNumMatch) details['Card Number'] = cardNumMatch[1].trim();
+
+            const setCodeMatch = text.match(/Set Code:\s*([^\n]+)/i);
+            if (setCodeMatch) details['Set Code'] = setCodeMatch[1].trim();
         }
 
         const tcgPlayerIdStr = details['TCGPlayer ID'];
         const priceChartingIdStr = details['PriceCharting ID'];
         const cardNumber = details['Card Number'];
+        let setCode = details['Set Code'];
+
+        if (!setCode && cardNumber) {
+            const match = cardNumber.match(/(OP\d+|EB\d+|ST\d+)/i);
+            if (match) setCode = match[1];
+        }
 
         // Extract Image
         const imageUrl = $('div.cover img').attr('src');
@@ -106,6 +137,7 @@ export class PriceChartingParser {
             details,
             setSlug: extractSlug(url, 'game'),
             setName: setName || undefined,
+            setCode: setCode || undefined,
             productSlug: url.split('/').filter(Boolean).pop(),
             title: h1Text.replace(/\s+/g, ' '),
             imageUrl: imageUrl ? (imageUrl.startsWith('http') ? imageUrl : `https://www.pricecharting.com${imageUrl}`) : undefined,
