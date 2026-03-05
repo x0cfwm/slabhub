@@ -31,7 +31,7 @@ import {
   CONDITION_LABELS,
   CHANNEL_LABELS,
 } from '@/constants/types';
-import { PRICING_DATABASE } from '@/constants/pricing-data';
+
 
 const c = Colors.dark;
 
