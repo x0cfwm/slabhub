@@ -36,7 +36,7 @@ export class PriceChartingParser {
         // Extract Set Code from description header
         let setCode: string | undefined;
         const descriptionText = $('.section-description, .description').text();
-        const setCodeMatch = descriptionText.match(/Set Code:\s*([A-Z0-9]+)/i);
+        const setCodeMatch = descriptionText.match(/Set Code:\s*([A-Z0-9-]+)/i);
         if (setCodeMatch) {
             setCode = setCodeMatch[1].trim();
         } else {
@@ -115,7 +115,7 @@ export class PriceChartingParser {
         let setCode = details['Set Code'];
 
         if (!setCode && cardNumber) {
-            const match = cardNumber.match(/(OP\d+|EB\d+|ST\d+)/i);
+            const match = cardNumber.match(/([A-Z]{2,}\d*-[0-9A-Z]+|[A-Z]{2,}\d+)/i);
             if (match) setCode = match[1];
         }
 

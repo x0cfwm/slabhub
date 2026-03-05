@@ -262,7 +262,7 @@ export class PriceChartingIngestService {
         const parsed = this.parser.parseProductPage(html, url);
         parsed.categorySlug = 'one-piece-cards';
 
-        if (setCode && !parsed.setCode) {
+        if (setCode) {
             parsed.setCode = setCode;
         }
 
@@ -322,11 +322,16 @@ export class PriceChartingIngestService {
         let setId: string | undefined;
 
         if (data.setName) {
+            const existingSet = await this.prisma.refPriceChartingSet.findUnique({
+                where: { name: data.setName },
+                select: { code: true }
+            });
+
             const set = await this.prisma.refPriceChartingSet.upsert({
                 where: { name: data.setName },
                 update: {
                     slug: data.setSlug,
-                    code: data.setCode,
+                    code: existingSet?.code || data.setCode,
                 },
                 create: {
                     name: data.setName,
