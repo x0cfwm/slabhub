@@ -113,9 +113,6 @@ export default function ItemDetailScreen() {
           <Pressable onPress={handleMove} hitSlop={8}>
             <Ionicons name="swap-horizontal" size={24} color={c.textSecondary} />
           </Pressable>
-          <Pressable onPress={handleDelete} hitSlop={8}>
-            <Ionicons name="trash-outline" size={22} color={c.error} />
-          </Pressable>
         </View>
       </View>
 
@@ -194,6 +191,14 @@ export default function ItemDetailScreen() {
             <Text style={styles.notesText}>{item.notes}</Text>
           </View>
         ) : null}
+
+        <Pressable
+          style={({ pressed }) => [styles.deleteBtn, { opacity: pressed ? 0.8 : 1 }]}
+          onPress={handleDelete}
+        >
+          <Ionicons name="trash-outline" size={18} color={c.error} />
+          <Text style={styles.deleteBtnText}>Delete Item</Text>
+        </Pressable>
       </ScrollView>
     </View>
   );
@@ -387,5 +392,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600' as const,
     color: c.text,
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 24,
+    marginHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.error + '40',
+  },
+  deleteBtnText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: c.error,
   },
 });

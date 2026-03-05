@@ -102,17 +102,6 @@ export default function InventoryScreen() {
     tabsRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
   }, [tabs]);
 
-  const handleDelete = useCallback((item: InventoryItem) => {
-    if (Platform.OS === 'web') {
-      deleteItem(item.id);
-    } else {
-      Alert.alert('Delete Item', `Are you sure you want to delete "${item.name}"?`, [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => deleteItem(item.id) },
-      ]);
-    }
-  }, [deleteItem]);
-
   const handleMoveItem = useCallback((item: InventoryItem) => {
     const currentIndex = STAGE_ORDER.indexOf(item.stage);
     const nextStages = STAGE_ORDER.filter((_, i) => i !== currentIndex);
@@ -139,11 +128,10 @@ export default function InventoryScreen() {
   const renderInventoryItem = useCallback(({ item }: { item: InventoryItem }) => (
     <InventoryCard
       item={item}
-      onDelete={() => handleDelete(item)}
       onMove={() => handleMoveItem(item)}
       onPress={() => router.push({ pathname: '/item/[id]', params: { id: item.id } })}
     />
-  ), [handleDelete, handleMoveItem]);
+  ), [handleMoveItem]);
 
   const renderPage = useCallback(({ item: tab }: { item: TabItem }) => {
     const filteredItems = inventory.filter((item) => {
@@ -279,9 +267,8 @@ export default function InventoryScreen() {
   );
 }
 
-function InventoryCard({ item, onDelete, onMove, onPress }: {
+function InventoryCard({ item, onMove, onPress }: {
   item: InventoryItem;
-  onDelete: () => void;
   onMove: () => void;
   onPress: () => void;
 }) {
@@ -326,9 +313,6 @@ function InventoryCard({ item, onDelete, onMove, onPress }: {
             <View style={styles.cardActions}>
               <Pressable onPress={onMove} hitSlop={8}>
                 <Ionicons name="swap-horizontal" size={20} color={c.textSecondary} />
-              </Pressable>
-              <Pressable onPress={onDelete} hitSlop={8}>
-                <Ionicons name="trash-outline" size={20} color={c.error} />
               </Pressable>
             </View>
           </View>
