@@ -327,11 +327,13 @@ export class PriceChartingIngestService {
                 select: { code: true }
             });
 
+            const isBadCode = (c?: string | null) => !!c && c.includes('-') && /\d{3,}$/.test(c.split('-').pop() || '');
+
             const set = await this.prisma.refPriceChartingSet.upsert({
                 where: { name: data.setName },
                 update: {
                     slug: data.setSlug,
-                    code: existingSet?.code || data.setCode,
+                    code: (existingSet?.code && !isBadCode(existingSet.code)) ? existingSet.code : data.setCode,
                 },
                 create: {
                     name: data.setName,

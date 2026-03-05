@@ -38,7 +38,22 @@ export class PriceChartingParser {
         const descriptionText = $('.section-description, .description').text();
         const setCodeMatch = descriptionText.match(/Set Code:\s*([A-Z0-9-]+)/i);
         if (setCodeMatch) {
-            setCode = setCodeMatch[1].trim();
+            let code = setCodeMatch[1].trim();
+            // Refine code: One Piece codes like OP03-008 should be OP03
+            // But PRB-02 should remain PRB-02
+            const parts = code.split('-');
+            if (parts.length > 1) {
+                const lastPart = parts[parts.length - 1];
+                // If it looks like a card number (3+ digits), drop it (unless it's the only part beyond the prefix)
+                // Actually, let's use the rule: if parts[1] is 3+ digits, we stop at parts[0]
+                if (parts[1] && /^\d{3,}$/.test(parts[1])) {
+                    code = parts[0];
+                } else if (parts.length > 2 && /^\d{3,}$/.test(parts[2])) {
+                    // For PRB-01-001, parts[2] is 001
+                    code = `${parts[0]}-${parts[1]}`;
+                }
+            }
+            setCode = code;
         } else {
             // Fallback: look in all bold tags
             $('b').each((_, el) => {
@@ -115,8 +130,19 @@ export class PriceChartingParser {
         let setCode = details['Set Code'];
 
         if (!setCode && cardNumber) {
-            const match = cardNumber.match(/([A-Z]{2,}\d*-[0-9A-Z]+|[A-Z]{2,}\d+)/i);
-            if (match) setCode = match[1];
+            const match = cardNumber.match(/([A-Z]{1,}\d*-?[0-9A-Z]+|[A-Z]{1,}\d+)/i);
+            if (match) {
+                let code = match[1];
+                const parts = code.split('-');
+                if (parts.length > 1) {
+                    if (parts[1] && /^\d{3,}$/.test(parts[1])) {
+                        code = parts[0];
+                    } else if (parts.length > 2 && /^\d{3,}$/.test(parts[2])) {
+                        code = `${parts[0]}-${parts[1]}`;
+                    }
+                }
+                setCode = code;
+            }
         }
 
         // Extract Image
