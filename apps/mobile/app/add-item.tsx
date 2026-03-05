@@ -30,6 +30,8 @@ import {
   TYPE_LABELS,
   CONDITION_LABELS,
   CHANNEL_LABELS,
+  ProductType,
+  SealedIntegrity,
 } from '@/constants/types';
 
 
@@ -57,6 +59,9 @@ export default function AddItemScreen() {
   const [listedPrice, setListedPrice] = useState('');
   const [soldPrice, setSoldPrice] = useState('');
   const [soldChannel, setSoldChannel] = useState<SaleChannel | undefined>();
+  const [productType, setProductType] = useState<ProductType | undefined>();
+  const [integrity, setIntegrity] = useState<SealedIntegrity>('MINT');
+  const [language, setLanguage] = useState('');
   const [notes, setNotes] = useState('');
   const [showPricingSuggestions, setShowPricingSuggestions] = useState(false);
   const [pricingSuggestions, setPricingSuggestions] = useState<any[]>([]);
@@ -160,10 +165,23 @@ export default function AddItemScreen() {
       setType('sealed_product');
       setMarketPrice((card.sealedPrice || card.rawPrice || 0).toString());
       setCardNumber('');
+
+      // Map suggestion productType to our ProductType enum
+      let pType: ProductType = 'OTHER';
+      const suggestType = (card.productType || '').toUpperCase();
+      if (suggestType.includes('BOOSTER_BOX')) pType = 'BOOSTER_BOX';
+      else if (suggestType.includes('BOOSTER_PACK')) pType = 'BOOSTER_PACK';
+      else if (suggestType.includes('STARTER_DECK')) pType = 'STARTER_DECK';
+      else if (suggestType.includes('CASE')) pType = 'CASE';
+      else if (suggestType.includes('BUNDLE')) pType = 'BUNDLE';
+      else if (suggestType.includes('TIN')) pType = 'MINI_TIN';
+
+      setProductType(pType);
     } else {
       setType('single_card');
       setCardNumber(card.number || '');
       setMarketPrice((card.rawPrice || 0).toString());
+      setProductType(undefined);
     }
     setShowPricingSuggestions(false);
   };
@@ -203,8 +221,11 @@ export default function AddItemScreen() {
         soldPrice: soldPrice ? parseFloat(soldPrice) : undefined,
         soldChannel: stage === 'sold' ? soldChannel : undefined,
         soldDate: stage === 'sold' ? new Date().toISOString() : undefined,
+        productType: type === 'sealed_product' ? (productType || 'OTHER') : undefined,
+        integrity: type === 'sealed_product' ? integrity : undefined,
+        language: type === 'sealed_product' ? language : undefined,
         notes,
-      });
+      } as any);
 
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -357,6 +378,54 @@ export default function AddItemScreen() {
             ))}
           </View>
         </View>
+
+        {type === 'sealed_product' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Sealed Product Details</Text>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Product Type</Text>
+              <View style={styles.chipGrid}>
+                {(['BOOSTER_BOX', 'BOOSTER_PACK', 'STARTER_DECK', 'CASE', 'BUNDLE', 'OTHER'] as ProductType[]).map((pt) => (
+                  <Pressable
+                    key={pt}
+                    style={[styles.chip, productType === pt && styles.chipActive]}
+                    onPress={() => setProductType(pt)}
+                  >
+                    <Text style={[styles.chipText, productType === pt && styles.chipTextActive]}>
+                      {pt.replace('_', ' ')}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Integrity</Text>
+              <View style={styles.chipGrid}>
+                {(['MINT', 'MINOR_DENTS', 'DAMAGED', 'OPENED'] as SealedIntegrity[]).map((int) => (
+                  <Pressable
+                    key={int}
+                    style={[styles.chip, integrity === int && styles.chipActive]}
+                    onPress={() => setIntegrity(int)}
+                  >
+                    <Text style={[styles.chipText, integrity === int && styles.chipTextActive]}>
+                      {int}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Language</Text>
+              <TextInput
+                style={styles.input}
+                value={language}
+                onChangeText={setLanguage}
+                placeholder="e.g. Japanese, English"
+                placeholderTextColor={c.textTertiary}
+              />
+            </View>
+          </View>
+        )}
 
         {type === 'graded_card' && (
           <View style={styles.section}>

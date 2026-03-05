@@ -8,6 +8,8 @@ import {
   CardCondition,
   GradingCompany,
   FulfillmentOption,
+  ProductType,
+  SealedIntegrity,
 } from '@/constants/types';
 import * as api from '@/lib/api';
 import { InventoryItem as ApiInventoryItem } from '@/lib/types';
@@ -73,6 +75,11 @@ const mapApiToUiItem = (item: ApiInventoryItem): InventoryItem => {
     listedPrice: item.listingPrice ? Number(item.listingPrice) : undefined,
     soldPrice: item.stage === 'SOLD' && item.listingPrice ? Number(item.listingPrice) : undefined,
     notes: item.notes || '',
+    productType: (item as any).productType as ProductType,
+    integrity: (item as any).integrity as SealedIntegrity,
+    language: (item as any).language,
+    edition: (item as any).edition,
+    refPriceChartingProductId: item.refPriceChartingProductId,
     createdAt: item.createdAt,
     updatedAt: item.createdAt, // Fallback
   };
@@ -115,6 +122,10 @@ const mapUiToApiDto = (item: any) => {
     stage: stageMap[item.stage as ItemStage],
     condition: conditionMap[item.condition as CardCondition],
     productName: item.name,
+    productType: item.productType,
+    integrity: item.integrity,
+    language: item.language,
+    edition: item.edition,
     setName: item.setName,
     setCode: item.setCode,
     cardNumber: item.cardNumber,
@@ -125,7 +136,7 @@ const mapUiToApiDto = (item: any) => {
     listingPrice: item.stage === 'sold' ? item.soldPrice : item.listedPrice,
     notes: item.notes,
     photos: item.imageUri ? [item.imageUri] : [],
-    // Add more fields as needed based on the DTO
+    refPriceChartingProductId: item.refPriceChartingProductId,
   };
 };
 

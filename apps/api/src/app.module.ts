@@ -70,6 +70,7 @@ import { z } from 'zod';
                         .default('image/jpeg,image/png,image/webp'),
                     FACEBOOK_APP_ID: z.string().optional(),
                     FACEBOOK_APP_SECRET: z.string().optional(),
+                    GEMINI_API_KEY: z.string().optional(),
                     WEB_ORIGIN: z.string().url().default('http://localhost:3000'),
                     NEXT_PUBLIC_API_URL: z.string().url().optional(),
                     INVITE_ONLY_REGISTRATION: z

@@ -8,6 +8,23 @@ export type GradingCompany = 'PSA' | 'BGS' | 'CGC' | 'SGC' | 'ACE' | 'other';
 
 export type SaleChannel = 'ebay' | 'tcgplayer' | 'mercari' | 'facebook' | 'instagram' | 'discord' | 'in_person' | 'other';
 
+export type ProductType =
+  | 'BOOSTER_BOX'
+  | 'BOOSTER_PACK'
+  | 'STARTER_DECK'
+  | 'ILLUSTRATION_BOX'
+  | 'MINI_TIN'
+  | 'PREMIUM_BOX'
+  | 'GIFT_BOX'
+  | 'ANNIVERSARY_SET'
+  | 'PROMO_PACK'
+  | 'TOURNAMENT_KIT'
+  | 'CASE'
+  | 'BUNDLE'
+  | 'OTHER';
+
+export type SealedIntegrity = 'MINT' | 'MINOR_DENTS' | 'DAMAGED' | 'OPENED';
+
 export type FulfillmentOption = 'shipping' | 'meetups_local' | 'meetups_travel';
 
 export type PaymentMethod = 'paypal_gs' | 'venmo' | 'zelle' | 'cashapp' | 'cash' | 'crypto' | 'other';
@@ -34,6 +51,10 @@ export interface InventoryItem {
   soldDate?: string;
   notes: string;
   refPriceChartingProductId?: string;
+  productType?: ProductType;
+  integrity?: SealedIntegrity;
+  language?: string;
+  edition?: string;
   createdAt: string;
   updatedAt: string;
 }

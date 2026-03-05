@@ -7,6 +7,12 @@ export interface GradingLookupResult {
     data?: {
         gradeLabel: string;
         gradeValue: number | string;
+        subgrades?: {
+            centering?: number | string;
+            corners?: number | string;
+            edges?: number | string;
+            surface?: number | string;
+        };
         cardName: string;
         setName: string;
         cardNumber?: string;
@@ -18,6 +24,28 @@ export interface GradingLookupResult {
             backUrl?: string;
         };
         raw?: Record<string, any>;
+    };
+    error?: string;
+}
+
+export interface GradingRecognitionResult {
+    success: boolean;
+    data?: {
+        grader: Grader | string;
+        certNumber: string;
+        gradeLabel: string;
+        gradeValue: number | string;
+        subgrades?: {
+            centering?: number | string;
+            corners?: number | string;
+            edges?: number | string;
+            surface?: number | string;
+        };
+        cardName: string;
+        setName: string;
+        cardNumber?: string;
+        language?: string;
+        year?: string;
     };
     error?: string;
 }
