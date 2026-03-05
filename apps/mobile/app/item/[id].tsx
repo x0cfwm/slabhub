@@ -145,12 +145,21 @@ export default function ItemDetailScreen() {
               ${(Number(item.marketPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </Text>
           </View>
-          <View style={styles.priceCard}>
-            <Text style={styles.priceLabel}>Cost</Text>
-            <Text style={styles.priceCost}>
-              ${(Number(item.acquisitionPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </Text>
-          </View>
+          {item.listedPrice !== undefined && item.listedPrice > 0 ? (
+            <View style={styles.priceCard}>
+              <Text style={styles.priceLabel}>Listed Price</Text>
+              <Text style={styles.priceListed}>
+                ${(Number(item.listedPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.priceCard}>
+              <Text style={styles.priceLabel}>Cost</Text>
+              <Text style={styles.priceCost}>
+                ${(Number(item.acquisitionPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </Text>
+            </View>
+          )}
         </View>
 
         {item.stage === 'sold' && item.soldPrice !== undefined && (
@@ -179,8 +188,8 @@ export default function ItemDetailScreen() {
           <DetailRow label="Condition" value={CONDITION_LABELS[item.condition] || item.condition} />
           {item.gradingCompany && <DetailRow label="Grading Company" value={item.gradingCompany} />}
           {item.grade && <DetailRow label="Grade" value={item.grade} />}
-          {item.listedPrice !== undefined && (
-            <DetailRow label="Listed Price" value={`$${(Number(item.listedPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`} />
+          {item.listedPrice !== undefined && item.listedPrice > 0 && (
+            <DetailRow label="Cost" value={`$${(Number(item.acquisitionPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`} />
           )}
           <DetailRow label="Added" value={item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'} />
         </View>
@@ -303,6 +312,11 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700' as const,
     color: c.accent,
+  },
+  priceListed: {
+    fontSize: 22,
+    fontWeight: '700' as const,
+    color: c.success,
   },
   priceCost: {
     fontSize: 22,

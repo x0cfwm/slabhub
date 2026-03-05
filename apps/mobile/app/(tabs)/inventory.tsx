@@ -304,12 +304,17 @@ function InventoryCard({ item, onMove, onPress }: {
               <Text style={styles.cardPriceLabel}>Market</Text>
               <Text style={styles.cardPrice}>${item.marketPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
             </View>
-            {item.acquisitionPrice > 0 && (
+            {item.listedPrice !== undefined && item.listedPrice > 0 ? (
+              <View>
+                <Text style={styles.cardPriceLabel}>Listed</Text>
+                <Text style={styles.cardListed}>${item.listedPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
+              </View>
+            ) : item.acquisitionPrice > 0 ? (
               <View>
                 <Text style={styles.cardPriceLabel}>Cost</Text>
                 <Text style={styles.cardCost}>${item.acquisitionPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
               </View>
-            )}
+            ) : null}
             <View style={styles.cardActions}>
               <Pressable onPress={onMove} hitSlop={8}>
                 <Ionicons name="swap-horizontal" size={20} color={c.textSecondary} />
@@ -514,6 +519,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700' as const,
     color: c.accent,
+  },
+  cardListed: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: c.success,
   },
   cardCost: {
     fontSize: 14,
