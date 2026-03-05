@@ -42,10 +42,10 @@ async function main() {
     // 0. Upsert demo user
     console.log('👤 Upserting demo user...');
     const user = await prisma.user.upsert({
-        where: { email: 'nami@slabhub.gg' },
+        where: { email: 'n.obukhov.work@gmail.com' },
         update: {},
         create: {
-            email: 'nami@slabhub.gg',
+            email: 'n.obukhov.work@gmail.com',
         },
     });
     console.log(`✅ User: ${user.email} (${user.id})`);
