@@ -61,6 +61,7 @@ export default function AddItemScreen() {
   const [certNumber, setCertNumber] = useState('');
   const [refPriceChartingProductId, setRefPriceChartingProductId] = useState<string | undefined>();
   const [acquisitionPrice, setAcquisitionPrice] = useState('');
+  const [acquisitionDate, setAcquisitionDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [marketPrice, setMarketPrice] = useState('');
   const [listedPrice, setListedPrice] = useState('');
   const [soldPrice, setSoldPrice] = useState('');
@@ -313,6 +314,7 @@ export default function AddItemScreen() {
         refPriceChartingProductId,
         quantity: 1,
         acquisitionPrice: parseFloat(acquisitionPrice) || 0,
+        acquisitionDate,
         marketPrice: parseFloat(marketPrice) || 0,
         listedPrice: (stage === 'listed' || stage === 'sold') ? parseFloat(listedPrice) : undefined,
         soldPrice: stage === 'sold' ? parseFloat(soldPrice) : undefined,
@@ -608,18 +610,14 @@ export default function AddItemScreen() {
               </View>
             </View>
             <View style={[styles.field, { flex: 1 }]}>
-              <Text style={styles.fieldLabel}>Market Price</Text>
-              <View style={styles.priceInputRow}>
-                <Text style={styles.dollarSign}>$</Text>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  value={marketPrice}
-                  onChangeText={setMarketPrice}
-                  placeholder="0.00"
-                  placeholderTextColor={c.textTertiary}
-                  keyboardType="decimal-pad"
-                />
-              </View>
+              <Text style={styles.fieldLabel}>Acquisition Date</Text>
+              <TextInput
+                style={styles.input}
+                value={acquisitionDate}
+                onChangeText={setAcquisitionDate}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={c.textTertiary}
+              />
             </View>
           </View>
           {(stage === 'listed' || stage === 'sold') && (

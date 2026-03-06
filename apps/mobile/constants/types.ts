@@ -44,6 +44,7 @@ export interface InventoryItem {
   certNumber?: string;
   quantity: number;
   acquisitionPrice: number;
+  acquisitionDate?: string;
   marketPrice: number;
   marketPriceSnapshot?: number;
   listedPrice?: number;
