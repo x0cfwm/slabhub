@@ -7,14 +7,18 @@ import {
   Pressable,
   Platform,
   Alert,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
+import { useQuery } from '@tanstack/react-query';
 import { useApp } from '@/contexts/AppContext';
 import Colors from '@/constants/colors';
+import { getMarketProduct } from '@/lib/api';
+import MarketProductDetail from '@/components/pricing/MarketProductDetail';
 import {
   STAGE_LABELS,
   STAGE_ORDER,
@@ -40,9 +44,17 @@ export default function ItemDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { inventory, deleteItem, moveItem } = useApp();
+  const [modalVisible, setModalVisible] = React.useState(false);
+
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
   const item = inventory.find((i) => i.id === id);
+
+  const { data: marketProduct } = useQuery({
+    queryKey: ['marketProduct', item?.refPriceChartingProductId],
+    queryFn: () => getMarketProduct(item!.refPriceChartingProductId!),
+    enabled: !!item?.refPriceChartingProductId,
+  });
 
   if (!item) {
     return (
@@ -140,12 +152,23 @@ export default function ItemDetailScreen() {
         </View>
 
         <View style={styles.priceRow}>
-          <View style={styles.priceCard}>
-            <Text style={styles.priceLabel}>Market Price</Text>
+          <Pressable
+            style={({ pressed }) => [
+              styles.priceCard,
+              { opacity: pressed && item.refPriceChartingProductId ? 0.7 : 1 }
+            ]}
+            onPress={() => item.refPriceChartingProductId && setModalVisible(true)}
+          >
+            <View style={styles.priceLabelRow}>
+              <Text style={styles.priceLabel}>Market Price</Text>
+              {item.refPriceChartingProductId && (
+                <Ionicons name="information-circle-outline" size={14} color={c.textTertiary} />
+              )}
+            </View>
             <Text style={styles.priceValue}>
               ${(Number(item.marketPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </Text>
-          </View>
+          </Pressable>
           {item.listedPrice !== undefined && item.listedPrice > 0 ? (
             <View style={styles.priceCard}>
               <Text style={styles.priceLabel}>Listed Price</Text>
@@ -210,6 +233,18 @@ export default function ItemDetailScreen() {
           <Text style={styles.deleteBtnText}>Delete Item</Text>
         </Pressable>
       </ScrollView>
+
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <MarketProductDetail
+          product={marketProduct || null}
+          onClose={() => setModalVisible(false)}
+        />
+      </Modal>
     </View>
   );
 }
@@ -303,11 +338,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: c.borderLight,
   },
+  priceLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   priceLabel: {
     fontSize: 12,
     color: c.textTertiary,
     fontWeight: '500' as const,
-    marginBottom: 4,
   },
   priceValue: {
     fontSize: 22,
