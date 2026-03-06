@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/colors';
@@ -170,7 +171,7 @@ export default function ProfileScreen() {
             <Text style={styles.fieldLabel}>Handle (URL slug)</Text>
             {editing ? (
               <View style={styles.handleRow}>
-                <Text style={styles.handlePrefix}>slabhub.gg/</Text>
+                <Text style={styles.handlePrefix}>@</Text>
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
                   value={localProfile.handle}
@@ -181,9 +182,23 @@ export default function ProfileScreen() {
                 />
               </View>
             ) : (
-              <Text style={styles.fieldValue}>
-                {displayProfile.handle ? `slabhub.gg/${displayProfile.handle}` : 'Not set'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={styles.fieldValue}>
+                  {displayProfile.handle ? `@${displayProfile.handle}` : 'Not set'}
+                </Text>
+                {displayProfile.handle && (
+                  <Pressable
+                    style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1, padding: 4 }]}
+                    onPress={async () => {
+                      const url = `https://slabhub.gg/vendor?handle=${displayProfile.handle}`;
+                      await Clipboard.setStringAsync(url);
+                      Alert.alert('Link Copied', 'Your store link has been copied to clipboard.');
+                    }}
+                  >
+                    <Feather name="copy" size={16} color={c.accent} />
+                  </Pressable>
+                )}
+              </View>
             )}
           </View>
           <View style={styles.field}>

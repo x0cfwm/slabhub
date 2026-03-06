@@ -720,7 +720,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 20,
     gap: 16,
   },
   imageSection: {

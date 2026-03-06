@@ -199,6 +199,9 @@ importers:
       expo-blur:
         specifier: ~15.0.8
         version: 15.0.8(expo@54.0.27)(react-native@0.81.5)(react@19.1.0)
+      expo-clipboard:
+        specifier: ^55.0.8
+        version: 55.0.8(expo@54.0.27)(react-native@0.81.5)(react@19.1.0)
       expo-constants:
         specifier: ~18.0.11
         version: 18.0.11(expo@54.0.27)(react-native@0.81.5)
@@ -10085,6 +10088,18 @@ packages:
 
   /expo-blur@15.0.8(expo@54.0.27)(react-native@0.81.5)(react@19.1.0):
     resolution: {integrity: sha512-rWyE1NBRZEu9WD+X+5l7gyPRszw7n12cW3IRNAb5i6KFzaBp8cxqT5oeaphJapqURvcqhkOZn2k5EtBSbsuU7w==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+      react-native: '*'
+    dependencies:
+      expo: 54.0.27(@babel/core@7.28.6)(@expo/metro-runtime@6.1.2)(expo-router@6.0.17)(react-native@0.81.5)(react@19.1.0)
+      react: 19.1.0
+      react-native: 0.81.5(@babel/core@7.28.6)(@types/react@19.1.10)(react@19.1.0)
+    dev: false
+
+  /expo-clipboard@55.0.8(expo@54.0.27)(react-native@0.81.5)(react@19.1.0):
+    resolution: {integrity: sha512-s0Hkop+dc6m09LwzUAWweNI0gzLAaX5CgEGR8TMdOdSPKTPc2rCl8h8Ji/cUNM1wYoJQ4Wysa15E8If/Vlu7WA==}
     peerDependencies:
       expo: '*'
       react: '*'
