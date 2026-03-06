@@ -7,7 +7,8 @@ import {
     MarketSet,
     MarketPriceHistory,
     SellerProfile,
-    PortfolioHistoryEntry
+    PortfolioHistoryEntry,
+    GradingRecognitionResult
 } from "./types";
 
 export async function listInventory(): Promise<InventoryItem[]> {
@@ -126,4 +127,35 @@ export async function getMarketSyncStatus(): Promise<{ lastSyncAt: string } | nu
     } catch (e) {
         return null;
     }
+}
+
+export async function recognizeImage(uri: string): Promise<GradingRecognitionResult> {
+    const formData = new FormData();
+    const filename = uri.split('/').pop() || 'upload.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+    formData.append('file', {
+        uri,
+        name: filename,
+        type,
+    } as any);
+
+    const baseUrl = getApiUrl();
+    const token = await SecureStore.getItemAsync("slabhub_session_token");
+
+    const res = await fetch(`${baseUrl}grading/recognize`, {
+        method: 'POST',
+        headers: {
+            ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
+        body: formData,
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Recognition failed");
+    }
+
+    return res.json();
 }

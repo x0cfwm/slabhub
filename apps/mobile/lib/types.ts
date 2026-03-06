@@ -159,3 +159,27 @@ export interface PortfolioHistoryEntry {
     value: number;
     cost: number;
 }
+
+export interface GradingRecognitionResult {
+    success: boolean;
+    data?: {
+        grader: GradingCompany | string;
+        certNumber: string;
+        gradeLabel: string;
+        gradeValue: number | string;
+        subgrades?: {
+            centering?: number | string;
+            corners?: number | string;
+            edges?: number | string;
+            surface?: number | string;
+        };
+        cardName: string;
+        setName: string;
+        setCode?: string;
+        cardNumber?: string;
+        language?: string;
+        year?: string;
+    };
+    durationMs?: number;
+    error?: string;
+}

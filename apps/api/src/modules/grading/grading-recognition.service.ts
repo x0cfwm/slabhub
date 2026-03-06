@@ -85,7 +85,8 @@ export class GradingRecognitionService {
                                         },
                                         cardName: { type: SchemaType.STRING, description: 'Name of the character/card' },
                                         setName: { type: SchemaType.STRING, description: 'Name of the set or expansion' },
-                                        cardNumber: { type: SchemaType.STRING, description: 'Card number within the set' },
+                                        setCode: { type: SchemaType.STRING, description: 'Set identifier (e.g., OP05, EB01)' },
+                                        cardNumber: { type: SchemaType.STRING, description: 'Numeric card number only (e.g., 119). Exclude set code or variant prefixes.' },
                                         language: { type: SchemaType.STRING, description: 'Language of the card' },
                                         year: { type: SchemaType.STRING, description: 'Year of release' },
                                     },
@@ -100,6 +101,13 @@ export class GradingRecognitionService {
                     Extract card and grading information from this image. 
                     Focus on the grading label (usually at the top) and the card itself.
                     The grader might be Beckett (BGS), PSA, CGC, SGC, or ARS.
+
+                    IMPORTANT: 
+                    - setCode: Extract the set identifier (e.g., OP05, EB01).
+                    - cardNumber: Extract ONLY the number part (e.g., 119). Do not include the set code or prefixes like 'SP' or 'AA' here.
+                    - cardName: The full name of the card.
+                    - gradeValue: The numeric grade (e.g., 10, 9.5).
+
                     Return the result in the specified JSON format.
                 `;
 

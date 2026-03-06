@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,7 +8,10 @@ import {
   TextInput,
   Platform,
   Alert,
+  ActivityIndicator,
+  Modal,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -34,7 +37,6 @@ import {
   SealedIntegrity,
 } from '@/constants/types';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
-
 
 const c = Colors.dark;
 
@@ -66,6 +68,63 @@ export default function AddItemScreen() {
   const [notes, setNotes] = useState('');
   const [showPricingSuggestions, setShowPricingSuggestions] = useState(false);
   const [pricingSuggestions, setPricingSuggestions] = useState<any[]>([]);
+
+  // Recognition state
+  const [isRecognizing, setIsRecognizing] = useState(false);
+
+  const runRecognition = async (uri: string) => {
+    setIsRecognizing(true);
+    try {
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+
+      const result = await api.recognizeImage(uri);
+
+      if (result.success && result.data) {
+        const d = result.data;
+        if (d.cardName) setName(d.cardName);
+        if (d.setName) setSetName2(d.setName);
+        if (d.setCode) setSetCode(d.setCode);
+        if (d.cardNumber) setCardNumber(d.cardNumber);
+
+        // If it's a graded card, set the type and grading info
+        if (d.grader) {
+          setType('graded_card');
+          setCondition('raw'); // Graded is usually not raw choice
+
+          let grader = d.grader.toUpperCase();
+          if (grader === 'BECKETT') grader = 'BGS';
+
+          if (GRADING_COMPANIES.includes(grader as any)) {
+            setGradingCompany(grader as any);
+          } else {
+            setGradingCompany('other');
+          }
+
+          if (d.gradeValue) setGrade(d.gradeValue.toString());
+        }
+
+        if (d.language) setLanguage(d.language);
+
+        // Add subgrades to notes if available
+        if (d.subgrades) {
+          const sg = d.subgrades;
+          const subgradesText = `Subgrades: Centering ${sg.centering || '-'}, Corners ${sg.corners || '-'}, Edges ${sg.edges || '-'}, Surface ${sg.surface || '-'}`;
+          setNotes(prev => prev ? `${prev}\n${subgradesText}` : subgradesText);
+        }
+
+        if (Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      }
+    } catch (error) {
+      console.error("Recognition failed:", error);
+      // Don't show alert, just let user fill manually if it fails
+    } finally {
+      setIsRecognizing(false);
+    }
+  };
 
   const handleImageAction = async () => {
     if (Platform.OS === 'web') {
@@ -107,7 +166,9 @@ export default function AddItemScreen() {
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      setImageUri(uri);
+      runRecognition(uri);
     }
   };
 
@@ -124,7 +185,9 @@ export default function AddItemScreen() {
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      setImageUri(uri);
+      runRecognition(uri);
     }
   };
 
@@ -240,6 +303,23 @@ export default function AddItemScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
+      <Modal transparent visible={isRecognizing} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.recognitionContent}>
+            <ActivityIndicator size="large" color={c.accent} />
+            <Text style={styles.recognitionText}>Recognizing Card...</Text>
+            <Text style={styles.recognitionSubtext}>Extracting details with AI</Text>
+            <Pressable
+              style={styles.skipBtn}
+              onPress={() => setIsRecognizing(false)}
+            >
+              <Text style={styles.skipBtnText}>Skip</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="close" size={24} color={c.text} />
@@ -623,6 +703,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: c.textTertiary,
     fontWeight: '500' as const,
+    textTransform: 'none' as any,
   },
   section: {
     backgroundColor: c.surface,
@@ -751,5 +832,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  recognitionContent: {
+    width: '80%',
+    backgroundColor: c.surface,
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    gap: 16,
+    borderWidth: 1,
+    borderColor: c.border,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  recognitionText: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: c.text,
+  },
+  recognitionSubtext: {
+    fontSize: 14,
+    color: c.textTertiary,
+  },
+  skipBtn: {
+    marginTop: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  skipBtnText: {
+    color: c.accent,
+    fontSize: 14,
+    fontWeight: '500' as const,
   },
 });
