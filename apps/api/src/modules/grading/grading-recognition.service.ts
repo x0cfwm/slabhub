@@ -2,6 +2,7 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { GradingRecognitionResult } from './types/grading.types';
+import sharp from 'sharp';
 
 @Injectable()
 export class GradingRecognitionService {
@@ -22,71 +23,118 @@ export class GradingRecognitionService {
             throw new BadRequestException('Image recognition is not configured (missing GEMINI_API_KEY)');
         }
 
+        // Prioritize "lite" and "latest" models for speed. 
+        // gemini-2.0-flash-lite and gemini-flash-lite-latest are typically much faster.
+        const modelNames = [
+            'gemini-2.0-flash-lite',
+            'gemini-flash-lite-latest',
+            'gemini-flash-latest',
+            'gemini-2.5-flash',
+        ];
+
+        let lastError: Error | null = null;
+        const startTime = Date.now();
+        let processingBuffer = buffer;
+
         try {
-            const model = this.genAI.getGenerativeModel({
-                model: 'gemini-2.0-flash',
-                generationConfig: {
-                    responseMimeType: 'application/json',
-                    responseSchema: {
-                        type: SchemaType.OBJECT,
-                        properties: {
-                            success: { type: SchemaType.BOOLEAN },
-                            data: {
-                                type: SchemaType.OBJECT,
-                                properties: {
-                                    grader: { type: SchemaType.STRING, description: 'Grader name (PSA, BGS, Beckett, CGC, SGC, ARS)' },
-                                    certNumber: { type: SchemaType.STRING, description: 'Certification number' },
-                                    gradeLabel: { type: SchemaType.STRING, description: 'Full grade label (e.g. PRISTINE 10, GEM MT 10)' },
-                                    gradeValue: { type: SchemaType.STRING, description: 'Numeric grade value (e.g. 10, 9.5)' },
-                                    subgrades: {
-                                        type: SchemaType.OBJECT,
-                                        properties: {
-                                            centering: { type: SchemaType.STRING },
-                                            corners: { type: SchemaType.STRING },
-                                            edges: { type: SchemaType.STRING },
-                                            surface: { type: SchemaType.STRING },
-                                        }
+            // Optimization: Resize image if it's likely too large.
+            // Gemini doesn't need 4K for OCR. 1024px is plenty.
+            const image = sharp(buffer);
+            const metadata = await image.metadata();
+
+            if (metadata.width && metadata.height && (metadata.width > 1280 || metadata.height > 1280)) {
+                this.logger.debug(`Resizing image from ${metadata.width}x${metadata.height} to max 1280px`);
+                processingBuffer = await image
+                    .resize(1280, 1280, { fit: 'inside', withoutEnlargement: true })
+                    .jpeg({ quality: 85 }) // Convert to JPEG 85% for optimal size/quality
+                    .toBuffer();
+                this.logger.debug(`Reduced size from ${buffer.length} to ${processingBuffer.length} bytes`);
+            }
+        } catch (e) {
+            this.logger.warn(`Failed to process/resize image: ${e.message}. Using original.`);
+        }
+
+        const base64Data = processingBuffer.toString('base64');
+
+        for (const modelName of modelNames) {
+            try {
+                this.logger.debug(`Attempting recognition with model: ${modelName}`);
+                const model = this.genAI.getGenerativeModel({
+                    model: modelName,
+                    generationConfig: {
+                        responseMimeType: 'application/json',
+                        responseSchema: {
+                            type: SchemaType.OBJECT,
+                            properties: {
+                                success: { type: SchemaType.BOOLEAN },
+                                data: {
+                                    type: SchemaType.OBJECT,
+                                    properties: {
+                                        grader: { type: SchemaType.STRING, description: 'Grader name (PSA, BGS, Beckett, CGC, SGC, ARS)' },
+                                        certNumber: { type: SchemaType.STRING, description: 'Certification number' },
+                                        gradeLabel: { type: SchemaType.STRING, description: 'Full grade label (e.g. PRISTINE 10, GEM MT 10)' },
+                                        gradeValue: { type: SchemaType.STRING, description: 'Numeric grade value (e.g. 10, 9.5)' },
+                                        subgrades: {
+                                            type: SchemaType.OBJECT,
+                                            properties: {
+                                                centering: { type: SchemaType.STRING },
+                                                corners: { type: SchemaType.STRING },
+                                                edges: { type: SchemaType.STRING },
+                                                surface: { type: SchemaType.STRING },
+                                            }
+                                        },
+                                        cardName: { type: SchemaType.STRING, description: 'Name of the character/card' },
+                                        setName: { type: SchemaType.STRING, description: 'Name of the set or expansion' },
+                                        cardNumber: { type: SchemaType.STRING, description: 'Card number within the set' },
+                                        language: { type: SchemaType.STRING, description: 'Language of the card' },
+                                        year: { type: SchemaType.STRING, description: 'Year of release' },
                                     },
-                                    cardName: { type: SchemaType.STRING, description: 'Name of the character/card' },
-                                    setName: { type: SchemaType.STRING, description: 'Name of the set or expansion' },
-                                    cardNumber: { type: SchemaType.STRING, description: 'Card number within the set' },
-                                    language: { type: SchemaType.STRING, description: 'Language of the card' },
-                                    year: { type: SchemaType.STRING, description: 'Year of release' },
+                                    required: ['grader', 'certNumber', 'gradeValue', 'cardName', 'setName'],
                                 },
-                                required: ['grader', 'certNumber', 'gradeValue', 'cardName', 'setName'],
                             },
                         },
                     },
-                },
-            });
+                });
 
-            const prompt = `
-                Extract card and grading information from this image. 
-                Focus on the grading label (usually at the top) and the card itself.
-                The grader might be Beckett (BGS), PSA, CGC, SGC, or ARS.
-                Return the result in the specified JSON format.
-            `;
+                const prompt = `
+                    Extract card and grading information from this image. 
+                    Focus on the grading label (usually at the top) and the card itself.
+                    The grader might be Beckett (BGS), PSA, CGC, SGC, or ARS.
+                    Return the result in the specified JSON format.
+                `;
 
-            const result = await model.generateContent([
-                prompt,
-                {
-                    inlineData: {
-                        data: buffer.toString('base64'),
-                        mimeType,
+                const result = await model.generateContent([
+                    prompt,
+                    {
+                        inlineData: {
+                            data: base64Data,
+                            mimeType: 'image/jpeg', // We converted to jpeg if resized, otherwise assume jpeg/png is fine
+                        },
                     },
-                },
-            ]);
+                ]);
 
-            const responseText = result.response.text();
-            this.logger.debug(`Gemini response: ${responseText}`);
+                const responseText = result.response.text();
+                this.logger.debug(`Gemini response: ${responseText}`);
 
-            return JSON.parse(responseText) as GradingRecognitionResult;
-        } catch (error) {
-            this.logger.error(`Recognition failed: ${error.message}`, error.stack);
-            return {
-                success: false,
-                error: `Failed to recognize image: ${error.message}`,
-            };
+                const parsed = JSON.parse(responseText) as GradingRecognitionResult;
+                return {
+                    ...parsed,
+                    durationMs: Date.now() - startTime,
+                };
+            } catch (error) {
+                this.logger.warn(`Model ${modelName} failed: ${error.message}`);
+                lastError = error;
+                if (error.message.includes('429')) {
+                    break;
+                }
+                continue;
+            }
         }
+
+        return {
+            success: false,
+            error: lastError?.message || 'Recognition failed with all attempted models',
+            durationMs: Date.now() - startTime,
+        };
     }
 }

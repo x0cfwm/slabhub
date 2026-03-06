@@ -47,5 +47,6 @@ export interface GradingRecognitionResult {
         language?: string;
         year?: string;
     };
+    durationMs?: number;
     error?: string;
 }

@@ -49,10 +49,10 @@ export class GradingTestCommand extends CommandRunner {
         const result = await this.recognitionService.recognizeFromImage(buffer, mimeType);
 
         if (result.success) {
-            console.log('Recognition successful!');
+            console.log(`Recognition successful! (took ${result.durationMs}ms)`);
             console.log(JSON.stringify(result.data, null, 2));
         } else {
-            console.error('Recognition failed!');
+            console.error(`Recognition failed! (took ${result.durationMs}ms)`);
             console.error(result.error);
         }
     }
