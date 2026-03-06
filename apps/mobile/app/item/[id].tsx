@@ -10,7 +10,7 @@ import {
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
@@ -123,6 +123,12 @@ export default function ItemDetailScreen() {
           <Ionicons name="arrow-back" size={24} color={c.text} />
         </Pressable>
         <View style={styles.headerActions}>
+          <Pressable
+            style={({ pressed }) => [styles.editBtn, { opacity: pressed ? 0.8 : 1 }]}
+            onPress={() => router.push(`/add-item?id=${item.id}`)}
+          >
+            <Feather name="edit-2" size={18} color={c.accent} />
+          </Pressable>
           <Pressable onPress={handleMove} hitSlop={8}>
             <Ionicons name="swap-horizontal" size={24} color={c.textSecondary} />
           </Pressable>
@@ -272,8 +278,18 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
     alignItems: 'center',
+  },
+  editBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: c.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: c.borderLight,
   },
   scrollView: {
     flex: 1,

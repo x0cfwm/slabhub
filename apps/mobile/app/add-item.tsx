@@ -15,7 +15,7 @@ import { BlurView } from 'expo-blur';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -45,31 +45,36 @@ const GRADING_COMPANIES: GradingCompany[] = ['BGS', 'PSA', 'OTHER'];
 
 export default function AddItemScreen() {
   const insets = useSafeAreaInsets();
-  const { addItem } = useApp();
+  const { addItem, updateItem, inventory } = useApp();
+  const { id } = useLocalSearchParams<{ id?: string }>();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
-  const [name, setName] = useState('');
-  const [setCode, setSetCode] = useState('');
-  const [setName2, setSetName2] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [imageUri, setImageUri] = useState('');
-  const [type, setType] = useState<ItemType>('single_card');
-  const [stage, setStage] = useState<ItemStage>('acquired');
-  const [condition, setCondition] = useState<CardCondition>('raw');
-  const [gradingCompany, setGradingCompany] = useState<GradingCompany | undefined>();
-  const [grade, setGrade] = useState('');
-  const [certNumber, setCertNumber] = useState('');
-  const [refPriceChartingProductId, setRefPriceChartingProductId] = useState<string | undefined>();
-  const [acquisitionPrice, setAcquisitionPrice] = useState('');
-  const [acquisitionDate, setAcquisitionDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [marketPrice, setMarketPrice] = useState('');
-  const [listedPrice, setListedPrice] = useState('');
-  const [soldPrice, setSoldPrice] = useState('');
-  const [soldChannel, setSoldChannel] = useState<SaleChannel | undefined>();
-  const [productType, setProductType] = useState<ProductType | undefined>();
-  const [integrity, setIntegrity] = useState<SealedIntegrity>('MINT');
-  const [language, setLanguage] = useState('');
-  const [notes, setNotes] = useState('');
+  const editingItem = useMemo(() => {
+    return id ? inventory.find((i) => i.id === id) : null;
+  }, [id, inventory]);
+
+  const [name, setName] = useState(editingItem?.name || '');
+  const [setCode, setSetCode] = useState(editingItem?.setCode || '');
+  const [setName2, setSetName2] = useState(editingItem?.setName || '');
+  const [cardNumber, setCardNumber] = useState(editingItem?.cardNumber || '');
+  const [imageUri, setImageUri] = useState(editingItem?.imageUri || '');
+  const [type, setType] = useState<ItemType>(editingItem?.type || 'single_card');
+  const [stage, setStage] = useState<ItemStage>(editingItem?.stage || 'acquired');
+  const [condition, setCondition] = useState<CardCondition>(editingItem?.condition || 'raw');
+  const [gradingCompany, setGradingCompany] = useState<GradingCompany | undefined>(editingItem?.gradingCompany);
+  const [grade, setGrade] = useState(editingItem?.grade || '');
+  const [certNumber, setCertNumber] = useState(editingItem?.certNumber || '');
+  const [refPriceChartingProductId, setRefPriceChartingProductId] = useState<string | undefined>(editingItem?.refPriceChartingProductId);
+  const [acquisitionPrice, setAcquisitionPrice] = useState(editingItem?.acquisitionPrice?.toString() || '');
+  const [acquisitionDate, setAcquisitionDate] = useState(() => editingItem?.acquisitionDate || new Date().toISOString().split('T')[0]);
+  const [marketPrice, setMarketPrice] = useState(editingItem?.marketPrice?.toString() || '');
+  const [listedPrice, setListedPrice] = useState(editingItem?.listedPrice?.toString() || '');
+  const [soldPrice, setSoldPrice] = useState(editingItem?.soldPrice?.toString() || '');
+  const [soldChannel, setSoldChannel] = useState<SaleChannel | undefined>(editingItem?.soldChannel);
+  const [productType, setProductType] = useState<ProductType | undefined>(editingItem?.productType);
+  const [integrity, setIntegrity] = useState<SealedIntegrity>(editingItem?.integrity || 'MINT');
+  const [language, setLanguage] = useState(editingItem?.language || '');
+  const [notes, setNotes] = useState(editingItem?.notes || '');
   const [showPricingSuggestions, setShowPricingSuggestions] = useState(false);
   const [pricingSuggestions, setPricingSuggestions] = useState<any[]>([]);
 
@@ -293,8 +298,8 @@ export default function AddItemScreen() {
     try {
       let finalImageUri = imageUri;
 
-      // If we have a local image, upload it first
-      if (imageUri && !imageUri.startsWith('http')) {
+      // If we have a local image and it changed, upload it first
+      if (imageUri && !imageUri.startsWith('http') && imageUri !== editingItem?.imageUri) {
         const { url } = await api.uploadMedia(imageUri);
         finalImageUri = url;
       }
@@ -326,7 +331,11 @@ export default function AddItemScreen() {
         notes,
       };
 
-      await addItem(newItem as any);
+      if (editingItem) {
+        await updateItem(editingItem.id, newItem as any);
+      } else {
+        await addItem(newItem as any);
+      }
 
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -361,7 +370,7 @@ export default function AddItemScreen() {
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="close" size={24} color={c.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>Add Item</Text>
+        <Text style={styles.headerTitle}>{editingItem ? 'Edit Item' : 'Add Item'}</Text>
         <Pressable
           style={({ pressed }) => [styles.saveBtn, { opacity: pressed ? 0.8 : 1 }, !name.trim() && { opacity: 0.4 }]}
           onPress={handleSave}
