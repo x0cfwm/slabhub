@@ -43,9 +43,12 @@ export interface GradingRecognitionResult {
         };
         cardName: string;
         setName: string;
+        setCode?: string;
         cardNumber?: string;
         language?: string;
         year?: string;
+        refPriceChartingProductId?: string;
+        marketPrice?: number;
     };
     durationMs?: number;
     error?: string;

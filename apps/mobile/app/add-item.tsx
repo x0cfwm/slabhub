@@ -59,6 +59,7 @@ export default function AddItemScreen() {
   const [gradingCompany, setGradingCompany] = useState<GradingCompany | undefined>();
   const [grade, setGrade] = useState('');
   const [certNumber, setCertNumber] = useState('');
+  const [refPriceChartingProductId, setRefPriceChartingProductId] = useState<string | undefined>();
   const [acquisitionPrice, setAcquisitionPrice] = useState('');
   const [marketPrice, setMarketPrice] = useState('');
   const [listedPrice, setListedPrice] = useState('');
@@ -110,6 +111,8 @@ export default function AddItemScreen() {
         }
 
         if (d.language) setLanguage(d.language);
+        if (d.refPriceChartingProductId) setRefPriceChartingProductId(d.refPriceChartingProductId);
+        if (d.marketPrice) setMarketPrice(d.marketPrice.toString());
 
         // Add subgrades to notes if available
         if (d.subgrades) {
@@ -216,6 +219,7 @@ export default function AddItemScreen() {
     setName(card.name);
     setSetCode(card.setCode || '');
     setSetName2(card.set || '');
+    setRefPriceChartingProductId(card.id);
 
     const isSealed =
       card.productType?.includes('BOX') ||
@@ -281,6 +285,7 @@ export default function AddItemScreen() {
         gradingCompany: type === 'graded_card' ? gradingCompany : undefined,
         grade: type === 'graded_card' ? grade : undefined,
         certNumber: type === 'graded_card' ? certNumber : undefined,
+        refPriceChartingProductId,
         quantity: 1,
         acquisitionPrice: parseFloat(acquisitionPrice) || 0,
         marketPrice: parseFloat(marketPrice) || 0,

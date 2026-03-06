@@ -180,6 +180,8 @@ export interface GradingRecognitionResult {
         cardNumber?: string;
         language?: string;
         year?: string;
+        refPriceChartingProductId?: string;
+        marketPrice?: number;
     };
     durationMs?: number;
     error?: string;

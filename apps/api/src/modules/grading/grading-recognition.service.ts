@@ -3,13 +3,17 @@ import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { GradingRecognitionResult } from './types/grading.types';
 import sharp from 'sharp';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class GradingRecognitionService {
     private readonly logger = new Logger(GradingRecognitionService.name);
     private readonly genAI: GoogleGenerativeAI | null = null;
 
-    constructor(private readonly configService: ConfigService) {
+    constructor(
+        private readonly configService: ConfigService,
+        private readonly prisma: PrismaService,
+    ) {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (apiKey) {
             this.genAI = new GoogleGenerativeAI(apiKey);
@@ -162,6 +166,46 @@ export class GradingRecognitionService {
                 this.logger.debug(`Gemini response: ${responseText}`);
 
                 const parsed = JSON.parse(responseText) as GradingRecognitionResult;
+
+                // Lookup PriceCharting ID if possible
+                if (parsed.success && parsed.data) {
+                    const { setCode, cardNumber } = parsed.data;
+                    if (setCode && cardNumber) {
+                        try {
+                            // 1. Find the set by its code
+                            const set = await this.prisma.refPriceChartingSet.findFirst({
+                                where: {
+                                    code: { contains: setCode, mode: 'insensitive' }
+                                }
+                            });
+
+                            if (set) {
+                                // 2. Find the product in that set by card number
+                                const matchedProduct = await this.prisma.refPriceChartingProduct.findFirst({
+                                    where: {
+                                        setId: set.id,
+                                        cardNumber: { contains: cardNumber, mode: 'insensitive' }
+                                    }
+                                });
+
+                                if (matchedProduct) {
+                                    this.logger.debug(`Matched product: ${matchedProduct.title} (${matchedProduct.id})`);
+                                    parsed.data.refPriceChartingProductId = matchedProduct.id;
+                                    if (matchedProduct.rawPrice) {
+                                        parsed.data.marketPrice = Number(matchedProduct.rawPrice);
+                                    }
+                                } else {
+                                    this.logger.debug(`No PriceCharting product found in set ${set.name} for cardNumber=${cardNumber}`);
+                                }
+                            } else {
+                                this.logger.debug(`No PriceCharting set found with code=${setCode}`);
+                            }
+                        } catch (lookupError) {
+                            this.logger.warn(`PriceCharting lookup failed: ${lookupError.message}`);
+                        }
+                    }
+                }
+
                 return {
                     ...parsed,
                     durationMs: Date.now() - startTime,
