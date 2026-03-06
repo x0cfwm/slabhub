@@ -41,6 +41,7 @@ export interface InventoryItem {
   condition: CardCondition;
   gradingCompany?: GradingCompany;
   grade?: string;
+  certNumber?: string;
   quantity: number;
   acquisitionPrice: number;
   marketPrice: number;

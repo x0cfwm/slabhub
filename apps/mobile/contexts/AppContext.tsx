@@ -131,6 +131,7 @@ const mapUiToApiDto = (item: any) => {
     cardNumber: item.cardNumber,
     gradeProvider: (item as any).gradingCompany,
     gradeValue: (item as any).grade,
+    certificationNumber: (item as any).certNumber,
     quantity: item.quantity || 1,
     acquisitionPrice: item.acquisitionPrice,
     listingPrice: item.stage === 'sold' ? item.soldPrice : item.listedPrice,

@@ -25,6 +25,7 @@ import Colors from '@/constants/colors';
 import {
   ItemStage,
   ItemType,
+  InventoryItem,
   CardCondition,
   GradingCompany,
   SaleChannel,
@@ -57,6 +58,7 @@ export default function AddItemScreen() {
   const [condition, setCondition] = useState<CardCondition>('raw');
   const [gradingCompany, setGradingCompany] = useState<GradingCompany | undefined>();
   const [grade, setGrade] = useState('');
+  const [certNumber, setCertNumber] = useState('');
   const [acquisitionPrice, setAcquisitionPrice] = useState('');
   const [marketPrice, setMarketPrice] = useState('');
   const [listedPrice, setListedPrice] = useState('');
@@ -103,6 +105,8 @@ export default function AddItemScreen() {
           }
 
           if (d.gradeValue) setGrade(d.gradeValue.toString());
+          if (d.certificationNumber) setCertNumber(d.certificationNumber);
+          else if (d.certNumber) setCertNumber(d.certNumber);
         }
 
         if (d.language) setLanguage(d.language);
@@ -265,29 +269,32 @@ export default function AddItemScreen() {
         finalImageUri = url;
       }
 
-      await addItem({
+      const newItem: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'> = {
         name: name.trim(),
         setCode,
-        setName: setName2,
-        cardNumber: cardNumber,
+        setName: setName2 || name,
+        cardNumber,
         imageUri: finalImageUri,
         type,
         stage,
         condition,
         gradingCompany: type === 'graded_card' ? gradingCompany : undefined,
         grade: type === 'graded_card' ? grade : undefined,
+        certNumber: type === 'graded_card' ? certNumber : undefined,
         quantity: 1,
         acquisitionPrice: parseFloat(acquisitionPrice) || 0,
         marketPrice: parseFloat(marketPrice) || 0,
-        listedPrice: listedPrice ? parseFloat(listedPrice) : undefined,
-        soldPrice: soldPrice ? parseFloat(soldPrice) : undefined,
+        listedPrice: (stage === 'listed' || stage === 'sold') ? parseFloat(listedPrice) : undefined,
+        soldPrice: stage === 'sold' ? parseFloat(soldPrice) : undefined,
         soldChannel: stage === 'sold' ? soldChannel : undefined,
         soldDate: stage === 'sold' ? new Date().toISOString() : undefined,
         productType: type === 'sealed_product' ? (productType || 'OTHER') : undefined,
         integrity: type === 'sealed_product' ? integrity : undefined,
         language: type === 'sealed_product' ? language : undefined,
         notes,
-      } as any);
+      };
+
+      await addItem(newItem as any);
 
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -538,6 +545,16 @@ export default function AddItemScreen() {
                 placeholder="e.g. 10, 9.5"
                 placeholderTextColor={c.textTertiary}
                 keyboardType="decimal-pad"
+              />
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Cert Number</Text>
+              <TextInput
+                style={styles.input}
+                value={certNumber}
+                onChangeText={setCertNumber}
+                placeholder="Certification number"
+                placeholderTextColor={c.textTertiary}
               />
             </View>
           </View>

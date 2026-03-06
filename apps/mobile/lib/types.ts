@@ -173,6 +173,7 @@ export interface GradingRecognitionResult {
             edges?: number | string;
             surface?: number | string;
         };
+        certificationNumber?: string;
         cardName: string;
         setName: string;
         setCode?: string;

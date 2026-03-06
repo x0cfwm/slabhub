@@ -71,7 +71,8 @@ export class GradingRecognitionService {
                                     type: SchemaType.OBJECT,
                                     properties: {
                                         grader: { type: SchemaType.STRING, description: 'Grader name (PSA, BGS, OTHER)' },
-                                        certNumber: { type: SchemaType.STRING, description: 'Certification number' },
+                                        certNumber: { type: SchemaType.STRING, description: 'Certification number (PSA/BGS cert)' },
+                                        certificationNumber: { type: SchemaType.STRING, description: 'Slab certification / cert number from the grading label only' },
                                         gradeLabel: { type: SchemaType.STRING, description: 'Full grade label (e.g. PRISTINE 10, GEM MT 10)' },
                                         gradeValue: { type: SchemaType.STRING, description: 'Numeric grade value (e.g. 10, 9.5)' },
                                         subgrades: {
@@ -135,9 +136,14 @@ export class GradingRecognitionService {
                     3. cardName
                     Return the full card name exactly as printed.
 
-                    4. gradeValue
-                    Extract the numeric grade on the slab (e.g. 10, 9.5).
+                    5. certificationNumber
+                    Extract the slab certification / cert number from the grading label only.
+                    Do not infer it from the card.
+                    Do not confuse it with the card number.
 
+                    Examples:
+                    - BGS label "... 0018431564" -> certificationNumber = "0018431564"
+                    - PSA label "... Cert 12345678" -> certificationNumber = "12345678"
 
                     Return the result in the specified JSON format.
                 `;
