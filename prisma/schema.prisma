@@ -400,6 +400,7 @@ enum GradeProvider {
   CGC
   ARS
   SGC
+  OTHER
 }
 
 enum Condition {

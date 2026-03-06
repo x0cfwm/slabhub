@@ -2,7 +2,7 @@ export type Game = "MAGIC" | "POKEMON" | "ONE_PIECE" | "LORCANA" | "YU_GI_OH";
 
 export type Condition = "NM" | "LP" | "MP" | "HP" | "DMG";
 
-export type GradingCompany = "PSA" | "BGS" | "CGC" | "ARS" | "SGC";
+export type GradingCompany = "PSA" | "BGS" | "OTHER";
 
 export type InventoryStage =
     | "ACQUIRED"

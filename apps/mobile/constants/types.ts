@@ -4,7 +4,7 @@ export type ItemType = 'single_card' | 'sealed_product' | 'graded_card';
 
 export type CardCondition = 'raw' | 'near_mint' | 'lightly_played' | 'moderately_played' | 'heavily_played' | 'damaged';
 
-export type GradingCompany = 'PSA' | 'BGS' | 'CGC' | 'SGC' | 'ACE' | 'other';
+export type GradingCompany = 'PSA' | 'BGS' | 'OTHER';
 
 export type SaleChannel = 'ebay' | 'tcgplayer' | 'mercari' | 'facebook' | 'instagram' | 'discord' | 'in_person' | 'other';
 

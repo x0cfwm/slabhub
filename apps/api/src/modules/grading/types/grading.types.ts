@@ -1,4 +1,4 @@
-export type Grader = "PSA" | "BGS" | "CGC" | "SGC" | "ARS";
+export type Grader = "PSA" | "BGS" | "OTHER";
 
 export interface GradingLookupResult {
     grader: Grader;

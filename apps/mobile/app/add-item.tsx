@@ -40,7 +40,7 @@ import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 const c = Colors.dark;
 
-const GRADING_COMPANIES: GradingCompany[] = ['PSA', 'BGS', 'CGC', 'SGC', 'ACE', 'other'];
+const GRADING_COMPANIES: GradingCompany[] = ['BGS', 'PSA', 'OTHER'];
 
 export default function AddItemScreen() {
   const insets = useSafeAreaInsets();
@@ -99,7 +99,7 @@ export default function AddItemScreen() {
           if (GRADING_COMPANIES.includes(grader as any)) {
             setGradingCompany(grader as any);
           } else {
-            setGradingCompany('other');
+            setGradingCompany('OTHER');
           }
 
           if (d.gradeValue) setGrade(d.gradeValue.toString());
@@ -161,8 +161,7 @@ export default function AddItemScreen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [3, 4],
+      allowsEditing: false,
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
@@ -180,8 +179,7 @@ export default function AddItemScreen() {
     }
 
     const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [3, 4],
+      allowsEditing: false,
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {

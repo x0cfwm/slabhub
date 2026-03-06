@@ -54,7 +54,7 @@ const STAGES: { value: InventoryStage; label: string }[] = [
     { value: "SOLD", label: "Sold" },
 ];
 
-const GRADING_COMPANIES: GradingCompany[] = ["PSA", "BGS"];
+const GRADING_COMPANIES: GradingCompany[] = ["BGS", "PSA", "OTHER"];
 const CONDITIONS: { value: Condition; label: string }[] = [
     { value: "NM", label: "Near Mint" },
     { value: "LP", label: "Lightly Played" },

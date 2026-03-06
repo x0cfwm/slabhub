@@ -70,7 +70,7 @@ export class GradingRecognitionService {
                                 data: {
                                     type: SchemaType.OBJECT,
                                     properties: {
-                                        grader: { type: SchemaType.STRING, description: 'Grader name (PSA, BGS, Beckett, CGC, SGC, ARS)' },
+                                        grader: { type: SchemaType.STRING, description: 'Grader name (PSA, BGS, OTHER)' },
                                         certNumber: { type: SchemaType.STRING, description: 'Certification number' },
                                         gradeLabel: { type: SchemaType.STRING, description: 'Full grade label (e.g. PRISTINE 10, GEM MT 10)' },
                                         gradeValue: { type: SchemaType.STRING, description: 'Numeric grade value (e.g. 10, 9.5)' },
@@ -98,15 +98,46 @@ export class GradingRecognitionService {
                 });
 
                 const prompt = `
+                    You are an expert in trading cards specializing in One Piece and Pockemon.
                     Extract card and grading information from this image. 
                     Focus on the grading label (usually at the top) and the card itself.
-                    The grader might be Beckett (BGS), PSA, CGC, SGC, or ARS.
+                    The grader might be PSA, BGS or OTHER.
 
-                    IMPORTANT: 
-                    - setCode: Extract the set identifier (e.g., OP05, EB01).
-                    - cardNumber: Extract ONLY the number part (e.g., 119). Do not include the set code or prefixes like 'SP' or 'AA' here.
-                    - cardName: The full name of the card.
-                    - gradeValue: The numeric grade (e.g., 10, 9.5).
+                    IMPORTANT PARSING RULES:
+
+                    1. setCode
+                    Extract the set identifier used in One Piece TCG.
+                    Examples:
+                    OP01
+                    OP02
+                    OP05
+                    EB01
+                    ST01
+
+                    If the card code appears as "OP05-119", "OP05 119", or "OP05-0119":
+                    setCode = "OP05"
+
+                    2. cardNumber
+                    Extract ONLY the numeric portion of the card number.
+
+                    Rules:
+                    - Remove the set code (OP05, OP09, etc.)
+                    - Remove prefixes like SP, AA, SEC
+                    - Remove leading zeros
+                    - Return only the integer portion
+
+                    Examples:
+                    OP05-119 → cardNumber = "119"
+                    OP09-0118 → cardNumber = "118"
+                    OP09-09118 → cardNumber = "118"
+                    SP OP05-119 → cardNumber = "119"
+
+                    3. cardName
+                    Return the full card name exactly as printed.
+
+                    4. gradeValue
+                    Extract the numeric grade on the slab (e.g. 10, 9.5).
+
 
                     Return the result in the specified JSON format.
                 `;
