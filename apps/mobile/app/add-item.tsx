@@ -216,8 +216,33 @@ export default function AddItemScreen() {
   };
 
   const selectSuggestion = (card: any) => {
+    let finalSetCode = card.setCode || '';
+    let finalCardNumber = card.number || '';
+
+    // Handle case where card number is prefixed with #
+    if (finalCardNumber.startsWith('#')) {
+      finalCardNumber = finalCardNumber.substring(1);
+    }
+
+    // If setCode is missing, try to extract it from the number (e.g., "OP01-078")
+    if (!finalSetCode && finalCardNumber.includes('-')) {
+      const parts = finalCardNumber.split('-');
+      if (parts.length === 2) {
+        finalSetCode = parts[0];
+        finalCardNumber = parts[1];
+      }
+    } else if (finalSetCode && finalCardNumber.startsWith(finalSetCode)) {
+      // If number starts with set code, strip it (e.g., setCode="OP01", number="OP01-078")
+      const suffix = finalCardNumber.substring(finalSetCode.length);
+      if (suffix.startsWith('-')) {
+        finalCardNumber = suffix.substring(1);
+      } else if (/^\d+$/.test(suffix)) {
+        finalCardNumber = suffix;
+      }
+    }
+
     setName(card.name);
-    setSetCode(card.setCode || '');
+    setSetCode(finalSetCode);
     setSetName2(card.set || '');
     setRefPriceChartingProductId(card.id);
 
@@ -249,7 +274,7 @@ export default function AddItemScreen() {
       setProductType(pType);
     } else {
       setType('single_card');
-      setCardNumber(card.number || '');
+      setCardNumber(finalCardNumber);
       setMarketPrice((card.rawPrice || 0).toString());
       setProductType(undefined);
     }
