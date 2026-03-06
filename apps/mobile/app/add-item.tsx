@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -77,6 +77,19 @@ export default function AddItemScreen() {
   const [notes, setNotes] = useState(editingItem?.notes || '');
   const [showPricingSuggestions, setShowPricingSuggestions] = useState(false);
   const [pricingSuggestions, setPricingSuggestions] = useState<any[]>([]);
+
+  // Background upload state
+  const uploadPromiseRef = useRef<{ uri: string; promise: Promise<string> } | null>(null);
+
+  const startBackgroundUpload = (uri: string) => {
+    if (!uri || uri.startsWith('http')) return;
+
+    // Start upload and store the promise so we can await it on save
+    uploadPromiseRef.current = {
+      uri,
+      promise: api.uploadMedia(uri).then(res => res.url),
+    };
+  };
 
   // Recognition state
   const [isRecognizing, setIsRecognizing] = useState(false);
@@ -180,6 +193,7 @@ export default function AddItemScreen() {
     if (!result.canceled && result.assets[0]) {
       const uri = result.assets[0].uri;
       setImageUri(uri);
+      startBackgroundUpload(uri);
       runRecognition(uri);
     }
   };
@@ -198,6 +212,7 @@ export default function AddItemScreen() {
     if (!result.canceled && result.assets[0]) {
       const uri = result.assets[0].uri;
       setImageUri(uri);
+      startBackgroundUpload(uri);
       runRecognition(uri);
     }
   };
@@ -287,6 +302,8 @@ export default function AddItemScreen() {
     setShowPricingSuggestions(false);
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleSave = async () => {
     if (!name.trim()) {
       if (Platform.OS !== 'web') {
@@ -295,13 +312,25 @@ export default function AddItemScreen() {
       return;
     }
 
+    setIsSaving(true);
     try {
       let finalImageUri = imageUri;
 
       // If we have a local image and it changed, upload it first
       if (imageUri && !imageUri.startsWith('http') && imageUri !== editingItem?.imageUri) {
-        const { url } = await api.uploadMedia(imageUri);
-        finalImageUri = url;
+        if (uploadPromiseRef.current?.uri === imageUri) {
+          try {
+            // Wait for the background upload to finish
+            finalImageUri = await uploadPromiseRef.current.promise;
+          } catch (e) {
+            // Fallback if background upload failed
+            const { url } = await api.uploadMedia(imageUri);
+            finalImageUri = url;
+          }
+        } else {
+          const { url } = await api.uploadMedia(imageUri);
+          finalImageUri = url;
+        }
       }
 
       const newItem: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -344,6 +373,8 @@ export default function AddItemScreen() {
     } catch (e) {
       console.error('Failed to save item:', e);
       Alert.alert('Error', 'Failed to save item. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -372,11 +403,15 @@ export default function AddItemScreen() {
         </Pressable>
         <Text style={styles.headerTitle}>{editingItem ? 'Edit Item' : 'Add Item'}</Text>
         <Pressable
-          style={({ pressed }) => [styles.saveBtn, { opacity: pressed ? 0.8 : 1 }, !name.trim() && { opacity: 0.4 }]}
+          style={({ pressed }) => [styles.saveBtn, { opacity: pressed ? 0.8 : 1 }, (!name.trim() || isSaving) && { opacity: 0.4 }]}
           onPress={handleSave}
-          disabled={!name.trim()}
+          disabled={!name.trim() || isSaving}
         >
-          <Ionicons name="checkmark" size={20} color={c.accentText} />
+          {isSaving ? (
+            <ActivityIndicator size="small" color={c.accentText} />
+          ) : (
+            <Ionicons name="checkmark" size={20} color={c.accentText} />
+          )}
         </Pressable>
       </View>
 

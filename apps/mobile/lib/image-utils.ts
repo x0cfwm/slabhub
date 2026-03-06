@@ -1,3 +1,5 @@
+import * as ImageManipulator from 'expo-image-manipulator';
+
 /**
  * Cloudflare Image Optimization Utility for Mobile
  * Format: {S3_CDN_BASE_URL}/cdn-cgi/image/options/path
@@ -49,4 +51,22 @@ export function getOptimizedImageUrl(url: string | null | undefined, options: Im
 
     const path = url.substring(CDN_BASE_URL.length);
     return `${CDN_BASE_URL}/cdn-cgi/image/${paramString}${path}`;
+}
+
+/**
+ * Optimizes a local image URI by resizing and compressing it before upload.
+ */
+export async function optimizeLocalImage(uri: string): Promise<string> {
+    try {
+        // Resize to a max width of 1024px to save bandwidth while keeping enough detail
+        const result = await ImageManipulator.manipulateAsync(
+            uri,
+            [{ resize: { width: 1024 } }],
+            { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        return result.uri;
+    } catch (e) {
+        console.warn('Failed to optimize image locally:', e);
+        return uri;
+    }
 }

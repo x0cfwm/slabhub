@@ -10,6 +10,7 @@ import {
     PortfolioHistoryEntry,
     GradingRecognitionResult
 } from "./types";
+import { optimizeLocalImage } from "./image-utils";
 
 export async function listInventory(): Promise<InventoryItem[]> {
     const response = await apiRequest("GET", "/inventory");
@@ -30,17 +31,20 @@ export async function deleteInventoryItem(id: string): Promise<void> {
     await apiRequest("DELETE", `/inventory/${id}`);
 }
 
-export async function uploadMedia(uri: string): Promise<{ mediaId: string; url: string }> {
+export async function uploadMedia(originalUri: string): Promise<{ mediaId: string; url: string }> {
+    // 1. Optimize the local image before upload to save bandwidth and S3 space
+    const optimizedUri = await optimizeLocalImage(originalUri);
+
     const formData = new FormData();
 
     // For mobile, we need to handle the URI properly
-    const filename = uri.split('/').pop() || 'upload.jpg';
+    const filename = optimizedUri.split('/').pop() || 'upload.jpg';
     const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : `image`;
+    const type = match ? `image/${match[1]}` : `image/jpeg`;
 
     // Note: React Native's FormData.append expects an object with uri, name, type for files
     formData.append('file', {
-        uri,
+        uri: optimizedUri,
         name: filename,
         type,
     } as any);
@@ -129,14 +133,17 @@ export async function getMarketSyncStatus(): Promise<{ lastSyncAt: string } | nu
     }
 }
 
-export async function recognizeImage(uri: string): Promise<GradingRecognitionResult> {
+export async function recognizeImage(originalUri: string): Promise<GradingRecognitionResult> {
+    // 1. Optimize the local image before upload (especially useful to make recognition faster)
+    const optimizedUri = await optimizeLocalImage(originalUri);
+
     const formData = new FormData();
-    const filename = uri.split('/').pop() || 'upload.jpg';
+    const filename = optimizedUri.split('/').pop() || 'upload.jpg';
     const match = /\.(\w+)$/.exec(filename);
     const type = match ? `image/${match[1]}` : `image/jpeg`;
 
     formData.append('file', {
-        uri,
+        uri: optimizedUri,
         name: filename,
         type,
     } as any);
