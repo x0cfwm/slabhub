@@ -8,6 +8,7 @@ import {
   Platform,
   Alert,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
@@ -28,6 +29,7 @@ import {
   ItemStage,
 } from '@/constants/types';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
+import ShareCard, { ShareCardHandle } from '@/components/ShareCard';
 
 const c = Colors.dark;
 
@@ -45,6 +47,18 @@ export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { inventory, deleteItem, moveItem } = useApp();
   const [modalVisible, setModalVisible] = React.useState(false);
+  const shareRef = React.useRef<ShareCardHandle>(null);
+  const [isSharing, setIsSharing] = React.useState(false);
+
+  const handleShare = async () => {
+    if (isSharing) return;
+    try {
+      setIsSharing(true);
+      await shareRef.current?.captureAndShare();
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
@@ -123,14 +137,21 @@ export default function ItemDetailScreen() {
           <Ionicons name="arrow-back" size={24} color={c.text} />
         </Pressable>
         <View style={styles.headerActions}>
+          <Pressable onPress={handleShare} hitSlop={8} disabled={isSharing}>
+            {isSharing ? (
+              <ActivityIndicator size="small" color={c.textSecondary} style={{ width: 26, height: 26 }} />
+            ) : (
+              <Ionicons name="share-outline" size={26} color={c.textSecondary} />
+            )}
+          </Pressable>
+          <Pressable onPress={handleMove} hitSlop={8}>
+            <Ionicons name="swap-horizontal" size={26} color={c.textSecondary} />
+          </Pressable>
           <Pressable
             style={({ pressed }) => [styles.editBtn, { opacity: pressed ? 0.8 : 1 }]}
             onPress={() => router.push(`/add-item?id=${item.id}`)}
           >
             <Feather name="edit-2" size={18} color={c.accent} />
-          </Pressable>
-          <Pressable onPress={handleMove} hitSlop={8}>
-            <Ionicons name="swap-horizontal" size={24} color={c.textSecondary} />
           </Pressable>
         </View>
       </View>
@@ -251,6 +272,8 @@ export default function ItemDetailScreen() {
           onClose={() => setModalVisible(false)}
         />
       </Modal>
+
+      <ShareCard ref={shareRef} item={item} />
     </View>
   );
 }

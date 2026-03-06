@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: c.text,
     fontWeight: '600' as const,
-    width: 14,
+    minWidth: 24,
     textAlign: 'right' as const,
   },
   breakdownRow: {
