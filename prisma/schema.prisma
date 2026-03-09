@@ -221,42 +221,6 @@ model RefSet {
   @@index([gameExternalId])
 }
 
-model RefRarity {
-  id              String    @id @default(cuid())
-  externalId      String    @unique
-  name            String
-  code            String?
-  sourceUpdatedAt DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([externalId])
-}
-
-model RefCondition {
-  id              String    @id @default(cuid())
-  externalId      String    @unique
-  name            String
-  abbreviation    String?
-  sourceUpdatedAt DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([externalId])
-}
-
-model RefLanguage {
-  id              String    @id @default(cuid())
-  externalId      String    @unique
-  name            String
-  code            String?
-  sourceUpdatedAt DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([externalId])
-}
-
 model RefPriceChartingProduct {
   id              String               @id @default(cuid())
   productUrl      String               @unique
