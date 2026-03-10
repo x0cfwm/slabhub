@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { AlertTriangle, CreditCard, MapPin, Save, Truck, Check, Facebook, Link, Calendar, User, X, Plus, ImageIcon } from "lucide-react";
+import { AlertTriangle, CreditCard, MapPin, Save, Truck, Link, Calendar, User, X, Plus, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
 import { getOptimizedImageUrl } from "@/lib/image-utils";
@@ -545,54 +545,6 @@ export default function ShopSettingsPage() {
                     </CardFooter>
                 </Card>
 
-                <Card className="border-border bg-muted/30 shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="text-muted-foreground uppercase text-[10px] tracking-[0.2em] font-bold">Facebook Profile</CardTitle>
-                        <CardDescription>Verify your profile so buyers trust your shop.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {(user as any)?.facebookVerifiedAt ? (
-                            <div className="flex items-center justify-between p-4 bg-primary/5 border border-primary/20 rounded-xl">
-                                <div className="space-y-1">
-                                    <p className="text-sm font-medium flex items-center gap-2">
-                                        <Check className="h-4 w-4 text-green-500" /> Connected
-                                    </p>
-                                    <a href={(user as any).facebookProfileUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline block truncate max-w-[200px] sm:max-w-xs cursor-pointer">
-                                        View Profile
-                                    </a>
-                                </div>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={async () => {
-                                        try {
-                                            const url = new URL('/v1/auth/facebook', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
-                                            await fetch(url.toString(), { method: 'DELETE', credentials: 'include' });
-                                            toast.success('Disconnected Facebook');
-                                            await refresh();
-                                        } catch (e) {
-                                            toast.error('Failed to disconnect');
-                                        }
-                                    }}
-                                >
-                                    Disconnect
-                                </Button>
-                            </div>
-                        ) : (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/v1/auth/facebook`;
-                                }}
-                            >
-                                <Facebook className="mr-2 h-4 w-4" />
-                                Link Facebook
-                            </Button>
-                        )}
-                    </CardContent>
-                </Card>
             </form>
         </div>
     );
