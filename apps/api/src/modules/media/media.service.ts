@@ -110,7 +110,7 @@ export class MediaService {
             if (error.$metadata) {
                 this.logger.error(`S3 Error Metadata: ${JSON.stringify(error.$metadata)}`);
             }
-            throw new InternalServerErrorException('Failed to process and store file');
+            throw new InternalServerErrorException('Failed to process and store file', { cause: error });
         }
     }
 
@@ -141,7 +141,7 @@ export class MediaService {
             });
         } catch (error) {
             this.logger.error(`Failed to download from remote URL ${url}: ${error.message}`);
-            throw new InternalServerErrorException('Failed to ingest remote file');
+            throw new InternalServerErrorException('Failed to ingest remote file', { cause: error });
         }
     }
 

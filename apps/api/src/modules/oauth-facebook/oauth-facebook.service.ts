@@ -80,7 +80,7 @@ export class OauthFacebookService {
                 })
             ).catch(e => {
                 this.logger.error('Failed to get FB token', e.response?.data);
-                throw e;
+                throw new BadRequestException('Failed to get Facebook access token', { cause: e });
             });
 
             const { access_token } = tokenResponse.data;
@@ -95,7 +95,7 @@ export class OauthFacebookService {
                 })
             ).catch(e => {
                 this.logger.error('Failed to get FB profile', e.response?.data);
-                throw e;
+                throw new BadRequestException('Failed to get Facebook profile', { cause: e });
             });
 
             const profile = profileResponse.data;

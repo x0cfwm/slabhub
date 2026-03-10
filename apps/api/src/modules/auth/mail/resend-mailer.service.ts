@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { MailerService } from './mailer.service';
 import { Resend } from 'resend';
 
@@ -25,7 +25,7 @@ export class ResendMailerService extends MailerService {
 
             if (error) {
                 this.logger.error(`Failed to send OTP to ${email}: ${error.message}`);
-                throw new Error(`Resend error: ${error.message}`);
+                throw new InternalServerErrorException(`Resend error: ${error.message}`, { cause: error });
             }
 
             this.logger.log(`OTP sent to ${email} via Resend. ID: ${data?.id}`);
@@ -46,7 +46,7 @@ export class ResendMailerService extends MailerService {
 
             if (error) {
                 this.logger.error(`Failed to send waitlist confirmation to ${email}: ${error.message}`);
-                throw new Error(`Resend error: ${error.message}`);
+                throw new InternalServerErrorException(`Resend error: ${error.message}`, { cause: error });
             }
 
             this.logger.log(`Waitlist confirmation sent to ${email} via Resend. ID: ${data?.id}`);

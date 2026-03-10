@@ -321,10 +321,10 @@ export class MarketPricingService {
                 if (error.message.includes('404')) {
                     throw new NotFoundException(`PriceCharting page not found: ${priceChartingUrl}`);
                 }
-                throw new BadGatewayException(`Failed to parse PriceCharting: ${error.message}`);
+                throw new BadGatewayException(`Failed to parse PriceCharting: ${error.message}`, { cause: error });
             }
 
-            throw new BadGatewayException(`Failed to fetch pricing: ${error.message}`);
+            throw new BadGatewayException(`Failed to fetch pricing: ${error.message}`, { cause: error });
         }
     }
 

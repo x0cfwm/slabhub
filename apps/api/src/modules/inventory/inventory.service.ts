@@ -167,7 +167,7 @@ export class InventoryService {
         } catch (error) {
             this.logger.error(`Failed to create inventory item: ${error.message}`, error.stack);
             if (error instanceof BadRequestException) throw error;
-            throw new BadRequestException(`Database error: ${error.message}`);
+            throw new BadRequestException(`Database error: ${error.message}`, { cause: error });
         }
     }
 

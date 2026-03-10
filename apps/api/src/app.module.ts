@@ -22,6 +22,8 @@ import { InviteModule } from './modules/invites/invite.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { z } from 'zod';
+import { SentryInterceptor } from './common/interceptors/sentry.interceptor';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
     imports: [
@@ -102,6 +104,10 @@ import { z } from 'zod';
         {
             provide: APP_FILTER,
             useClass: SentryGlobalFilter,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: SentryInterceptor,
         },
     ],
 })
