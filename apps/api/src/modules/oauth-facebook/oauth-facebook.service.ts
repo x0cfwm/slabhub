@@ -36,7 +36,7 @@ export class OauthFacebookService {
         const params = new URLSearchParams({
             client_id: clientId,
             redirect_uri: redirectUri,
-            scope: 'email,public_profile',
+            scope: 'email,public_profile,user_link',
             response_type: 'code',
             state,
         });
@@ -87,7 +87,7 @@ export class OauthFacebookService {
             const profileResponse = await lastValueFrom(
                 this.httpService.get('https://graph.facebook.com/me', {
                     params: {
-                        fields: 'id,name,email,picture',
+                        fields: 'id,name,email,picture,link',
                         access_token,
                     },
                 })
@@ -99,7 +99,7 @@ export class OauthFacebookService {
             const profile = profileResponse.data;
             const email = profile.email?.toLowerCase().trim();
             const providerUserId = profile.id;
-            const profileUrl = `https://www.facebook.com/${providerUserId}`;
+            const profileUrl = profile.link || `https://www.facebook.com/${providerUserId}`;
 
             // Check if user is currently logged in (for linking)
             let currentUser = null;
