@@ -49,7 +49,7 @@ export class OauthFacebookService {
         const clientSecret = this.configService.get<string>('FACEBOOK_APP_SECRET');
         const apiUrl = this.getApiUrl();
         const redirectUri = `${apiUrl}/v1/auth/facebook/callback`;
-        const webOrigin = this.configService.get<string>('WEB_ORIGIN');
+        const webOrigin = this.configService.get<string>('WEB_ORIGIN') || apiUrl.replace(/\/api$/, '');
 
         let inviteToken: string | undefined;
         if (state) {
