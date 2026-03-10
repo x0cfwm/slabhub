@@ -62,7 +62,9 @@ export class OauthFacebookService {
         }
 
         if (!clientId || !clientSecret) {
-            return res.redirect(`${webOrigin}/login?error=facebook_not_configured`);
+            this.logger.error('Facebook OAuth missing configuration', { hasClientId: !!clientId, hasClientSecret: !!clientSecret });
+            const origin = webOrigin || apiUrl;
+            return res.redirect(`${origin}/login?error=facebook_not_configured`);
         }
 
         try {
@@ -97,6 +99,8 @@ export class OauthFacebookService {
             });
 
             const profile = profileResponse.data;
+            this.logger.debug('Facebook profile retrieved', { id: profile.id, hasEmail: !!profile.email, hasLink: !!profile.link });
+            
             const email = profile.email?.toLowerCase().trim();
             const providerUserId = profile.id;
             const profileUrl = profile.link || `https://www.facebook.com/${providerUserId}`;
@@ -251,8 +255,13 @@ export class OauthFacebookService {
                 return res.redirect(`${webOrigin}/dashboard`);
             }
         } catch (error: any) {
-            this.logger.error('Facebook OAuth error', error.message);
-            const redirectUrl = existingSessionToken ? `${webOrigin}/settings?error=facebook_error` : `${webOrigin}/login?error=facebook_error`;
+            this.logger.error('Facebook OAuth error', { 
+                message: error.message, 
+                response: error.response?.data,
+                stack: error.stack 
+            });
+            const origin = webOrigin || apiUrl;
+            const redirectUrl = existingSessionToken ? `${origin}/settings?error=facebook_error` : `${origin}/login?error=facebook_error`;
             return res.redirect(redirectUrl);
         }
     }
