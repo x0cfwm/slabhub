@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsInt, IsHexColor, IsUUID } from 'class-validator';
 
-export class CreateInventoryStatusDto {
+export class CreateWorkflowStatusDto {
     @IsString()
     name: string;
 
@@ -13,7 +13,7 @@ export class CreateInventoryStatusDto {
     position?: number;
 }
 
-export class UpdateInventoryStatusDto {
+export class UpdateWorkflowStatusDto {
     @IsOptional()
     @IsString()
     name?: string;
@@ -25,9 +25,12 @@ export class UpdateInventoryStatusDto {
     @IsOptional()
     @IsInt()
     position?: number;
+
+    @IsOptional()
+    isEnabled?: boolean;
 }
 
-export class ReorderInventoryStatusDto {
+export class ReorderWorkflowStatusDto {
     @IsString()
     id: string;
 

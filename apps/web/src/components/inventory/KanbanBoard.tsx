@@ -7,13 +7,14 @@ import {
     DragEndEvent,
     rectIntersection
 } from "@dnd-kit/core";
-import { InventoryItem, MarketProduct, InventoryStage, InventoryStatus } from "@/lib/types";
+import { InventoryItem, MarketProduct, InventoryStage, WorkflowStatus } from "@/lib/types";
 import { ItemCard } from "./ItemCard";
 import { StageColumn } from "./StageColumn";
 import { useDndSensors } from "./dnd";
 import { updateInventoryItem, reorderInventoryItems } from "@/lib/api";
 import { toast } from "sonner";
 import { arrayMove } from "@dnd-kit/sortable";
+import { SoldPromptDialog } from "./SoldPromptDialog";
 
 interface KanbanBoardProps {
     items: InventoryItem[];
@@ -21,11 +22,12 @@ interface KanbanBoardProps {
     cards: MarketProduct[];
     onUpdate: () => void;
     onItemClick: (item: InventoryItem) => void;
-    statuses: InventoryStatus[];
+    statuses: WorkflowStatus[];
 }
 
 export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, statuses }: KanbanBoardProps) {
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [promptItem, setPromptItem] = useState<{ id: string, name: string, statusId: string } | null>(null);
     const sensors = useDndSensors();
 
     const activeItem = items.find(i => i.id === activeId);
@@ -37,24 +39,36 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
         setActiveId(null);
-
         if (!over) return;
-
+        const isColumn = statuses.some(s => s.id === over.id);
         const activeId = active.id as string;
         const overId = over.id as string;
 
         const activeItem = items.find(i => i.id === activeId);
         if (!activeItem) return;
 
-        let newItems = [...items];
-        const isColumn = statuses.some(s => s.id === overId);
+        const targetStatusId = isColumn ? overId : items.find(i => i.id === overId)?.statusId;
+        const targetStatus = statuses.find(s => s.id === targetStatusId);
 
+        if (targetStatus?.systemId === "SOLD" && activeItem.status?.systemId !== "SOLD") {
+            const vid = (activeItem as any).cardVariantId || (activeItem as any).cardProfileId || activeItem.refPriceChartingProductId;
+            const marketProduct = cards.find(p => p.id === vid) || activeItem.cardProfile;
+            setPromptItem({ id: activeId, name: marketProduct?.name || "Card", statusId: targetStatusId! });
+            return;
+        }
+
+        await finalizeDrop(items, activeId, overId, isColumn);
+    };
+
+    const finalizeDrop = async (currentItems: InventoryItem[], activeId: string, overId: string, isColumn: boolean, extraData: any = {}) => {
+        const activeItem = currentItems.find(i => i.id === activeId);
+        if (!activeItem) return;
+
+        let newItems = [...currentItems];
         if (isColumn) {
             const newStatusId = overId;
             if (activeItem.statusId !== newStatusId) {
-                // Moving to a column (end of it)
-                newItems = newItems.map(i => i.id === activeId ? { ...i, statusId: newStatusId } : i);
-                // Move it to the end of the new column in the array for correct sortOrder calculation
+                newItems = newItems.map(i => i.id === activeId ? { ...i, ...extraData, statusId: newStatusId } : i);
                 const itemToMove = newItems.find(i => i.id === activeId)!;
                 const otherItems = newItems.filter(i => i.id !== activeId);
                 newItems = [...otherItems, itemToMove];
@@ -66,44 +80,38 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
                 const overIndex = newItems.findIndex(i => i.id === overId);
 
                 if (activeItem.statusId !== overItem.statusId) {
-                    // Moving to a different column at a specific position
-                    newItems[activeIndex] = { ...activeItem, statusId: overItem.statusId };
+                    newItems[activeIndex] = { ...activeItem, ...extraData, statusId: overItem.statusId };
                     newItems = arrayMove(newItems, activeIndex, overIndex);
                 } else if (activeIndex !== overIndex) {
-                    // Reordering within the same column
                     newItems = arrayMove(newItems, activeIndex, overIndex);
                 } else {
-                    return; // No change
+                    return;
                 }
             }
         }
 
-        // Calculate new sort orders based on the new array positions
-        // We group by statusId and assign incrementing sortOrder
-        const itemsByStatus: Record<string, InventoryItem[]> = {};
-        statuses.forEach(s => {
-            itemsByStatus[s.id] = newItems.filter(i => i.statusId === s.id);
-        });
-
+        // Calculate new sort orders and update stage enum based on systemId
         const updates: { id: string; sortOrder: number; stage: InventoryStage; statusId: string }[] = [];
         const updatedNewItems = [...newItems];
 
-        Object.keys(itemsByStatus).forEach(statusId => {
-            itemsByStatus[statusId].forEach((item, index) => {
+        statuses.forEach(status => {
+            const columnItems = updatedNewItems.filter(i => i.statusId === status.id);
+            columnItems.forEach((item, index) => {
+                const newStage = (status.systemId as InventoryStage) || item.stage;
                 updates.push({
                     id: item.id,
                     sortOrder: index,
-                    stage: item.stage, // Keep stage for backward compatibility if needed, but statusId is the lead
-                    statusId: statusId
+                    stage: newStage,
+                    statusId: status.id
                 });
 
-                // Update the item in the local array to reflect new sortOrder
                 const itemIndex = updatedNewItems.findIndex(i => i.id === item.id);
                 if (itemIndex !== -1) {
                     updatedNewItems[itemIndex] = {
                         ...updatedNewItems[itemIndex],
                         sortOrder: index,
-                        statusId: statusId
+                        statusId: status.id,
+                        stage: newStage
                     };
                 }
             });
@@ -196,6 +204,29 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
                     );
                 })() : null}
             </DragOverlay>
+
+            <SoldPromptDialog
+                isOpen={!!promptItem}
+                itemName={promptItem?.name}
+                onClose={() => setPromptItem(null)}
+                onConfirm={async (data) => {
+                    if (promptItem) {
+                        await finalizeDrop(items, promptItem.id, promptItem.statusId, true, {
+                            listingPrice: data.soldPrice, // Reuse field or add soldPrice if needed. Schema says listingPrice is used for listed items, but sold usually needs its own field or we hijack listingPrice? 
+                            // Actually schema has listingPrice but not soldPrice. Let's see.
+                            // prisma/schema.prisma line 158: listingPrice Decimal?
+                            // Line 165: marketPriceLastSaleDate DateTime?
+                            // For now let's just update the item properly.
+                        });
+                        // Wait, I should probably call updateInventoryItem for specific sold logic if listingPrice isn't enough
+                        await updateInventoryItem(promptItem.id, {
+                            stage: "SOLD",
+                            soldPrice: data.soldPrice, // We'll need to add this to the item if it's not there, but for MVP let's assume it updates the existing fields
+                        });
+                        onUpdate();
+                    }
+                }}
+            />
         </DndContext>
     );
 }

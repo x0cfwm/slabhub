@@ -8,7 +8,7 @@ import {
     deleteStatus,
     reorderStatuses
 } from "@/lib/api";
-import { InventoryStatus } from "@/lib/types";
+import { WorkflowStatus } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,10 @@ import {
     Pencil,
     Check,
     X,
-    LayoutDashboard
+    LayoutDashboard,
+    Lock,
+    Eye,
+    EyeOff
 } from "lucide-react";
 import {
     DndContext,
@@ -58,12 +61,13 @@ import {
 } from "@/components/ui/select";
 
 interface SortableStatusItemProps {
-    status: InventoryStatus;
-    onEdit: (status: InventoryStatus) => void;
-    onDelete: (status: InventoryStatus) => void;
+    status: WorkflowStatus;
+    onEdit: (status: WorkflowStatus) => void;
+    onDelete: (status: WorkflowStatus) => void;
+    onToggleVisibility: (id: string, enabled: boolean) => void;
 }
 
-function SortableStatusItem({ status, onEdit, onDelete }: SortableStatusItemProps) {
+function SortableStatusItem({ status, onEdit, onDelete, onToggleVisibility }: SortableStatusItemProps) {
     const {
         attributes,
         listeners,
@@ -83,24 +87,62 @@ function SortableStatusItem({ status, onEdit, onDelete }: SortableStatusItemProp
         <div
             ref={setNodeRef}
             style={style}
-            className={`flex items-center gap-3 p-3 bg-card border rounded-lg shadow-sm ${isDragging ? 'opacity-50 ring-2 ring-primary' : ''}`}
+            className={`flex items-center gap-3 p-3 bg-card border rounded-lg shadow-sm transition-all ${isDragging ? 'opacity-50 ring-2 ring-primary' : ''} ${!status.isEnabled ? 'bg-muted/50 border-dashed opacity-60' : ''}`}
         >
             <div {...attributes} {...listeners} className="cursor-grab hover:text-primary transition-colors">
                 <GripVertical className="h-5 w-5 text-muted-foreground" />
             </div>
 
             <div
-                className="w-4 h-4 rounded-full border shadow-sm"
+                className={`w-4 h-4 rounded-full border shadow-sm ${!status.isEnabled ? 'grayscale' : ''}`}
                 style={{ backgroundColor: status.color || '#94a3b8' }}
             />
 
-            <span className="flex-1 font-medium">{status.name}</span>
+            <span className={`flex-1 font-medium flex items-center gap-2 ${!status.isEnabled ? 'text-muted-foreground italic' : ''}`}>
+                {status.name}
+                {status._count && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-primary/10 text-[10px] font-bold text-primary border border-primary/20">
+                        {status._count.items}
+                    </span>
+                )}
+                {status.systemId && (
+                    <div className="group relative cursor-default">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted text-[10px] font-bold text-muted-foreground uppercase tracking-tight border border-border">
+                            <Lock className="h-2.5 w-2.5" />
+                            System
+                        </span>
+                        <div className="invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 bg-popover text-popover-foreground text-[11px] rounded shadow-md border whitespace-nowrap z-50 pointer-events-none">
+                            System statuses are required for core logic and cannot be deleted.
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-popover" />
+                        </div>
+                    </div>
+                )}
+                {!status.isEnabled && (
+                    <span className="text-[10px] text-muted-foreground/60">(Hidden)</span>
+                )}
+            </span>
 
             <div className="flex items-center gap-1">
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => onToggleVisibility(status.id, !status.isEnabled)} 
+                    className={`h-8 w-8 ${status.isEnabled ? 'text-primary' : 'text-muted-foreground'}`}
+                    title={status.isEnabled ? "Hide status from Kanban" : "Show status on Kanban"}
+                >
+                    {status.isEnabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </Button>
                 <Button variant="ghost" size="icon" onClick={() => onEdit(status)} className="h-8 w-8">
                     <Pencil className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => onDelete(status)} className="h-8 w-8 text-destructive hover:text-destructive">
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => onDelete(status)} 
+                    className={`h-8 w-8 text-destructive ${status.systemId ? 'opacity-20 cursor-not-allowed grayscale' : 'hover:text-destructive hover:bg-destructive/10'}`}
+                    disabled={!!status.systemId}
+                    title={status.systemId ? "System statuses cannot be deleted" : "Delete status"}
+                >
                     <Trash2 className="h-4 w-4" />
                 </Button>
             </div>
@@ -109,14 +151,14 @@ function SortableStatusItem({ status, onEdit, onDelete }: SortableStatusItemProp
 }
 
 export function WorkflowSettings() {
-    const [statuses, setStatuses] = useState<InventoryStatus[]>([]);
+    const [statuses, setStatuses] = useState<WorkflowStatus[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
-    const [editingStatus, setEditingStatus] = useState<InventoryStatus | null>(null);
-    const [deletingStatus, setDeletingStatus] = useState<InventoryStatus | null>(null);
+    const [editingStatus, setEditingStatus] = useState<WorkflowStatus | null>(null);
+    const [deletingStatus, setDeletingStatus] = useState<WorkflowStatus | null>(null);
     const [moveToStatusId, setMoveToStatusId] = useState<string>("");
 
     const [newName, setNewName] = useState("");
@@ -131,7 +173,7 @@ export function WorkflowSettings() {
 
     const fetchStatuses = async () => {
         try {
-            const data = await listStatuses();
+            const data = await listStatuses(true);
             setStatuses(data);
         } catch (err) {
             toast.error("Failed to load statuses");
@@ -143,6 +185,16 @@ export function WorkflowSettings() {
     useEffect(() => {
         fetchStatuses();
     }, []);
+
+    const handleToggleVisibility = async (id: string, enabled: boolean) => {
+        try {
+            await updateStatus(id, { isEnabled: enabled } as any);
+            toast.success(enabled ? "Status visible" : "Status hidden");
+            fetchStatuses();
+        } catch (err) {
+            toast.error("Failed to update status visibility");
+        }
+    };
 
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
@@ -208,14 +260,18 @@ export function WorkflowSettings() {
         }
     };
 
-    const openEdit = (status: InventoryStatus) => {
+    const openEdit = (status: WorkflowStatus) => {
         setEditingStatus(status);
         setNewName(status.name);
         setNewColor(status.color || "#94a3b8");
         setIsEditOpen(true);
     };
 
-    const openDelete = (status: InventoryStatus) => {
+    const openDelete = (status: WorkflowStatus) => {
+        if (status.systemId) {
+            toast.error("System statuses cannot be deleted. They are required for core functionality.");
+            return;
+        }
         setDeletingStatus(status);
         // Find a fallback status that isn't the one being deleted
         const fallback = statuses.find(s => s.id !== status.id);
@@ -237,10 +293,12 @@ export function WorkflowSettings() {
                     </CardTitle>
                     <CardDescription>Customize your inventory stages and Kanban columns.</CardDescription>
                 </div>
-                <Button size="sm" onClick={() => setIsAddOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Status
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={() => setIsAddOpen(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Status
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent className="space-y-4">
                 <DndContext
@@ -259,6 +317,7 @@ export function WorkflowSettings() {
                                     status={status}
                                     onEdit={openEdit}
                                     onDelete={openDelete}
+                                    onToggleVisibility={handleToggleVisibility}
                                 />
                             ))}
                         </div>

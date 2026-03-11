@@ -16,7 +16,7 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { InventoryItem, MarketProduct, InventoryStage, InventoryStatus } from "@/lib/types";
+import { InventoryItem, MarketProduct, InventoryStage, WorkflowStatus } from "@/lib/types";
 import { COLUMNS } from "./dnd";
 import { updateInventoryItem } from "@/lib/api";
 import { toast } from "sonner";
@@ -30,7 +30,7 @@ interface InventoryListProps {
     cards: MarketProduct[];
     onUpdate: () => void;
     onItemClick: (item: InventoryItem) => void;
-    statuses: InventoryStatus[];
+    statuses: WorkflowStatus[];
 }
 
 export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, statuses }: InventoryListProps) {

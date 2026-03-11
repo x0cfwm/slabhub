@@ -21,7 +21,8 @@ model User {
   oauthIdentities    OAuthIdentity[]
   invites            Invite[]
   acceptedInvites    InviteAcceptance[]
-  inventoryStatuses  InventoryStatus[]
+  workflowStatuses   WorkflowStatus[]
+  inventoryHistory   InventoryHistory[]
 }
 
 /// OTP codes for email verification
@@ -156,6 +157,8 @@ model InventoryItem {
   quantity                  Int                      @default(1)
   stage                     InventoryStage           @default(ACQUIRED)
   listingPrice              Decimal?                 @db.Decimal(10, 2)
+  soldPrice                 Decimal?                 @db.Decimal(10, 2)
+  soldDate                  DateTime?
   acquisitionPrice          Decimal?                 @db.Decimal(10, 2)
   acquisitionDate           DateTime?
   acquisitionSource         String?
@@ -175,11 +178,12 @@ model InventoryItem {
   sellingDescription        String?
   sortOrder                 Int                      @default(0)
   statusId                  String?
-  status                    InventoryStatus?         @relation(fields: [statusId], references: [id])
+  status                    WorkflowStatus?          @relation(fields: [statusId], references: [id])
   cardVariant               CardVariant?             @relation(fields: [cardVariantId], references: [id])
   refPriceChartingProduct   RefPriceChartingProduct? @relation(fields: [refPriceChartingProductId], references: [id])
   seller                    SellerProfile?           @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   user                      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  history                   InventoryHistory[]
 
   // Media references
   frontMediaId String?
@@ -197,11 +201,13 @@ model InventoryItem {
   @@index([certificationNumber])
 }
 
-model InventoryStatus {
+model WorkflowStatus {
   id        String   @id @default(cuid())
   name      String
   color     String?
-  position  Int      @default(0)
+  position  Int
+  isEnabled Boolean  @default(true)
+  systemId  String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -209,6 +215,7 @@ model InventoryStatus {
 
   items InventoryItem[]
 
+  @@unique([userId, systemId])
   @@index([userId])
   @@index([position])
 }
@@ -511,4 +518,22 @@ model InviteAcceptance {
 
   @@unique([inviteId, invitedUserId])
   @@index([invitedUserId])
+}
+
+model InventoryHistory {
+  id           String          @id @default(cuid())
+  itemId       String
+  item         InventoryItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String // "STATUS_CHANGE"
+  fromStage    InventoryStage?
+  toStage      InventoryStage?
+  fromStatusId String?
+  toStatusId   String?
+  notes        String?
+  createdAt    DateTime        @default(now())
+
+  @@index([itemId])
+  @@index([userId])
 }

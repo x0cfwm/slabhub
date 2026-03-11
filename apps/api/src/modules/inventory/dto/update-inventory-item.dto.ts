@@ -144,6 +144,14 @@ export class UpdateInventoryItemDto {
     @IsNumber()
     listingPrice?: number;
 
+    @IsOptional()
+    @IsNumber()
+    soldPrice?: number;
+
+    @IsOptional()
+    @IsString()
+    soldDate?: string;
+
     @ApiProperty({ required: false })
     @IsOptional()
     @IsNumber()

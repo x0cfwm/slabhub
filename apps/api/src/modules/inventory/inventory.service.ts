@@ -279,6 +279,19 @@ export class InventoryService {
             }
         }
 
+        // Check for transitions
+        const hasStageChanged = (dto as any).stage !== undefined && (dto as any).stage !== existing.stage;
+        const hasStatusChanged = (dto as any).statusId !== undefined && (dto as any).statusId !== (existing as any).statusId;
+
+        if (hasStageChanged || hasStatusChanged) {
+            await this.recordHistory(userId, itemId, {
+                fromStage: existing.stage,
+                toStage: (dto as any).stage || existing.stage,
+                fromStatusId: (existing as any).statusId || undefined,
+                toStatusId: (dto as any).statusId || undefined,
+            });
+        }
+
         return this.transformItem(item);
     }
 
@@ -302,20 +315,95 @@ export class InventoryService {
         return { success: true };
     }
 
-    async reorderItems(userId: string, items: { id: string; sortOrder: number; stage: InventoryStage }[]) {
+    async reorderItems(userId: string, items: { id: string; sortOrder: number; stage: InventoryStage; statusId?: string }[]) {
+        // To track transitions, we need current states
+        const itemIds = items.map(i => i.id);
+        const existingItems = await this.prisma.inventoryItem.findMany({
+            where: { id: { in: itemIds }, userId },
+            select: { id: true, stage: true, statusId: true },
+        });
+
+        const existingMap = new Map(existingItems.map(i => [i.id, i]));
+
         // Use a transaction for bulk updates
-        return await this.prisma.$transaction(
+        const result = await this.prisma.$transaction(
             items.map((item) =>
                 this.prisma.inventoryItem.updateMany({
                     where: { id: item.id, userId },
                     data: {
                         sortOrder: item.sortOrder,
                         stage: item.stage,
-                        statusId: (item as any).statusId,
+                        statusId: item.statusId,
                     },
                 }),
             ),
         );
+
+        // Record history for items that moved columns
+        for (const item of items) {
+            const existing = existingMap.get(item.id);
+            if (!existing) continue;
+
+            const hasStageChanged = item.stage !== existing.stage;
+            const hasStatusChanged = item.statusId !== (existing as any).statusId;
+
+            if (hasStageChanged || hasStatusChanged) {
+                await this.recordHistory(userId, item.id, {
+                    fromStage: existing.stage,
+                    toStage: item.stage,
+                    fromStatusId: (existing as any).statusId || undefined,
+                    toStatusId: item.statusId || undefined,
+                }).catch(err => this.logger.error(`Failed to record reorder history: ${err.message}`));
+            }
+        }
+
+        return result;
+    }
+
+    async getItemHistory(userId: string, itemId: string) {
+        // Verify ownership indirectly by checking if item exists for user
+        const item = await this.prisma.inventoryItem.findFirst({
+            where: { id: itemId, userId },
+        });
+
+        if (!item) {
+            throw new NotFoundException(`Inventory item ${itemId} not found`);
+        }
+
+        return this.prisma.inventoryHistory.findMany({
+            where: { itemId, userId },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    private async recordHistory(
+        userId: string,
+        itemId: string,
+        data: {
+            fromStage?: InventoryStage;
+            toStage?: InventoryStage;
+            fromStatusId?: string;
+            toStatusId?: string;
+        },
+    ) {
+        try {
+            return await this.prisma.inventoryHistory.create({
+                data: {
+                    itemId,
+                    userId,
+                    type: 'TRANSITION',
+                    fromStage: data.fromStage || null,
+                    toStage: data.toStage || null,
+                    fromStatusId: data.fromStatusId || null,
+                    toStatusId: data.toStatusId || null,
+                },
+            });
+        } catch (error: any) {
+            this.logger.error(`Failed to record history for item ${itemId}: ${error.message}`, error.stack);
+            // We don't necessarily want to fail the whole update if history fails, 
+            // but for now let's rethrow to see if it's the cause of missing records.
+            throw error;
+        }
     }
 
     private validateItemType(dto: CreateInventoryItemDto) {

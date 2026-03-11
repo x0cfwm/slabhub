@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { listInventory, getMarketProducts, listStatuses } from "@/lib/api";
-import { InventoryItem, MarketProduct, InventoryStage, InventoryStatus } from "@/lib/types";
+import { InventoryItem, MarketProduct, InventoryStage, WorkflowStatus } from "@/lib/types";
 import { ItemCard } from "@/components/inventory/ItemCard";
 import { ItemDrawer } from "@/components/inventory/ItemDrawer";
 import { KanbanBoard } from "@/components/inventory/KanbanBoard";
@@ -34,7 +34,7 @@ function InventoryContent() {
     const [stageFilter, setStageFilter] = useState<string>("all");
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
-    const [statuses, setStatuses] = useState<InventoryStatus[]>([]);
+    const [statuses, setStatuses] = useState<WorkflowStatus[]>([]);
 
     const searchParams = useSearchParams();
     const router = useRouter();

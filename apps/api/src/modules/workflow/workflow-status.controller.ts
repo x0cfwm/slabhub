@@ -10,24 +10,33 @@ import {
     NotFoundException,
     ParseArrayPipe,
 } from '@nestjs/common';
-import { InventoryStatusService } from './inventory-status.service';
-import { CreateInventoryStatusDto, UpdateInventoryStatusDto, ReorderInventoryStatusDto } from './dto/inventory-status.dto';
+import { WorkflowStatusService } from './workflow-status.service';
+import { CreateWorkflowStatusDto, UpdateWorkflowStatusDto, ReorderWorkflowStatusDto } from './dto/workflow-status.dto';
 import { CurrentUserId } from '../auth/auth.middleware';
 
 @Controller('workflow/statuses')
-export class InventoryStatusController {
-    constructor(private readonly statusService: InventoryStatusService) { }
+export class WorkflowStatusController {
+    constructor(private readonly statusService: WorkflowStatusService) { }
 
     @Get()
-    async listStatuses(@CurrentUserId() userId: string | undefined) {
+    async listStatuses(
+        @CurrentUserId() userId: string | undefined,
+        @Query('includeDisabled') includeDisabled?: string,
+    ) {
         if (!userId) throw new NotFoundException('No authenticated user');
-        return this.statusService.listStatuses(userId);
+        return this.statusService.listStatuses(userId, includeDisabled === 'true');
+    }
+
+    @Post('seed')
+    async seedStatuses(@CurrentUserId() userId: string | undefined) {
+        if (!userId) throw new NotFoundException('No authenticated user');
+        return this.statusService.seedStatuses(userId);
     }
 
     @Post()
     async createStatus(
         @CurrentUserId() userId: string | undefined,
-        @Body() dto: CreateInventoryStatusDto,
+        @Body() dto: CreateWorkflowStatusDto,
     ) {
         if (!userId) throw new NotFoundException('No authenticated user');
         return this.statusService.createStatus(userId, dto);
@@ -36,7 +45,7 @@ export class InventoryStatusController {
     @Patch('reorder')
     async reorderStatuses(
         @CurrentUserId() userId: string | undefined,
-        @Body(new ParseArrayPipe({ items: ReorderInventoryStatusDto })) items: ReorderInventoryStatusDto[],
+        @Body(new ParseArrayPipe({ items: ReorderWorkflowStatusDto })) items: ReorderWorkflowStatusDto[],
     ) {
         if (!userId) throw new NotFoundException('No authenticated user');
         return this.statusService.reorderStatuses(userId, items);
@@ -46,7 +55,7 @@ export class InventoryStatusController {
     async updateStatus(
         @CurrentUserId() userId: string | undefined,
         @Param('id') id: string,
-        @Body() dto: UpdateInventoryStatusDto,
+        @Body() dto: UpdateWorkflowStatusDto,
     ) {
         if (!userId) throw new NotFoundException('No authenticated user');
         return this.statusService.updateStatus(userId, id, dto);
