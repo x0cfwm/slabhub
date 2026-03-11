@@ -70,13 +70,18 @@ export class VendorService {
                 handle: seller.handle,
                 shopName: seller.shopName,
                 isActive: seller.isActive,
-                locationCountry: seller.locationCountry,
-                locationCity: seller.locationCity,
+                location: seller.location,
                 paymentsAccepted: seller.paymentsAccepted,
                 meetupsEnabled: seller.meetupsEnabled,
                 shippingEnabled: seller.shippingEnabled,
                 socials: seller.socials,
                 wishlistText: seller.wishlistText,
+                fulfillmentOptions: seller.fulfillmentOptions?.length > 0
+                    ? seller.fulfillmentOptions
+                    : [
+                        seller.shippingEnabled ? 'shipping' : null,
+                        seller.meetupsEnabled ? 'meetups_local' : null,
+                    ].filter(Boolean),
                 referenceLinks: (seller.referenceLinks as any[]) || [],
                 upcomingEvents: (seller.upcomingEvents as any[]) || [],
                 avatarUrl: seller.avatarMedia ? this.mediaService.getPublicUrl(seller.avatarMedia, { preferCdn: true }) : null,

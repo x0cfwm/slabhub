@@ -20,9 +20,19 @@ export class MarketPricingService {
     ) { }
 
     async getSyncStatus() {
-        return this.prisma.refSyncProgress.findUnique({
+        const status = await this.prisma.refSyncProgress.findUnique({
             where: { mappingName: 'inventory:sync:prices' }
         });
+
+        if (!status) {
+            return {
+                mappingName: 'inventory:sync:prices',
+                status: 'IDLE',
+                lastSyncAt: null,
+            };
+        }
+
+        return status;
     }
 
     async listProducts(query: GetMarketProductsDto, userId?: string) {
@@ -117,6 +127,7 @@ export class MarketPricingService {
             number: product.cardNumber,
             imageUrl: this.mediaService.ensureCdnUrl(product.imageUrl),
             set: product.set?.name || 'Unknown Set',
+            setCode: product.set?.code,
             productType: product.productType,
             priceChartingUrl: product.productUrl,
             tcgplayerId: product.tcgPlayerId?.toString(),
@@ -310,10 +321,10 @@ export class MarketPricingService {
                 if (error.message.includes('404')) {
                     throw new NotFoundException(`PriceCharting page not found: ${priceChartingUrl}`);
                 }
-                throw new BadGatewayException(`Failed to parse PriceCharting: ${error.message}`);
+                throw new BadGatewayException(`Failed to parse PriceCharting: ${error.message}`, { cause: error });
             }
 
-            throw new BadGatewayException(`Failed to fetch pricing: ${error.message}`);
+            throw new BadGatewayException(`Failed to fetch pricing: ${error.message}`, { cause: error });
         }
     }
 
@@ -325,7 +336,7 @@ export class MarketPricingService {
         return sets.map((s: any) => ({
             externalId: s.id,
             name: s.name,
-            code: s.slug
+            code: s.code
         }));
     }
 

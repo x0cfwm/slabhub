@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RefreshCw, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getOptimizedImageUrl } from "@/lib/image-utils";
 
 interface MarketPricingDrawerProps {
     product: MarketProduct | null;
@@ -67,7 +68,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                         {product.imageUrl && (
                             <div className="w-24 h-32 flex-shrink-0 rounded-xl overflow-hidden border bg-muted/30 shadow-sm mx-auto sm:mx-0">
                                 <img
-                                    src={product.imageUrl}
+                                    src={getOptimizedImageUrl(product.imageUrl, { height: 300 })}
                                     alt={product.name}
                                     className="w-full h-full object-cover"
                                 />
@@ -79,18 +80,10 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                 <SheetDescription className="font-mono text-sm flex items-center gap-3 mt-1">
                                     {product.number}
                                     <span className="flex items-center gap-2">
-                                        <Badge variant="secondary" className="font-sans text-xs px-2">{product.source}</Badge>
-                                        {product.priceChartingUrl && (
-                                            <a
-                                                href={product.priceChartingUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-[10px] text-muted-foreground hover:text-primary hover:underline flex items-center gap-0.5"
-                                            >
-                                                View on PriceCharting
-                                                <ExternalLink className="h-2.5 w-2.5" />
-                                            </a>
+                                        {Boolean(product.source && !product.source.toLowerCase().includes('pricecharting')) && (
+                                            <Badge variant="secondary" className="font-sans text-xs px-2">{product.source}</Badge>
                                         )}
+
                                     </span>
                                 </SheetDescription>
                             </div>
@@ -226,11 +219,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                         <h3 className="text-sm font-semibold flex items-center justify-between">
                             <span className="flex items-center gap-2">
                                 Recent Sales
-                                {history?.mode === "parsed" && (
-                                    <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20 text-[10px] h-5 py-0">
-                                        Live: PriceCharting
-                                    </Badge>
-                                )}
+
                             </span>
                             <span className="text-[10px] font-normal text-muted-foreground">Last 10 entries</span>
                         </h3>
@@ -242,7 +231,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                     <span>{error}</span>
                                 </div>
                                 <p className="text-[10px] opacity-70">
-                                    This might be due to a missing PriceCharting link or a temporary scraping issue.
+                                    This might be due to a missing source link or a temporary scraping issue.
                                 </p>
                             </div>
                         )}

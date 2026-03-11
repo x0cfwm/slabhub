@@ -13,19 +13,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { AlertTriangle, CreditCard, MapPin, Save, Truck, Check, Facebook, Link, Calendar, User, X, Plus, ImageIcon } from "lucide-react";
+import { AlertTriangle, CreditCard, MapPin, Save, Truck, Link, Calendar, User, X, Plus, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
+import { getOptimizedImageUrl } from "@/lib/image-utils";
 
 const profileSchema = z.object({
     shopName: z.string().optional(),
     handle: z.string().optional(),
     isActive: z.boolean(),
-    locationCountry: z.string().optional(),
-    locationCity: z.string().optional(),
+    location: z.string().optional(),
     paymentsAccepted: z.array(z.string()).default([]),
     meetupsEnabled: z.boolean(),
     shippingEnabled: z.boolean(),
+    fulfillmentOptions: z.array(z.string()).default([]),
     wishlistText: z.string().optional(),
     referenceLinks: z.array(z.object({
         title: z.string().min(1, "Title is required"),
@@ -84,10 +85,10 @@ export default function ShopSettingsPage() {
             shopName: "",
             handle: "",
             isActive: true,
-            locationCountry: "",
-            locationCity: "",
+            location: "",
             meetupsEnabled: false,
             shippingEnabled: false,
+            fulfillmentOptions: [],
             wishlistText: "",
             paymentsAccepted: [],
             referenceLinks: [],
@@ -128,11 +129,11 @@ export default function ShopSettingsPage() {
                 shopName: user.profile.shopName || "",
                 handle: user.profile.handle || "",
                 isActive: user.profile.isActive ?? true,
-                locationCountry: user.profile.locationCountry || "",
-                locationCity: user.profile.locationCity || "",
+                location: user.profile.location || "",
                 paymentsAccepted: user.profile.paymentsAccepted || [],
                 meetupsEnabled: user.profile.meetupsEnabled ?? false,
                 shippingEnabled: user.profile.shippingEnabled ?? false,
+                fulfillmentOptions: user.profile.fulfillmentOptions || [],
                 wishlistText: user.profile.wishlistText || "",
                 referenceLinks: Array.isArray(user.profile.referenceLinks)
                     ? user.profile.referenceLinks.filter((l: any) => l && typeof l === 'object' && !Array.isArray(l))
@@ -265,25 +266,14 @@ export default function ShopSettingsPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-6 pt-2">
-                            <div className="space-y-2">
+                            <div className="space-y-2 col-span-2">
                                 <Label className="flex items-center gap-2">
                                     <MapPin className="w-4 h-4 text-primary" />
-                                    Location (Country)
+                                    Location
                                 </Label>
                                 <Input
-                                    {...register("locationCountry")}
-                                    placeholder="Singapore"
-                                    className="bg-card shadow-sm"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="flex items-center gap-2">
-                                    <MapPin className="w-4 h-4 text-primary" />
-                                    Location (City)
-                                </Label>
-                                <Input
-                                    {...register("locationCity")}
-                                    placeholder="Singapore City"
+                                    {...register("location")}
+                                    placeholder="City, State"
                                     className="bg-card shadow-sm"
                                 />
                             </div>
@@ -298,7 +288,7 @@ export default function ShopSettingsPage() {
                                 <div className="flex items-center gap-4">
                                     <div className="relative h-20 w-20 rounded-full overflow-hidden bg-muted border-2 border-primary/20 flex items-center justify-center">
                                         {avatarUrl ? (
-                                            <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                                            <img src={getOptimizedImageUrl(avatarUrl, { width: 80, height: 80, fit: 'cover' })} alt="Avatar" className="h-full w-full object-cover" />
                                         ) : (
                                             <ImageIcon className="h-8 w-8 text-muted-foreground" />
                                         )}
@@ -361,7 +351,7 @@ export default function ShopSettingsPage() {
                             <div className="flex items-center justify-between">
                                 <Label className="flex items-center gap-2">
                                     <Link className="w-4 h-4 text-primary" />
-                                    Reference Links
+                                    References
                                 </Label>
                                 <Button
                                     type="button"
@@ -370,7 +360,7 @@ export default function ShopSettingsPage() {
                                     onClick={() => appendLink({ title: "", url: "" })}
                                     className="h-8 px-2 text-xs"
                                 >
-                                    <Plus className="w-3 h-3 mr-1" /> Add Link
+                                    <Plus className="w-3 h-3 mr-1" /> Add Reference
                                 </Button>
                             </div>
                             <div className="space-y-3">
@@ -411,7 +401,7 @@ export default function ShopSettingsPage() {
                                 ))}
                                 {linkFields.length === 0 && (
                                     <p className="text-xs text-muted-foreground italic text-center py-2 bg-muted/20 rounded-lg border border-dashed">
-                                        No reference links added yet.
+                                        No references added yet.
                                     </p>
                                 )}
                             </div>
@@ -421,7 +411,7 @@ export default function ShopSettingsPage() {
                             <div className="flex items-center justify-between">
                                 <Label className="flex items-center gap-2">
                                     <Calendar className="w-4 h-4 text-primary" />
-                                    Upcoming Events
+                                    Tradeshows
                                 </Label>
                                 <Button
                                     type="button"
@@ -430,7 +420,7 @@ export default function ShopSettingsPage() {
                                     onClick={() => appendEvent({ name: "", date: "", location: "" })}
                                     className="h-8 px-2 text-xs"
                                 >
-                                    <Plus className="w-3 h-3 mr-1" /> Add Event
+                                    <Plus className="w-3 h-3 mr-1" /> Add Tradeshow
                                 </Button>
                             </div>
                             <div className="space-y-3">
@@ -471,7 +461,7 @@ export default function ShopSettingsPage() {
                                 ))}
                                 {eventFields.length === 0 && (
                                     <p className="text-xs text-muted-foreground italic text-center py-2 bg-muted/20 rounded-lg border border-dashed">
-                                        No upcoming events added yet.
+                                        No tradeshows added yet.
                                     </p>
                                 )}
                             </div>
@@ -482,25 +472,53 @@ export default function ShopSettingsPage() {
                                 <Truck className="w-4 h-4 text-primary" />
                                 Fulfillment Options
                             </Label>
-                            <div className="flex gap-6 pt-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
-                                        id="shipping"
-                                        checked={watch("shippingEnabled")}
-                                        onCheckedChange={checked => setValue("shippingEnabled", !!checked)}
+                                        id="fulfillment-shipping"
+                                        checked={(watch("fulfillmentOptions") || []).includes("shipping")}
+                                        onCheckedChange={checked => {
+                                            const current = watch("fulfillmentOptions") || [];
+                                            const updated = checked
+                                                ? [...current, "shipping"]
+                                                : current.filter((o: string) => o !== "shipping");
+                                            setValue("fulfillmentOptions", updated);
+                                        }}
                                     />
-                                    <Label htmlFor="shipping" className="text-sm font-normal cursor-pointer">
-                                        Shipping Available
+                                    <Label htmlFor="fulfillment-shipping" className="text-sm font-normal cursor-pointer">
+                                        Shipping
                                     </Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
-                                        id="meetups"
-                                        checked={watch("meetupsEnabled")}
-                                        onCheckedChange={checked => setValue("meetupsEnabled", !!checked)}
+                                        id="fulfillment-meetups-local"
+                                        checked={(watch("fulfillmentOptions") || []).includes("meetups_local")}
+                                        onCheckedChange={checked => {
+                                            const current = watch("fulfillmentOptions") || [];
+                                            const updated = checked
+                                                ? [...current, "meetups_local"]
+                                                : current.filter((o: string) => o !== "meetups_local");
+                                            setValue("fulfillmentOptions", updated);
+                                        }}
                                     />
-                                    <Label htmlFor="meetups" className="text-sm font-normal cursor-pointer">
-                                        Meetups Available
+                                    <Label htmlFor="fulfillment-meetups-local" className="text-sm font-normal cursor-pointer">
+                                        Local Meetups
+                                    </Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="fulfillment-meetups-travel"
+                                        checked={(watch("fulfillmentOptions") || []).includes("meetups_travel")}
+                                        onCheckedChange={checked => {
+                                            const current = watch("fulfillmentOptions") || [];
+                                            const updated = checked
+                                                ? [...current, "meetups_travel"]
+                                                : current.filter((o: string) => o !== "meetups_travel");
+                                            setValue("fulfillmentOptions", updated);
+                                        }}
+                                    />
+                                    <Label htmlFor="fulfillment-meetups-travel" className="text-sm font-normal cursor-pointer">
+                                        Travel Meetups
                                     </Label>
                                 </div>
                             </div>
@@ -527,54 +545,6 @@ export default function ShopSettingsPage() {
                     </CardFooter>
                 </Card>
 
-                <Card className="border-border bg-muted/30 shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="text-muted-foreground uppercase text-[10px] tracking-[0.2em] font-bold">Facebook Profile</CardTitle>
-                        <CardDescription>Verify your profile so buyers trust your shop.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {(user as any)?.facebookVerifiedAt ? (
-                            <div className="flex items-center justify-between p-4 bg-primary/5 border border-primary/20 rounded-xl">
-                                <div className="space-y-1">
-                                    <p className="text-sm font-medium flex items-center gap-2">
-                                        <Check className="h-4 w-4 text-green-500" /> Connected
-                                    </p>
-                                    <a href={(user as any).facebookProfileUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline block truncate max-w-[200px] sm:max-w-xs cursor-pointer">
-                                        View Profile
-                                    </a>
-                                </div>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={async () => {
-                                        try {
-                                            const url = new URL('/v1/auth/facebook', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
-                                            await fetch(url.toString(), { method: 'DELETE', credentials: 'include' });
-                                            toast.success('Disconnected Facebook');
-                                            await refresh();
-                                        } catch (e) {
-                                            toast.error('Failed to disconnect');
-                                        }
-                                    }}
-                                >
-                                    Disconnect
-                                </Button>
-                            </div>
-                        ) : (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/v1/auth/facebook`;
-                                }}
-                            >
-                                <Facebook className="mr-2 h-4 w-4" />
-                                Link Facebook
-                            </Button>
-                        )}
-                    </CardContent>
-                </Card>
             </form>
         </div>
     );

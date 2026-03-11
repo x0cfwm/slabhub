@@ -62,11 +62,11 @@ model SellerProfile {
   handle           String          @unique
   shopName         String
   isActive         Boolean         @default(true)
-  locationCountry  String
-  locationCity     String
+  location         String          @default("")
   paymentsAccepted String[]
   meetupsEnabled   Boolean         @default(false)
   shippingEnabled  Boolean         @default(false)
+  fulfillmentOptions String[]      @default([])
   socials          Json            @default("{}")
   wishlistText     String          @default("")
   referenceLinks   Json            @default("[]")
@@ -167,6 +167,8 @@ model InventoryItem {
   createdAt                 DateTime                 @default(now())
   updatedAt                 DateTime                 @updatedAt
   certificationNumber       String?
+  cardNumber                String?
+  setCode                   String?
   gradingMeta               Json?
   refPriceChartingProductId String?
   userId                    String
@@ -239,42 +241,6 @@ model RefSet {
   @@index([gameExternalId])
 }
 
-model RefRarity {
-  id              String    @id @default(cuid())
-  externalId      String    @unique
-  name            String
-  code            String?
-  sourceUpdatedAt DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([externalId])
-}
-
-model RefCondition {
-  id              String    @id @default(cuid())
-  externalId      String    @unique
-  name            String
-  abbreviation    String?
-  sourceUpdatedAt DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([externalId])
-}
-
-model RefLanguage {
-  id              String    @id @default(cuid())
-  externalId      String    @unique
-  name            String
-  code            String?
-  sourceUpdatedAt DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([externalId])
-}
-
 model RefPriceChartingProduct {
   id              String               @id @default(cuid())
   productUrl      String               @unique
@@ -332,6 +298,7 @@ model PriceChartingSales {
 model RefPriceChartingSet {
   id        String                    @id @default(cuid())
   name      String                    @unique
+  code      String?
   slug      String?                   @unique
   createdAt DateTime                  @default(now())
   updatedAt DateTime                  @updatedAt
@@ -417,6 +384,7 @@ enum GradeProvider {
   CGC
   ARS
   SGC
+  OTHER
 }
 
 enum Condition {

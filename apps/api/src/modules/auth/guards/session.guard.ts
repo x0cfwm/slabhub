@@ -12,7 +12,15 @@ export class SessionGuard implements CanActivate {
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const request = context.switchToHttp().getRequest();
-        const token = request.cookies[process.env.SESSION_COOKIE_NAME || 'slabhub_session'];
+        let token = request.cookies[process.env.SESSION_COOKIE_NAME || 'slabhub_session'];
+
+        // If no cookie, check for Authorization header
+        if (!token && request.headers.authorization) {
+            const authHeader = request.headers.authorization;
+            if (authHeader.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+            }
+        }
 
         if (!token) {
             throw new UnauthorizedException('No session token provided');

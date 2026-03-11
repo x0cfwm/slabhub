@@ -95,8 +95,7 @@ export class ProfileService {
                     handle: dto.handle,
                     shopName: dto.shopName,
                     userId,
-                    locationCountry: dto.locationCountry || '',
-                    locationCity: dto.locationCity || '',
+                    location: dto.location || '',
                     shippingEnabled: dto.shippingEnabled ?? false,
                     avatarId: dto.avatarId,
                 },
@@ -173,11 +172,11 @@ export class ProfileService {
             handle: seller.handle,
             shopName: seller.shopName,
             isActive: seller.isActive,
-            locationCountry: seller.locationCountry,
-            locationCity: seller.locationCity,
+            location: seller.location,
             paymentsAccepted: seller.paymentsAccepted,
             meetupsEnabled: seller.meetupsEnabled,
             shippingEnabled: seller.shippingEnabled,
+            fulfillmentOptions: this.getFulfillmentOptions(seller),
             socials: seller.socials,
             wishlistText: seller.wishlistText,
             referenceLinks: (seller.referenceLinks as any[]) || [],
@@ -187,5 +186,18 @@ export class ProfileService {
             createdAt: seller.createdAt.toISOString(),
             updatedAt: seller.updatedAt.toISOString(),
         };
+    }
+
+    private getFulfillmentOptions(seller: any): string[] {
+        // If the new field has values, use them
+        if (seller.fulfillmentOptions && seller.fulfillmentOptions.length > 0) {
+            return seller.fulfillmentOptions;
+        }
+
+        // Fallback to legacy boolean fields
+        const options: string[] = [];
+        if (seller.shippingEnabled) options.push('shipping');
+        if (seller.meetupsEnabled) options.push('meetups_local');
+        return options;
     }
 }

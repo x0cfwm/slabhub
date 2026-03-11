@@ -100,11 +100,13 @@ export class InventoryService {
                     productType: dto.productType,
                     language: dto.language,
                     setName: dto.setName,
+                    setCode: dto.setCode,
+                    cardNumber: dto.cardNumber,
                     edition: dto.edition,
                     integrity: dto.integrity,
                     configuration: dto.configuration as any,
                     gradeProvider: dto.gradeProvider,
-                    gradeValue: dto.gradeValue,
+                    gradeValue: dto.gradeValue?.toString(),
                     certNumber: dto.certNumber,
                     certificationNumber: dto.certificationNumber || dto.certNumber,
                     gradingMeta: dto.gradingMeta,
@@ -171,7 +173,7 @@ export class InventoryService {
         } catch (error) {
             this.logger.error(`Failed to create inventory item: ${error.message}`, error.stack);
             if (error instanceof BadRequestException) throw error;
-            throw new BadRequestException(`Database error: ${error.message}`);
+            throw new BadRequestException(`Database error: ${error.message}`, { cause: error });
         }
     }
 
@@ -210,11 +212,13 @@ export class InventoryService {
                 productName: dto.productName,
                 language: dto.language,
                 setName: dto.setName,
+                setCode: dto.setCode,
+                cardNumber: dto.cardNumber,
                 edition: dto.edition,
                 integrity: dto.integrity,
                 configuration: dto.configuration as any,
                 gradeProvider: dto.gradeProvider,
-                gradeValue: dto.gradeValue,
+                gradeValue: dto.gradeValue?.toString(),
                 certNumber: dto.certNumber,
                 gradingCost: dto.gradingCost,
                 slabImages: dto.slabImages as any,
@@ -650,14 +654,16 @@ export class InventoryService {
                 rarity: item.cardVariant.card.rarity,
                 cardNumber: item.cardVariant.card.cardNumber,
                 imageUrl: item.cardVariant.card.imageUrl,
+                setCode: item.cardVariant.card.set, // Fallback
             };
         } else if (item.refPriceChartingProduct) {
             cardProfile = {
                 id: item.refPriceChartingProduct.id,
                 name: item.refPriceChartingProduct.title || 'Unknown',
                 set: item.refPriceChartingProduct.set?.name || 'Unknown',
+                setCode: item.refPriceChartingProduct.set?.code || item.setCode,
                 rarity: '',
-                cardNumber: item.refPriceChartingProduct.cardNumber || '',
+                cardNumber: item.refPriceChartingProduct.cardNumber || item.cardNumber || '',
                 imageUrl: this.mediaService.ensureCdnUrl(item.refPriceChartingProduct.imageUrl) || '',
                 rawPrice: item.refPriceChartingProduct.rawPrice ? Number(item.refPriceChartingProduct.rawPrice) : null,
                 sealedPrice: item.refPriceChartingProduct.sealedPrice ? Number(item.refPriceChartingProduct.sealedPrice) : null,
@@ -667,8 +673,9 @@ export class InventoryService {
                 id: null,
                 name: item.productName,
                 set: item.setName || 'Unknown',
+                setCode: item.setCode || '',
                 rarity: '',
-                cardNumber: '',
+                cardNumber: item.cardNumber || '',
                 imageUrl: (item.photos && (item.photos as string[]).length > 0) ? (item.photos as string[])[0] : '',
             };
         }

@@ -12,7 +12,7 @@ If you wish to delete your Slabhub account and associated data, please follow th
 
 Alternatively, you can request data deletion by contacting us via email:
 
-Email: privacy@slabhub.com
+Email: privacy@slabhub.gg
 Subject: Data Deletion Request
 
 Upon receiving your request via email, we will verify your identity and process the deletion within 30 days.

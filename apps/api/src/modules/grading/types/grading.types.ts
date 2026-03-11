@@ -1,4 +1,4 @@
-export type Grader = "PSA" | "BGS" | "CGC" | "SGC" | "ARS";
+export type Grader = "PSA" | "BGS" | "OTHER";
 
 export interface GradingLookupResult {
     grader: Grader;
@@ -7,6 +7,12 @@ export interface GradingLookupResult {
     data?: {
         gradeLabel: string;
         gradeValue: number | string;
+        subgrades?: {
+            centering?: number | string;
+            corners?: number | string;
+            edges?: number | string;
+            surface?: number | string;
+        };
         cardName: string;
         setName: string;
         cardNumber?: string;
@@ -19,5 +25,31 @@ export interface GradingLookupResult {
         };
         raw?: Record<string, any>;
     };
+    error?: string;
+}
+
+export interface GradingRecognitionResult {
+    success: boolean;
+    data?: {
+        grader: Grader | string;
+        certNumber: string;
+        gradeLabel: string;
+        gradeValue: number | string;
+        subgrades?: {
+            centering?: number | string;
+            corners?: number | string;
+            edges?: number | string;
+            surface?: number | string;
+        };
+        cardName: string;
+        setName: string;
+        setCode?: string;
+        cardNumber?: string;
+        language?: string;
+        year?: string;
+        refPriceChartingProductId?: string;
+        marketPrice?: number;
+    };
+    durationMs?: number;
     error?: string;
 }

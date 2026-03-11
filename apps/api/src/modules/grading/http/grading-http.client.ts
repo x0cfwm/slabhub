@@ -58,18 +58,18 @@ export class GradingHttpClient {
     private handleAxiosError(error: AxiosError, url: string) {
         if (error.response) {
             if (error.response.status === 404) {
-                throw new HttpException('Certificate not found on PSA API', HttpStatus.NOT_FOUND);
+                throw new HttpException('Certificate not found on PSA API', HttpStatus.NOT_FOUND, { cause: error });
             }
             if (error.response.status === 401 || error.response.status === 403) {
-                throw new HttpException('PSA API Authentication failed or forbidden', HttpStatus.FORBIDDEN);
+                throw new HttpException('PSA API Authentication failed or forbidden', HttpStatus.FORBIDDEN, { cause: error });
             }
             if (error.response.status === 429) {
-                throw new HttpException('PSA API rate limited our request', HttpStatus.TOO_MANY_REQUESTS);
+                throw new HttpException('PSA API rate limited our request', HttpStatus.TOO_MANY_REQUESTS, { cause: error });
             }
             this.logger.error(`Error fetching ${url}: ${error.response.status} ${error.response.statusText}`);
-            throw new HttpException(`Upstream error: ${error.response.status}`, HttpStatus.BAD_GATEWAY);
+            throw new HttpException(`Upstream error: ${error.response.status}`, HttpStatus.BAD_GATEWAY, { cause: error });
         }
         this.logger.error(`Network error fetching ${url}: ${error.message}`);
-        throw new HttpException('Network or timeout error while fetching PSA API', HttpStatus.BAD_GATEWAY);
+        throw new HttpException('Network or timeout error while fetching PSA API', HttpStatus.BAD_GATEWAY, { cause: error });
     }
 }

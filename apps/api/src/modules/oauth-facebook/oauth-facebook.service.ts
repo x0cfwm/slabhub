@@ -36,7 +36,7 @@ export class OauthFacebookService {
         const params = new URLSearchParams({
             client_id: clientId,
             redirect_uri: redirectUri,
-            scope: 'email,public_profile',
+            scope: 'email,public_profile,user_link',
             response_type: 'code',
             state,
         });
@@ -49,7 +49,7 @@ export class OauthFacebookService {
         const clientSecret = this.configService.get<string>('FACEBOOK_APP_SECRET');
         const apiUrl = this.getApiUrl();
         const redirectUri = `${apiUrl}/v1/auth/facebook/callback`;
-        const webOrigin = this.configService.get<string>('WEB_ORIGIN');
+        const webOrigin = this.configService.get<string>('WEB_ORIGIN') || apiUrl.replace(/\/api$/, '');
 
         let inviteToken: string | undefined;
         if (state) {
@@ -62,7 +62,9 @@ export class OauthFacebookService {
         }
 
         if (!clientId || !clientSecret) {
-            return res.redirect(`${webOrigin}/login?error=facebook_not_configured`);
+            this.logger.error('Facebook OAuth missing configuration', { hasClientId: !!clientId, hasClientSecret: !!clientSecret });
+            const origin = webOrigin || apiUrl;
+            return res.redirect(`${origin}/login?error=facebook_not_configured`);
         }
 
         try {
@@ -78,7 +80,7 @@ export class OauthFacebookService {
                 })
             ).catch(e => {
                 this.logger.error('Failed to get FB token', e.response?.data);
-                throw e;
+                throw new BadRequestException('Failed to get Facebook access token', { cause: e });
             });
 
             const { access_token } = tokenResponse.data;
@@ -87,19 +89,21 @@ export class OauthFacebookService {
             const profileResponse = await lastValueFrom(
                 this.httpService.get('https://graph.facebook.com/me', {
                     params: {
-                        fields: 'id,name,email,picture',
+                        fields: 'id,name,email,picture,link',
                         access_token,
                     },
                 })
             ).catch(e => {
                 this.logger.error('Failed to get FB profile', e.response?.data);
-                throw e;
+                throw new BadRequestException('Failed to get Facebook profile', { cause: e });
             });
 
             const profile = profileResponse.data;
+            this.logger.debug('Facebook profile retrieved', { id: profile.id, hasEmail: !!profile.email, hasLink: !!profile.link });
+            
             const email = profile.email?.toLowerCase().trim();
             const providerUserId = profile.id;
-            const profileUrl = `https://www.facebook.com/${providerUserId}`;
+            const profileUrl = profile.link || `https://www.facebook.com/${providerUserId}`;
 
             // Check if user is currently logged in (for linking)
             let currentUser = null;
@@ -251,8 +255,13 @@ export class OauthFacebookService {
                 return res.redirect(`${webOrigin}/dashboard`);
             }
         } catch (error: any) {
-            this.logger.error('Facebook OAuth error', error.message);
-            const redirectUrl = existingSessionToken ? `${webOrigin}/settings?error=facebook_error` : `${webOrigin}/login?error=facebook_error`;
+            this.logger.error('Facebook OAuth error', { 
+                message: error.message, 
+                response: error.response?.data,
+                stack: error.stack 
+            });
+            const origin = webOrigin || apiUrl;
+            const redirectUrl = existingSessionToken ? `${origin}/settings?error=facebook_error` : `${origin}/login?error=facebook_error`;
             return res.redirect(redirectUrl);
         }
     }

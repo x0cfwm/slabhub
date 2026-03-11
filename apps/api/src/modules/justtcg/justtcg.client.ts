@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
@@ -222,6 +222,7 @@ export class JustTcgClient {
         const retries = 5;
         let attempt = 0;
 
+        let lastError: any;
         while (attempt <= retries) {
             const key = this.getNextApiKey();
             const meta = this.keyMetadata.get(key)!;
@@ -250,6 +251,7 @@ export class JustTcgClient {
                 this.updateMetadata(key, data._metadata);
                 return data;
             } catch (error: any) {
+                lastError = error;
                 attempt++;
                 const status = error.response?.status;
 
@@ -262,7 +264,7 @@ export class JustTcgClient {
                     // Remove key from rotation if it's invalid
                     const idx = this.apiKeys.indexOf(key);
                     if (idx > -1) this.apiKeys.splice(idx, 1);
-                    if (this.apiKeys.length === 0) throw new Error('No valid API keys remaining');
+                    if (this.apiKeys.length === 0) throw new InternalServerErrorException('No valid API keys remaining', { cause: error });
                     continue;
                 }
 
@@ -295,6 +297,6 @@ export class JustTcgClient {
 
             }
         }
-        throw new Error(`Failed to fetch ${mapping.endpoint} after ${retries} retries`);
+        throw new InternalServerErrorException(`Failed to fetch ${mapping.endpoint} after ${retries} retries`, { cause: lastError });
     }
 }

@@ -23,6 +23,8 @@ import { WorkflowModule } from './modules/workflow/workflow.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { z } from 'zod';
+import { SentryInterceptor } from './common/interceptors/sentry.interceptor';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
     imports: [
@@ -71,6 +73,7 @@ import { z } from 'zod';
                         .default('image/jpeg,image/png,image/webp'),
                     FACEBOOK_APP_ID: z.string().optional(),
                     FACEBOOK_APP_SECRET: z.string().optional(),
+                    GEMINI_API_KEY: z.string().optional(),
                     WEB_ORIGIN: z.string().url().default('http://localhost:3000'),
                     NEXT_PUBLIC_API_URL: z.string().url().optional(),
                     INVITE_ONLY_REGISTRATION: z
@@ -103,6 +106,10 @@ import { z } from 'zod';
         {
             provide: APP_FILTER,
             useClass: SentryGlobalFilter,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: SentryInterceptor,
         },
     ],
 })

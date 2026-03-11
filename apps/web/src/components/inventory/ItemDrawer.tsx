@@ -35,6 +35,7 @@ import { Trash2, Save, Info, ShoppingCart, Award, Calendar, DollarSign, StickyNo
 import { updateInventoryItem, deleteInventoryItem, uploadFile, deleteFile } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getOptimizedImageUrl } from "@/lib/image-utils";
 
 interface ItemDrawerProps {
     item: InventoryItem | null;
@@ -54,7 +55,7 @@ const STAGES: { value: InventoryStage; label: string }[] = [
     { value: "SOLD", label: "Sold" },
 ];
 
-const GRADING_COMPANIES: GradingCompany[] = ["PSA", "BGS"];
+const GRADING_COMPANIES: GradingCompany[] = ["BGS", "PSA", "OTHER"];
 const CONDITIONS: { value: Condition; label: string }[] = [
     { value: "NM", label: "Near Mint" },
     { value: "LP", label: "Lightly Played" },
@@ -157,7 +158,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                                 onClick={() => setZoomedImage(photos[0] || finalProfile?.imageUrl || null)}
                             >
                                 <img
-                                    src={photos[0] || finalProfile?.imageUrl || `https://placehold.co/200x300?text=${isSealed ? 'Sealed' : 'Card'}`}
+                                    src={getOptimizedImageUrl(photos[0] || finalProfile?.imageUrl || `https://placehold.co/200x300?text=${isSealed ? 'Sealed' : 'Card'}`, { height: 300 })}
                                     alt={displayName}
                                     className="w-full h-full object-cover transition-transform group-hover:scale-110"
                                 />
@@ -350,7 +351,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                                                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                                 ) : (formData as any).photos?.[idx] ? (
                                                     <div className="absolute inset-0 w-full h-full group/img">
-                                                        <img src={(formData as any).photos[idx]} className="w-full h-full object-cover" alt={label} />
+                                                        <img src={getOptimizedImageUrl((formData as any).photos[idx], { width: 300, height: 300, fit: 'cover' })} className="w-full h-full object-cover" alt={label} />
                                                         <div
                                                             className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                                             onClick={(e) => {
@@ -706,7 +707,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                     {zoomedImage && (
                         <div className="relative w-full h-full flex items-center justify-center p-4">
                             <img
-                                src={zoomedImage}
+                                src={getOptimizedImageUrl(zoomedImage, { height: 1200, fit: 'scale-down' })}
                                 alt="Zoomed view"
                                 className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl ring-1 ring-white/10"
                             />

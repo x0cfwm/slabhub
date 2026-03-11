@@ -16,17 +16,20 @@
         "justtcg:sync:catalog": "npm run console -- justtcg:sync:catalog",
         "justtcg:sync:all": "npm run console -- justtcg:sync:all",
         "pricecharting:crawl:onepiece": "npm run console -- pricecharting:crawl:onepiece",
-        "inventory:sync:prices": "npm run console -- inventory:sync:prices"
+        "inventory:sync:prices": "npm run console -- inventory:sync:prices",
+        "grading:test-recognition": "npm run console -- grading:test-recognition"
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.992.0",
         "@aws-sdk/s3-request-presigner": "^3.992.0",
+        "@google/generative-ai": "^0.24.1",
         "@nestjs/axios": "^4.0.1",
         "@nestjs/common": "^11.0.0",
         "@nestjs/config": "^4.0.2",
         "@nestjs/core": "^11.0.0",
         "@nestjs/platform-express": "^11.0.0",
         "@nestjs/serve-static": "^5.0.4",
+        "@nestjs/swagger": "^11.2.6",
         "@nestjs/throttler": "^6.5.0",
         "@prisma/client": "^6.2.0",
         "@sentry/nestjs": "^10.38.0",
@@ -42,6 +45,8 @@
         "reflect-metadata": "^0.2.2",
         "resend": "^6.9.2",
         "rxjs": "^7.8.1",
+        "sharp": "^0.34.5",
+        "swagger-ui-express": "^5.0.1",
         "zod": "^4.3.5"
     },
     "devDependencies": {

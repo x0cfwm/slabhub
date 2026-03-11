@@ -39,6 +39,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { SimpleThemeToggle } from "@/components/common/SimpleThemeToggle";
+import { getOptimizedImageUrl } from "@/lib/image-utils";
 
 export default function VendorClient() {
     const searchParams = useSearchParams();
@@ -154,7 +155,7 @@ export default function VendorClient() {
                             rawPrice: cp.rawPrice || 0,
                             sealedPrice: cp.sealedPrice || 0,
                             lastUpdated: (i as any).updatedAt || new Date().toISOString(),
-                            source: "PriceCharting",
+                            source: "SlabHub",
                         } as MarketProduct;
                     });
 
@@ -251,7 +252,7 @@ export default function VendorClient() {
                     <div className="flex flex-col md:flex-row gap-8 items-start">
                         {profile.avatarUrl ? (
                             <img
-                                src={profile.avatarUrl}
+                                src={getOptimizedImageUrl(profile.avatarUrl, { width: 112, height: 112, fit: 'cover' })}
                                 alt={profile.shopName}
                                 className="w-28 h-28 rounded-3xl object-cover border-4 border-primary/20 rotate-3 shadow-xl"
                             />
@@ -267,30 +268,37 @@ export default function VendorClient() {
                                 </h1>
                                 <p className="text-primary/70 flex items-center gap-1 mt-2 font-bold tracking-widest uppercase text-xs">
                                     @{profile.handle}
-                                    {(profile.locationCity || profile.locationCountry) && (
+                                    {profile.location && (
                                         <>
                                             {" • "}
                                             <MapPin className="h-3 w-3" />
-                                            {[profile.locationCity, profile.locationCountry].filter(Boolean).join(", ")}
+                                            {profile.location}
                                         </>
                                     )}
                                 </p>
                             </div>
 
                             <div className="flex flex-wrap gap-2">
-                                {profile.meetupsEnabled && (
-                                    <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
-                                        <Users className="h-3 w-3 mr-1" /> Meetups
-                                    </Badge>
-                                )}
-                                {profile.shippingEnabled && (
+                                {(profile.fulfillmentOptions || []).includes("shipping") && (
                                     <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
                                         <Truck className="h-3 w-3 mr-1" /> Shipping
                                     </Badge>
                                 )}
-                                <Badge variant="outline" className="border-border bg-muted/50">
-                                    <CreditCard className="h-3 w-3 mr-1" /> {profile.paymentsAccepted.join(", ")}
-                                </Badge>
+                                {(profile.fulfillmentOptions || []).includes("meetups_local") && (
+                                    <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
+                                        <Users className="h-3 w-3 mr-1" /> Local Meetups
+                                    </Badge>
+                                )}
+                                {(profile.fulfillmentOptions || []).includes("meetups_travel") && (
+                                    <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
+                                        <Users className="h-3 w-3 mr-1" /> Travel Meetups
+                                    </Badge>
+                                )}
+                                {profile.paymentsAccepted && profile.paymentsAccepted.length > 0 && (
+                                    <Badge variant="outline" className="border-border bg-muted/50">
+                                        <CreditCard className="h-3 w-3 mr-1" /> {profile.paymentsAccepted.join(", ")}
+                                    </Badge>
+                                )}
                                 {(profile as any).facebookVerifiedAt && (
                                     <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border-blue-500/20 cursor-pointer" onClick={() => window.open((profile as any).facebookProfileUrl, '_blank')}>
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-facebook mr-1.5 h-3 w-3"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
@@ -390,7 +398,7 @@ export default function VendorClient() {
                                         <Card className="relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md border-primary/10 bg-card/50 backdrop-blur-md">
                                             <div className="aspect-[3/4] overflow-hidden relative bg-accent/5">
                                                 <img
-                                                    src={item.photos?.[0] || (item as any).frontMediaUrl || marketProduct?.imageUrl || "https://placehold.co/300x400?text=Asset"}
+                                                    src={getOptimizedImageUrl(item.photos?.[0] || (item as any).frontMediaUrl || marketProduct?.imageUrl || "https://placehold.co/300x400?text=Asset", { height: 400 })}
                                                     className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-110"
                                                     alt={displayName}
                                                 />
@@ -483,7 +491,7 @@ export default function VendorClient() {
                                                 onClick={() => setIsZoomed(!isZoomed)}
                                             >
                                                 <img
-                                                    src={activePhoto || `https://placehold.co/800x1200?text=${((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? 'Sealed' : 'Card'}`}
+                                                    src={getOptimizedImageUrl(activePhoto || `https://placehold.co/800x1200?text=${((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? 'Sealed' : 'Card'}`, { height: 1200 })}
                                                     alt={((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? (selectedItem as any).productName : (marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || "Asset Details")}
                                                     className="max-w-full max-h-full w-auto h-auto object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.8)] rounded-lg pointer-events-none"
                                                 />
@@ -535,7 +543,7 @@ export default function VendorClient() {
                                                                 activePhoto === photo ? "border-primary scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-100"
                                                             )}
                                                         >
-                                                            <img src={photo} className="w-full h-full object-cover" alt="prev" />
+                                                            <img src={getOptimizedImageUrl(photo, { width: 48, height: 64, fit: 'cover' })} className="w-full h-full object-cover" alt="prev" />
                                                         </button>
                                                     ))}
                                                 </div>
@@ -642,10 +650,10 @@ export default function VendorClient() {
                                                 <p className="text-sm font-bold">{profile.shopName}</p>
                                                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                                                     @{profile.handle}
-                                                    {profile.locationCity && (
+                                                    {profile.location && (
                                                         <>
                                                             {" • "}
-                                                            {profile.locationCity}
+                                                            {profile.location}
                                                         </>
                                                     )}
                                                 </p>

@@ -25,10 +25,45 @@ export class PriceChartingParser {
         return [...new Set(setUrls)];
     }
 
-    parseSetPage(html: string, baseUrl: string): { productUrls: string[]; nextPages: string[] } {
+    parseSetPage(html: string, baseUrl: string): { productUrls: string[]; nextPages: string[]; setCode?: string; setName?: string } {
         const $ = cheerio.load(html);
         const productUrls: string[] = [];
         const nextPages: string[] = [];
+
+        // Extract Set Name
+        const setName = $('.breadcrumbs a:last-of-type').text().trim() || $('h1').text().trim().replace(/^Prices For /i, '').replace(/ (One Piece Cards|Cards)$/i, '').trim();
+
+        // Extract Set Code from description header
+        let setCode: string | undefined;
+        const descriptionText = $('.section-description, .description').text();
+        const setCodeMatch = descriptionText.match(/Set Code:\s*([A-Z0-9-]+)/i);
+        if (setCodeMatch) {
+            let code = setCodeMatch[1].trim();
+            // Refine code: One Piece codes like OP03-008 should be OP03
+            // But PRB-02 should remain PRB-02
+            const parts = code.split('-');
+            if (parts.length > 1) {
+                const lastPart = parts[parts.length - 1];
+                // If it looks like a card number (3+ digits), drop it (unless it's the only part beyond the prefix)
+                // Actually, let's use the rule: if parts[1] is 3+ digits, we stop at parts[0]
+                if (parts[1] && /^\d{3,}$/.test(parts[1])) {
+                    code = parts[0];
+                } else if (parts.length > 2 && /^\d{3,}$/.test(parts[2])) {
+                    // For PRB-01-001, parts[2] is 001
+                    code = `${parts[0]}-${parts[1]}`;
+                }
+            }
+            setCode = code;
+        } else {
+            // Fallback: look in all bold tags
+            $('b').each((_, el) => {
+                const text = $(el).text();
+                if (text.includes('Set Code:')) {
+                    setCode = text.replace('Set Code:', '').trim();
+                    return false;
+                }
+            });
+        }
 
         // Product links look like /game/<set-slug>/<product-slug>
         $('a[href^="/game/"]').each((_, el) => {
@@ -53,6 +88,8 @@ export class PriceChartingParser {
         return {
             productUrls: [...new Set(productUrls)],
             nextPages: [...new Set(nextPages)],
+            setCode,
+            setName,
         };
     }
 
@@ -82,11 +119,31 @@ export class PriceChartingParser {
 
             const cardNumMatch = text.match(/Card Number:\s*([^\n]+)/i);
             if (cardNumMatch) details['Card Number'] = cardNumMatch[1].trim();
+
+            const setCodeMatch = text.match(/Set Code:\s*([^\n]+)/i);
+            if (setCodeMatch) details['Set Code'] = setCodeMatch[1].trim();
         }
 
         const tcgPlayerIdStr = details['TCGPlayer ID'];
         const priceChartingIdStr = details['PriceCharting ID'];
         const cardNumber = details['Card Number'];
+        let setCode = details['Set Code'];
+
+        if (!setCode && cardNumber) {
+            const match = cardNumber.match(/([A-Z]{1,}\d*-?[0-9A-Z]+|[A-Z]{1,}\d+)/i);
+            if (match) {
+                let code = match[1];
+                const parts = code.split('-');
+                if (parts.length > 1) {
+                    if (parts[1] && /^\d{3,}$/.test(parts[1])) {
+                        code = parts[0];
+                    } else if (parts.length > 2 && /^\d{3,}$/.test(parts[2])) {
+                        code = `${parts[0]}-${parts[1]}`;
+                    }
+                }
+                setCode = code;
+            }
+        }
 
         // Extract Image
         const imageUrl = $('div.cover img').attr('src');
@@ -106,6 +163,7 @@ export class PriceChartingParser {
             details,
             setSlug: extractSlug(url, 'game'),
             setName: setName || undefined,
+            setCode: setCode || undefined,
             productSlug: url.split('/').filter(Boolean).pop(),
             title: h1Text.replace(/\s+/g, ' '),
             imageUrl: imageUrl ? (imageUrl.startsWith('http') ? imageUrl : `https://www.pricecharting.com${imageUrl}`) : undefined,

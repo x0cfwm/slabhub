@@ -87,7 +87,28 @@ export class PriceChartingIngestService {
                 }
 
                 this.logger.log(`Crawling set [${setIdx + 1}/${setUrls.length}]: ${setUrl}`);
-                const productUrls = await this.crawlSetPages(setUrl);
+                const { productUrls, setCode, setName } = await this.crawlSetPages(setUrl);
+
+                if (setName) {
+                    const setSlug = setUrl.split('/').filter(Boolean).pop();
+
+                    // First try to find by slug to avoid unique constraint conflicts on slug if naming differs
+                    const existingBySlug = await this.prisma.refPriceChartingSet.findUnique({
+                        where: { slug: setSlug }
+                    });
+
+                    const effectiveName = existingBySlug ? existingBySlug.name : setName;
+
+                    await this.prisma.refPriceChartingSet.upsert({
+                        where: { name: effectiveName },
+                        update: { code: setCode, slug: setSlug },
+                        create: { name: effectiveName, code: setCode, slug: setSlug },
+                    });
+
+                    if (setCode) {
+                        this.logger.log(`Updated Set Code: ${setCode} for set "${effectiveName}"`);
+                    }
+                }
 
                 // Filter products for resume logic
                 const productsToProcess = [];
@@ -115,7 +136,7 @@ export class PriceChartingIngestService {
                         if (options.maxProducts && productCount >= options.maxProducts) return;
 
                         try {
-                            await this.crawlAndIngestProduct(productUrl, options);
+                            await this.crawlAndIngestProduct(productUrl, options, setCode);
                             this.visitedUrls.add(productUrl);
                             productCount++;
                             totalProcessed++;
@@ -177,10 +198,12 @@ export class PriceChartingIngestService {
         }
     }
 
-    private async crawlSetPages(setUrl: string): Promise<string[]> {
+    private async crawlSetPages(setUrl: string): Promise<{ productUrls: string[]; setCode?: string; setName?: string }> {
         const allProductUrls: string[] = [];
         const visitedPages = new Set<string>();
         const queuedPages = [setUrl];
+        let setCode: string | undefined;
+        let setName: string | undefined;
 
         // Breadth-first search for products across paginated pages
         while (queuedPages.length > 0) {
@@ -191,11 +214,18 @@ export class PriceChartingIngestService {
 
                 try {
                     const html = await this.client.fetch(currentUrl);
-                    const { productUrls, nextPages } = this.parser.parseSetPage(html, 'https://www.pricecharting.com');
+                    const parsed = this.parser.parseSetPage(html, 'https://www.pricecharting.com');
 
-                    synchronizedPush(allProductUrls, ...productUrls);
+                    if (parsed.setCode && !setCode) {
+                        setCode = parsed.setCode;
+                    }
+                    if (parsed.setName && !setName) {
+                        setName = parsed.setName;
+                    }
 
-                    for (const nextPage of nextPages) {
+                    synchronizedPush(allProductUrls, ...parsed.productUrls);
+
+                    for (const nextPage of parsed.nextPages) {
                         if (!visitedPages.has(nextPage)) {
                             queuedPages.push(nextPage);
                         }
@@ -206,10 +236,14 @@ export class PriceChartingIngestService {
             }));
         }
 
-        return [...new Set(allProductUrls)];
+        return {
+            productUrls: [...new Set(allProductUrls)],
+            setCode,
+            setName,
+        };
     }
 
-    private async crawlAndIngestProduct(url: string, options: PriceChartingCrawlOptions) {
+    private async crawlAndIngestProduct(url: string, options: PriceChartingCrawlOptions, setCode?: string) {
         // Optimization: Check if we already processed this product recently
         if (!options.fresh) {
             const existing = await this.prisma.refPriceChartingProduct.findUnique({
@@ -227,6 +261,10 @@ export class PriceChartingIngestService {
         const html = await this.client.fetch(url);
         const parsed = this.parser.parseProductPage(html, url);
         parsed.categorySlug = 'one-piece-cards';
+
+        if (setCode) {
+            parsed.setCode = setCode;
+        }
 
         if (options.images && parsed.imageUrl) {
             try {
@@ -284,14 +322,23 @@ export class PriceChartingIngestService {
         let setId: string | undefined;
 
         if (data.setName) {
+            const existingSet = await this.prisma.refPriceChartingSet.findUnique({
+                where: { name: data.setName },
+                select: { code: true }
+            });
+
+            const isBadCode = (c?: string | null) => !!c && c.includes('-') && /\d{3,}$/.test(c.split('-').pop() || '');
+
             const set = await this.prisma.refPriceChartingSet.upsert({
                 where: { name: data.setName },
                 update: {
                     slug: data.setSlug,
+                    code: (existingSet?.code && !isBadCode(existingSet.code)) ? existingSet.code : data.setCode,
                 },
                 create: {
                     name: data.setName,
                     slug: data.setSlug,
+                    code: data.setCode,
                 },
             });
             setId = set.id;

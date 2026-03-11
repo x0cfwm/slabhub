@@ -2,7 +2,7 @@ export type Game = "MAGIC" | "POKEMON" | "ONE_PIECE" | "LORCANA" | "YU_GI_OH";
 
 export type Condition = "NM" | "LP" | "MP" | "HP" | "DMG";
 
-export type GradingCompany = "PSA" | "BGS" | "CGC" | "ARS" | "SGC";
+export type GradingCompany = "PSA" | "BGS" | "OTHER";
 
 export type InventoryStage =
     | "ACQUIRED"
@@ -150,11 +150,11 @@ export interface SellerProfile {
     handle: string;
     shopName: string;
     isActive: boolean;
-    locationCountry: string;
-    locationCity: string;
+    location: string;
     paymentsAccepted: string[];
     meetupsEnabled: boolean;
     shippingEnabled: boolean;
+    fulfillmentOptions: string[];
     socials: {
         instagram?: string;
         tiktok?: string;
@@ -182,6 +182,7 @@ export interface MarketProduct {
     number: string | null;
     imageUrl: string | null;
     set: string;
+    setCode?: string | null;
     productType?: string | null;
     priceChartingUrl?: string | null;
     rawPrice: number;

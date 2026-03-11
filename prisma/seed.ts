@@ -42,10 +42,10 @@ async function main() {
     // 0. Upsert demo user
     console.log('👤 Upserting demo user...');
     const user = await prisma.user.upsert({
-        where: { email: 'nami@slabhub.com' },
+        where: { email: 'n.obukhov.work@gmail.com' },
         update: {},
         create: {
-            email: 'nami@slabhub.com',
+            email: 'n.obukhov.work@gmail.com',
         },
     });
     console.log(`✅ User: ${user.email} (${user.id})`);
@@ -61,11 +61,11 @@ async function main() {
             handle: 'nami-treasures',
             shopName: "Nami's Treasure Shop",
             isActive: true,
-            locationCountry: 'Singapore',
-            locationCity: 'Singapore City',
+            location: 'Singapore, Singapore',
             paymentsAccepted: ['PayNow', 'Cash', 'PayPal'],
             meetupsEnabled: true,
             shippingEnabled: true,
+            fulfillmentOptions: ['shipping', 'meetups_local'],
             userId: user.id,
             socials: {
                 instagram: 'namitreasure',

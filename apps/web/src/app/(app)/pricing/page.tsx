@@ -24,6 +24,9 @@ import { Badge } from "@/components/ui/badge";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { MarketValueChart } from "@/components/dashboard/MarketValueChart";
+import { formatRelativeTime } from "@/lib/utils";
+import { getOptimizedImageUrl } from "@/lib/image-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -188,7 +191,7 @@ function PricingContent() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Market Pricing</h1>
-                    <p className="text-muted-foreground">Global reference prices powered by RefPriceChartingProduct data.</p>
+                    <p className="text-muted-foreground">Global reference prices powered by our market analytics.</p>
                 </div>
             </div>
 
@@ -213,7 +216,7 @@ function PricingContent() {
                                     <SelectItem value="all">All Sets</SelectItem>
                                     {sets.map((s) => (
                                         <SelectItem key={s.externalId} value={s.externalId}>
-                                            {s.name}
+                                            {s.code ? `[${s.code}] ${s.name}` : s.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -288,7 +291,7 @@ function PricingContent() {
                                     <TableCell>
                                         <div className="h-12 w-10 relative bg-muted rounded overflow-hidden flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform">
                                             {product.imageUrl ? (
-                                                <img src={product.imageUrl} className="h-full w-full object-cover" alt="" />
+                                                <img src={getOptimizedImageUrl(product.imageUrl, { height: 200 })} className="h-full w-full object-contain p-2" alt="" />
                                             ) : (
                                                 <span className="text-[10px] text-muted-foreground">N/A</span>
                                             )}
