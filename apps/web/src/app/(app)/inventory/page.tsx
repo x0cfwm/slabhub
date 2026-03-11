@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useMemo } from "react";
+import { Suspense, useEffect, useState, useMemo, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { listInventory, getMarketProducts, listStatuses } from "@/lib/api";
 import { InventoryItem, MarketProduct, InventoryStage, WorkflowStatus } from "@/lib/types";
@@ -35,6 +35,7 @@ function InventoryContent() {
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
     const [statuses, setStatuses] = useState<WorkflowStatus[]>([]);
+    const lastProcessedItemIdRef = useRef<string | null>(null);
 
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -52,8 +53,8 @@ function InventoryContent() {
         const params = new URLSearchParams(searchParams.toString());
         params.delete("itemId");
         params.delete("tab");
-        router.push(pathname, { scroll: false });
-        fetchData();
+        const query = params.toString();
+        router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
     };
 
     const fetchData = async () => {
@@ -81,13 +82,28 @@ function InventoryContent() {
 
     useEffect(() => {
         if (!loading && items.length > 0) {
-            const itemId = searchParams.get("itemId");
-            if (itemId) {
-                const item = items.find(i => i.id === itemId);
+            const urlItemId = searchParams.get("itemId");
+            
+            // 1. URL has new item ID, update state
+            if (urlItemId && urlItemId !== lastProcessedItemIdRef.current) {
+                const item = items.find(i => i.id === urlItemId);
                 if (item) setSelectedItem(item);
+                lastProcessedItemIdRef.current = urlItemId;
+            } 
+            // 2. URL removed item ID (e.g., back button or closeItem finished), clear state
+            else if (!urlItemId && lastProcessedItemIdRef.current !== null) {
+                setSelectedItem(null);
+                lastProcessedItemIdRef.current = null;
+            }
+            // 3. Keep selectedItem data fresh if items changed (e.g., after fetchData)
+            else if (urlItemId && urlItemId === lastProcessedItemIdRef.current && selectedItem) {
+                const updatedItem = items.find(i => i.id === urlItemId);
+                if (updatedItem && updatedItem !== selectedItem) {
+                    setSelectedItem(updatedItem);
+                }
             }
         }
-    }, [loading, items, searchParams]);
+    }, [loading, items, searchParams, selectedItem]);
 
     const handleViewChange = (val: string) => {
         const mode = val as "kanban" | "list";
