@@ -366,7 +366,7 @@ async function main() {
     console.log(`   - ${totalItems} Inventory Items (10 RAW, 5 GRADED, 3 SEALED)`);
 }
 
-main()
+/** main()
     .catch((e) => {
         console.error('❌ Seed failed:', e);
         process.exit(1);
@@ -374,3 +374,4 @@ main()
     .finally(async () => {
         await prisma.$disconnect();
     });
+*/
