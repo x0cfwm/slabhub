@@ -79,6 +79,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
                         .string()
                         .default('true')
                         .transform((v) => v === 'true'),
+                    SENTRY_DSN: z.string().optional(),
                 });
                 return schema.parse(config);
             },
