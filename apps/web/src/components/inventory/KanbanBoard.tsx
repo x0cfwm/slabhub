@@ -149,13 +149,13 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
         >
-            <div className="flex justify-start lg:justify-center gap-4 p-4 md:px-8 pb-8 min-h-[calc(100vh-250px)] max-w-[2000px] mx-auto">
-                {statuses.map((status) => (
+            <div className="flex justify-start lg:justify-center gap-4 p-4 md:px-8 pb-8 min-h-[calc(100vh-250px)] max-w-[2000px] mx-auto overflow-x-auto">
+                {statuses.filter(s => s.showOnKanban).map((status) => (
                     <StageColumn
                         key={status.id}
                         id={status.id}
                         label={status.name}
-                        color={status.color}
+                        color={status.color || undefined}
                         count={items.filter(i => i.statusId === status.id).length}
                         itemIds={items.filter(i => i.statusId === status.id).map(i => i.id)}
                     >

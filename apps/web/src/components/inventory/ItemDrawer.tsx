@@ -47,14 +47,6 @@ interface ItemDrawerProps {
     statuses: WorkflowStatus[];
 }
 
-const STAGES: { value: InventoryStage; label: string }[] = [
-    { value: "ACQUIRED", label: "Acquired" },
-    { value: "IN_TRANSIT", label: "In Transit" },
-    { value: "BEING_GRADED", label: "Being Graded" },
-    { value: "IN_STOCK", label: "In Stock" },
-    { value: "LISTED", label: "Listed" },
-    { value: "SOLD", label: "Sold" },
-];
 
 const GRADING_COMPANIES: GradingCompany[] = ["BGS", "PSA", "OTHER"];
 const CONDITIONS: { value: Condition; label: string }[] = [
@@ -224,12 +216,13 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                                                 <SelectContent>
                                                     {statuses.map(s => (
                                                         <SelectItem key={s.id} value={s.id} className="text-sm font-semibold">
-                                                            <div className="flex items-center gap-2">
+                                                            <div className={cn("flex items-center gap-2", !s.showOnKanban && "opacity-60 italic")}>
                                                                 <div
-                                                                    className="w-2 h-2 rounded-full"
+                                                                    className={cn("w-2 h-2 rounded-full", !s.showOnKanban && "grayscale border border-muted-foreground/20")}
                                                                     style={{ backgroundColor: s.color || '#94a3b8' }}
                                                                 />
-                                                                {s.name}
+                                                                <span>{s.name}</span>
+                                                                {!s.showOnKanban && <span className="text-[10px] font-normal text-muted-foreground/60 ml-auto">(Hidden)</span>}
                                                             </div>
                                                         </SelectItem>
                                                     ))}

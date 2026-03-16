@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import {
     Select,
     SelectContent,
@@ -24,7 +25,6 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { COLUMNS } from "@/components/inventory/dnd";
 
 function InventoryContent() {
     const [items, setItems] = useState<InventoryItem[]>([]);
@@ -171,7 +171,15 @@ function InventoryContent() {
                         <SelectContent>
                             <SelectItem value="all">All Stages</SelectItem>
                             {statuses.map(s => (
-                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                <SelectItem key={s.id} value={s.id}>
+                                    <span className={cn(
+                                        "flex items-center gap-2",
+                                        !s.showOnKanban && "text-muted-foreground italic opacity-70"
+                                    )}>
+                                        {s.name}
+                                        {!s.showOnKanban && <span className="text-[10px] ml-auto font-normal">(Hidden)</span>}
+                                    </span>
+                                </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>

@@ -401,7 +401,7 @@ export async function seedStatuses(): Promise<WorkflowStatus[]> {
     return response.json();
 }
 
-export async function createStatus(dto: { name: string, color?: string, position?: number }): Promise<WorkflowStatus> {
+export async function createStatus(dto: { name: string, color?: string, position?: number, systemId?: string, showOnKanban?: boolean }): Promise<WorkflowStatus> {
     const url = getFullUrl('/v1/workflow/statuses');
     const response = await fetch(url.toString(), {
         method: 'POST',
@@ -413,7 +413,7 @@ export async function createStatus(dto: { name: string, color?: string, position
     return response.json();
 }
 
-export async function updateStatus(id: string, dto: { name?: string, color?: string, position?: number }): Promise<WorkflowStatus> {
+export async function updateStatus(id: string, dto: { name?: string, color?: string, position?: number, isEnabled?: boolean, systemId?: string | null, showOnKanban?: boolean }): Promise<WorkflowStatus> {
     const url = getFullUrl(`/v1/workflow/statuses/${id}`);
     const response = await fetch(url.toString(), {
         method: 'PATCH',

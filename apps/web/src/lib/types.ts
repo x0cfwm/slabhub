@@ -21,6 +21,7 @@ export interface WorkflowStatus {
     position: number;
     systemId: string | null;
     isEnabled: boolean;
+    showOnKanban: boolean;
     _count?: {
         items: number;
     };

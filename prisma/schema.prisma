@@ -207,17 +207,18 @@ model WorkflowStatus {
   color     String?
   position  Int
   isEnabled Boolean  @default(true)
-  systemId  String?
-  userId    String
+  systemId       String?
+  showOnKanban   Boolean  @default(true)
+  userId         String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   items InventoryItem[]
 
-  @@unique([userId, systemId])
   @@index([userId])
   @@index([position])
+  @@index([userId, systemId])
 }
 
 model RefGame {

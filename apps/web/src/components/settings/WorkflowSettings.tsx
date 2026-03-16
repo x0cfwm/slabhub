@@ -19,10 +19,7 @@ import {
     Trash2,
     GripVertical,
     Pencil,
-    Check,
-    X,
     LayoutDashboard,
-    Lock,
     Eye,
     EyeOff
 } from "lucide-react";
@@ -50,7 +47,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog";
 import {
     Select,
@@ -59,6 +55,23 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { InventoryStage } from "@/lib/types";
+
+const SYSTEM_SEMANTICS: { value: InventoryStage; label: string; description: string }[] = [
+    { value: "ACQUIRED", label: "Acquired", description: "Item has been acquired" },
+    { value: "IN_TRANSIT", label: "In Transit", description: "Item is on its way" },
+    { value: "BEING_GRADED", label: "Grading", description: "Item is at a grading company" },
+    { value: "IN_STOCK", label: "In Stock", description: "Item is in your physical stock" },
+    { value: "LISTED", label: "Listed", description: "Item is active for sale" },
+    { value: "SOLD", label: "Sold", description: "Item has been sold" },
+    { value: "ARCHIVED", label: "Archived", description: "Hidden from active inventory" },
+];
+
+const SEMANTIC_OPTIONS = [
+    { value: "NONE", label: "None", description: "No special system logic" },
+    ...SYSTEM_SEMANTICS
+];
 
 interface SortableStatusItemProps {
     status: WorkflowStatus;
@@ -87,18 +100,18 @@ function SortableStatusItem({ status, onEdit, onDelete, onToggleVisibility }: So
         <div
             ref={setNodeRef}
             style={style}
-            className={`flex items-center gap-3 p-3 bg-card border rounded-lg shadow-sm transition-all ${isDragging ? 'opacity-50 ring-2 ring-primary' : ''} ${!status.isEnabled ? 'bg-muted/50 border-dashed opacity-60' : ''}`}
+            className={`flex items-center gap-3 p-3 bg-card border rounded-lg shadow-sm transition-all ${isDragging ? 'opacity-50 ring-2 ring-primary' : ''} ${!status.showOnKanban ? 'bg-muted/50 border-dashed' : ''} ${!status.isEnabled ? 'opacity-40 grayscale' : ''}`}
         >
             <div {...attributes} {...listeners} className="cursor-grab hover:text-primary transition-colors">
                 <GripVertical className="h-5 w-5 text-muted-foreground" />
             </div>
 
             <div
-                className={`w-4 h-4 rounded-full border shadow-sm ${!status.isEnabled ? 'grayscale' : ''}`}
+                className={`w-4 h-4 rounded-full border shadow-sm ${!status.showOnKanban ? 'grayscale' : ''}`}
                 style={{ backgroundColor: status.color || '#94a3b8' }}
             />
 
-            <span className={`flex-1 font-medium flex items-center gap-2 ${!status.isEnabled ? 'text-muted-foreground italic' : ''}`}>
+            <span className={`flex-1 font-medium flex items-center gap-2 ${!status.showOnKanban ? 'text-muted-foreground italic' : ''}`}>
                 {status.name}
                 {status._count && (
                     <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-primary/10 text-[10px] font-bold text-primary border border-primary/20">
@@ -107,30 +120,37 @@ function SortableStatusItem({ status, onEdit, onDelete, onToggleVisibility }: So
                 )}
                 {status.systemId && (
                     <div className="group relative cursor-default">
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted text-[10px] font-bold text-muted-foreground uppercase tracking-tight border border-border">
-                            <Lock className="h-2.5 w-2.5" />
-                            System
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/5 text-[9px] font-bold text-primary/70 uppercase tracking-tight border border-primary/10">
+                            {SYSTEM_SEMANTICS.find(s => s.value === status.systemId)?.label || status.systemId}
                         </span>
                         <div className="invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 bg-popover text-popover-foreground text-[11px] rounded shadow-md border whitespace-nowrap z-50 pointer-events-none">
-                            System statuses are required for core logic and cannot be deleted.
+                            System semantic: {SYSTEM_SEMANTICS.find(s => s.value === status.systemId)?.description || "Core logic"}
                             <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-popover" />
                         </div>
                     </div>
                 )}
+                {!status.showOnKanban && (
+                    <span className="text-[10px] text-muted-foreground/60">(Hidden from Kanban)</span>
+                )}
                 {!status.isEnabled && (
-                    <span className="text-[10px] text-muted-foreground/60">(Hidden)</span>
+                    <span className="text-[10px] text-destructive/60">(Disabled)</span>
                 )}
             </span>
 
             <div className="flex items-center gap-1">
+                {!status.isEnabled && (
+                    <div className="mr-2 p-1 bg-destructive/10 rounded-full" title="Status is disabled">
+                        <EyeOff className="h-3 w-3 text-destructive/60" />
+                    </div>
+                )}
                 <Button 
                     variant="ghost" 
                     size="icon" 
-                    onClick={() => onToggleVisibility(status.id, !status.isEnabled)} 
-                    className={`h-8 w-8 ${status.isEnabled ? 'text-primary' : 'text-muted-foreground'}`}
-                    title={status.isEnabled ? "Hide status from Kanban" : "Show status on Kanban"}
+                    onClick={() => onToggleVisibility(status.id, !status.showOnKanban)} 
+                    className={`h-8 w-8 ${status.showOnKanban ? 'text-primary' : 'text-muted-foreground'}`}
+                    title={status.showOnKanban ? "Hide status from Kanban" : "Show status on Kanban"}
                 >
-                    {status.isEnabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    {status.showOnKanban ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </Button>
                 <Button variant="ghost" size="icon" onClick={() => onEdit(status)} className="h-8 w-8">
                     <Pencil className="h-4 w-4" />
@@ -163,6 +183,9 @@ export function WorkflowSettings() {
 
     const [newName, setNewName] = useState("");
     const [newColor, setNewColor] = useState("#94a3b8");
+    const [newSystemId, setNewSystemId] = useState<string>("NONE");
+    const [newShowOnKanban, setNewShowOnKanban] = useState(true);
+    const [newIsEnabled, setNewIsEnabled] = useState(true);
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -186,10 +209,10 @@ export function WorkflowSettings() {
         fetchStatuses();
     }, []);
 
-    const handleToggleVisibility = async (id: string, enabled: boolean) => {
+    const handleToggleVisibility = async (id: string, showOnKanban: boolean) => {
         try {
-            await updateStatus(id, { isEnabled: enabled } as any);
-            toast.success(enabled ? "Status visible" : "Status hidden");
+            await updateStatus(id, { showOnKanban });
+            toast.success(showOnKanban ? "Status visible on Kanban" : "Status hidden from Kanban");
             fetchStatuses();
         } catch (err) {
             toast.error("Failed to update status visibility");
@@ -220,11 +243,20 @@ export function WorkflowSettings() {
     const handleAdd = async () => {
         if (!newName) return;
         try {
-            await createStatus({ name: newName, color: newColor });
+            await createStatus({ 
+                name: newName, 
+                color: newColor, 
+                systemId: newSystemId === "NONE" ? undefined : newSystemId,
+                showOnKanban: newShowOnKanban,
+                isEnabled: newIsEnabled
+            } as any);
             toast.success("Status added");
             setIsAddOpen(false);
             setNewName("");
             setNewColor("#94a3b8");
+            setNewSystemId("NONE");
+            setNewShowOnKanban(true);
+            setNewIsEnabled(true);
             fetchStatuses();
         } catch (err) {
             toast.error("Failed to add status");
@@ -234,12 +266,21 @@ export function WorkflowSettings() {
     const handleUpdate = async () => {
         if (!editingStatus || !newName) return;
         try {
-            await updateStatus(editingStatus.id, { name: newName, color: newColor });
+            await updateStatus(editingStatus.id, { 
+                name: newName, 
+                color: newColor, 
+                systemId: newSystemId === "NONE" ? null : newSystemId,
+                showOnKanban: newShowOnKanban,
+                isEnabled: newIsEnabled
+            });
             toast.success("Status updated");
             setIsEditOpen(false);
             setEditingStatus(null);
             setNewName("");
             setNewColor("#94a3b8");
+            setNewSystemId("NONE");
+            setNewShowOnKanban(true);
+            setNewIsEnabled(true);
             fetchStatuses();
         } catch (err) {
             toast.error("Failed to update status");
@@ -264,6 +305,9 @@ export function WorkflowSettings() {
         setEditingStatus(status);
         setNewName(status.name);
         setNewColor(status.color || "#94a3b8");
+        setNewSystemId(status.systemId || "NONE");
+        setNewShowOnKanban(status.showOnKanban);
+        setNewIsEnabled(status.isEnabled);
         setIsEditOpen(true);
     };
 
@@ -358,6 +402,48 @@ export function WorkflowSettings() {
                                     />
                                 </div>
                             </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="system-id">System Semantic</Label>
+                                <Select value={newSystemId} onValueChange={setNewSystemId}>
+                                    <SelectTrigger id="system-id">
+                                        <SelectValue placeholder="Select semantic" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {SEMANTIC_OPTIONS.map(s => (
+                                            <SelectItem key={s.value} value={s.value}>
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="font-medium">{s.label}</span>
+                                                    <span className="text-[10px] text-muted-foreground">{s.description}</span>
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="flex items-center justify-between space-x-2 py-2 border-b pb-4">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="kanban-visible">Visible on Kanban</Label>
+                                    <p className="text-[10px] text-muted-foreground">Show this status as a column in Kanban board</p>
+                                </div>
+                                <Switch
+                                    id="kanban-visible"
+                                    checked={newShowOnKanban}
+                                    onCheckedChange={setNewShowOnKanban}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between space-x-2 py-2">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="status-enabled">Status Enabled</Label>
+                                    <p className="text-[10px] text-muted-foreground">Enable this status in the system (dropdowns/lists)</p>
+                                </div>
+                                <Switch
+                                    id="status-enabled"
+                                    checked={newIsEnabled}
+                                    onCheckedChange={setNewIsEnabled}
+                                />
+                            </div>
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
@@ -397,6 +483,48 @@ export function WorkflowSettings() {
                                         onChange={(e) => setNewColor(e.target.value)}
                                     />
                                 </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="edit-system-id">System Semantic</Label>
+                                <Select value={newSystemId} onValueChange={setNewSystemId}>
+                                    <SelectTrigger id="edit-system-id">
+                                        <SelectValue placeholder="Select semantic" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {SEMANTIC_OPTIONS.map(s => (
+                                            <SelectItem key={s.value} value={s.value}>
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="font-medium">{s.label}</span>
+                                                    <span className="text-[10px] text-muted-foreground">{s.description}</span>
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="flex items-center justify-between space-x-2 py-2 border-b pb-4">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="edit-kanban-visible">Visible on Kanban</Label>
+                                    <p className="text-[10px] text-muted-foreground">Show this status as a column in Kanban board</p>
+                                </div>
+                                <Switch
+                                    id="edit-kanban-visible"
+                                    checked={newShowOnKanban}
+                                    onCheckedChange={setNewShowOnKanban}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between space-x-2 py-2">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="edit-status-enabled">Status Enabled</Label>
+                                    <p className="text-[10px] text-muted-foreground">Enable this status in the system (dropdowns/lists)</p>
+                                </div>
+                                <Switch
+                                    id="edit-status-enabled"
+                                    checked={newIsEnabled}
+                                    onCheckedChange={setNewIsEnabled}
+                                />
                             </div>
                         </div>
                         <DialogFooter>

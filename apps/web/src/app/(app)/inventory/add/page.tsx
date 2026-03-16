@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createInventoryItem, getMarketProducts, uploadFile, deleteFile } from "@/lib/api";
+import { createInventoryItem, getMarketProducts, uploadFile, deleteFile, listStatuses } from "@/lib/api";
 import {
     CardProfile,
     InventoryItem,
@@ -14,7 +14,8 @@ import {
     Game,
     VariantType,
     Language,
-    MarketProduct
+    MarketProduct,
+    WorkflowStatus
 } from "@/lib/types";
 import { getOptimizedImageUrl } from "@/lib/image-utils";
 import { Badge } from "@/components/ui/badge";
@@ -49,11 +50,34 @@ export default function AddItemPage() {
     const [uploadingPhotos, setUploadingPhotos] = useState<Record<string, boolean>>({});
     const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
 
+    const [statuses, setStatuses] = useState<WorkflowStatus[]>([]);
+
+    useEffect(() => {
+        const fetchStatuses = async () => {
+            try {
+                const data = await listStatuses();
+                setStatuses(data);
+                // Set initial statusId if not set
+                if (data.length > 0 && !formData.statusId) {
+                    setFormData((prev: any) => ({ 
+                        ...prev, 
+                        statusId: data[0].id,
+                        stage: (data[0].systemId as any) || prev.stage
+                    }));
+                }
+            } catch (err) {
+                console.error("Failed to fetch statuses", err);
+            }
+        };
+        fetchStatuses();
+    }, []);
+
     // Unified Form State
     const [formData, setFormData] = useState<any>({
         acquisitionPrice: 0,
         acquisitionDate: new Date().toISOString().split("T")[0],
         stage: "ACQUIRED" as InventoryStage,
+        statusId: "",
         quantity: 1,
         variantType: "NORMAL" as VariantType,
         language: "EN" as Language,
@@ -675,16 +699,32 @@ export default function AddItemPage() {
                             <div className="space-y-2">
                                 <Label>Current Workflow Stage</Label>
                                 <Select
-                                    value={formData.stage}
-                                    onValueChange={v => setFormData({ ...formData, stage: v as InventoryStage })}
+                                    value={formData.statusId}
+                                    onValueChange={v => {
+                                        const selectedStatus = statuses.find(s => s.id === v);
+                                        setFormData({ 
+                                            ...formData, 
+                                            statusId: v, 
+                                            stage: (selectedStatus?.systemId as any) || formData.stage 
+                                        });
+                                    }}
                                 >
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="ACQUIRED">Acquired</SelectItem>
-                                        <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
-                                        <SelectItem value="IN_STOCK">In Stock</SelectItem>
-                                        <SelectItem value="LISTED">Listed (For Sale)</SelectItem>
-                                        <SelectItem value="BEING_GRADED">Grading In-Progress</SelectItem>
+                                        {statuses.map(s => (
+                                            <SelectItem key={s.id} value={s.id}>
+                                                <div className={cn("flex items-center gap-2", !s.showOnKanban && "opacity-50 italic")}>
+                                                    <div 
+                                                        className={cn("w-2 h-2 rounded-full", !s.showOnKanban && "grayscale border border-muted-foreground/30")} 
+                                                        style={{ backgroundColor: s.color || '#94a3b8' }} 
+                                                    />
+                                                    <span>{s.name}</span>
+                                                    {!s.showOnKanban && (
+                                                        <span className="text-[9px] font-normal text-muted-foreground/60 ml-auto">(Hidden)</span>
+                                                    )}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>

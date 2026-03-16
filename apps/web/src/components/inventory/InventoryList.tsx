@@ -17,8 +17,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { InventoryItem, MarketProduct, InventoryStage, WorkflowStatus } from "@/lib/types";
-import { COLUMNS } from "./dnd";
 import { updateInventoryItem } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
@@ -45,7 +45,7 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, s
             ...i,
             statusId: newStatusId,
             sortOrder: 0,
-            stage: selectedStatus?.name.toUpperCase().replace(/\s+/g, '_') as any
+            stage: (selectedStatus?.systemId as any) || i.stage
         } : i));
 
         try {
@@ -137,12 +137,13 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, s
                                         <SelectContent>
                                             {statuses.map(s => (
                                                 <SelectItem key={s.id} value={s.id} className="text-[10px]">
-                                                    <div className="flex items-center gap-1.5">
+                                                    <div className={cn("flex items-center gap-1.5", !s.showOnKanban && "opacity-60 italic")}>
                                                         <div
-                                                            className="w-1.5 h-1.5 rounded-full"
+                                                            className={cn("w-1.5 h-1.5 rounded-full", !s.showOnKanban && "grayscale border border-muted-foreground/20")}
                                                             style={{ backgroundColor: s.color || '#94a3b8' }}
                                                         />
-                                                        {s.name}
+                                                        <span>{s.name}</span>
+                                                        {!s.showOnKanban && <span className="text-[8px] font-normal text-muted-foreground/60 ml-auto">(Hidden)</span>}
                                                     </div>
                                                 </SelectItem>
                                             ))}

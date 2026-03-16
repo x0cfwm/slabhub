@@ -130,21 +130,24 @@ export class WorkflowStatusService {
 
     private async seedDefaultStatuses(userId: string) {
         const defaults = [
-            { name: 'Acquired', position: 0, color: '#94a3b8', systemId: 'ACQUIRED' },
-            { name: 'In Transit', position: 1, color: '#f59e0b', systemId: 'IN_TRANSIT' },
-            { name: 'Grading', position: 2, color: '#8b5cf6', systemId: 'BEING_GRADED' },
-            { name: 'In Stock', position: 3, color: '#10b981', systemId: 'IN_STOCK' },
-            { name: 'Listed', position: 4, color: '#3b82f6', systemId: 'LISTED' },
-            { name: 'Sold', position: 5, color: '#ef4444', systemId: 'SOLD' },
+            { name: 'Acquired', position: 0, color: '#94a3b8', systemId: 'ACQUIRED', showOnKanban: true },
+            { name: 'In Transit', position: 1, color: '#f59e0b', systemId: 'IN_TRANSIT', showOnKanban: true },
+            { name: 'Grading', position: 2, color: '#8b5cf6', systemId: 'BEING_GRADED', showOnKanban: true },
+            { name: 'In Stock', position: 3, color: '#10b981', systemId: 'IN_STOCK', showOnKanban: true },
+            { name: 'Listed', position: 4, color: '#3b82f6', systemId: 'LISTED', showOnKanban: true },
+            { name: 'Sold', position: 5, color: '#ef4444', systemId: 'SOLD', showOnKanban: true },
         ];
 
-        // Use upsert or handle errors to avoid duplicates if seed is called multiple times
+        // Use findFirst and create if not exists for seeding
         for (const status of defaults) {
-            await this.prisma.workflowStatus.upsert({
-                where: { userId_systemId: { userId, systemId: status.systemId } },
-                update: {},
-                create: { ...status, userId },
+            const existing = await this.prisma.workflowStatus.findFirst({
+                where: { userId, systemId: status.systemId },
             });
+            if (!existing) {
+                await this.prisma.workflowStatus.create({
+                    data: { ...status, userId },
+                });
+            }
         }
 
         return this.prisma.workflowStatus.findMany({

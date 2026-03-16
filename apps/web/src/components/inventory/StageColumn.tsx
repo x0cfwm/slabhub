@@ -18,15 +18,15 @@ export function StageColumn({ id, label, count, color, children, itemIds }: Stag
     });
 
     return (
-        <div className="w-40 md:w-44 shrink-0 flex flex-col gap-4">
+        <div className="w-48 md:w-52 shrink-0 flex flex-col gap-4">
             <div className="flex items-center justify-between px-2">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
+                <h3 className="font-semibold text-sm flex items-center gap-2 min-w-0 w-full overflow-hidden">
                     <div
                         className="w-2 h-2 rounded-full shrink-0"
                         style={{ backgroundColor: color || '#94a3b8' }}
                     />
-                    {label}
-                    <Badge variant="secondary" className="text-[10px]">
+                    <span className="truncate flex-1" title={label}>{label}</span>
+                    <Badge variant="secondary" className="text-[10px] shrink-0">
                         {count}
                     </Badge>
                 </h3>
