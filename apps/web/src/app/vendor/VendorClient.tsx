@@ -19,6 +19,16 @@ import {
     Link as LinkIcon,
     Calendar,
     ExternalLink,
+    ShoppingCart,
+    MessageSquare,
+    Info,
+    ChevronLeft,
+    ChevronRight,
+    Maximize2,
+    X,
+    Share2,
+    Heart,
+    CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,7 +40,6 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, MessageSquare, Info, ChevronLeft, ChevronRight, Maximize2, X, Share2, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
     Dialog,
@@ -51,6 +60,7 @@ export default function VendorClient() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+    const [isContactOpen, setIsContactOpen] = useState(false);
 
     // Sync selected item state with URL on initial load and browser navigation
     useEffect(() => {
@@ -207,13 +217,29 @@ export default function VendorClient() {
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (!selectedItem || isZoomed) return;
+            if (!selectedItem || isZoomed || isContactOpen) return;
             if (e.key === "ArrowRight") handleNextItem();
             if (e.key === "ArrowLeft") handlePrevItem();
         };
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [selectedItem, currentItemIndex, filteredItems]);
+    }, [selectedItem, currentItemIndex, filteredItems, isContactOpen]);
+
+    const getMessengerLink = (fbUrl?: string | null) => {
+        if (!fbUrl) return null;
+        try {
+            const url = new URL(fbUrl);
+            const id = url.searchParams.get('id');
+            if (id) return `https://m.me/${id}`;
+
+            const segments = url.pathname.split('/').filter(Boolean);
+            const lastSegment = segments[segments.length - 1];
+            if (lastSegment && lastSegment !== 'profile.php') {
+                return `https://m.me/${lastSegment}`;
+            }
+        } catch (e) { /* ignore parse errors */ }
+        return fbUrl;
+    };
 
     if (loading) return <div className="p-8 text-center text-primary-foreground/50">Loading public page...</div>;
     if (!profile) return <div className="p-8 text-center text-primary-foreground/50">Vendor not found</div>;
@@ -661,13 +687,23 @@ export default function VendorClient() {
                                         </div>
                                     </div>
 
-                                    {/* Action Footer */}
-                                    <div className="p-6 md:p-10 border-t border-border/50 bg-card shrink-0">
-                                        <Button className="w-full h-16 text-lg font-black rounded-2xl shadow-xl shadow-primary/20 gap-3 hover:scale-[1.02] active:scale-95 transition-all bg-primary hover:bg-primary/90 text-black">
-                                            <MessageSquare className="h-6 w-6" />
-                                            Inquire About Purchase
-                                        </Button>
-                                    </div>
+                                    {(() => {
+                                        const hasFb = typeof (profile as any).facebookProfileUrl === 'string' && (profile as any).facebookProfileUrl.trim().length > 0;
+                                        
+                                        if (!hasFb) return null;
+
+                                        return (
+                                            <div className="p-6 md:p-10 border-t border-border/50 bg-card shrink-0">
+                                                <Button
+                                                    className="w-full h-16 text-lg font-black rounded-2xl shadow-xl shadow-primary/20 gap-3 hover:scale-[1.02] active:scale-95 transition-all bg-primary hover:bg-primary/90 text-black"
+                                                    onClick={() => setIsContactOpen(true)}
+                                                >
+                                                    <MessageSquare className="h-6 w-6" />
+                                                    Inquire About Purchase
+                                                </Button>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         ) : null}
@@ -691,6 +727,49 @@ export default function VendorClient() {
                                 >
                                     <ChevronRight className="h-6 w-6 md:h-8 md:w-8" />
                                 </Button>
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Contact Bridge Modal */}
+            <Dialog open={isContactOpen} onOpenChange={setIsContactOpen}>
+                <DialogContent className="max-w-md p-0 overflow-hidden border-none bg-background rounded-[2.5rem] shadow-2xl">
+                    <div className="relative p-8 space-y-8">
+                        <div className="space-y-2 text-center">
+                            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-primary">
+                                <MessageSquare className="h-8 w-8" />
+                            </div>
+                            <DialogTitle className="text-2xl font-black tracking-tight">Contact Seller</DialogTitle>
+                            <DialogDescription className="text-muted-foreground font-medium">
+                                How would you like to inquire about this item?
+                            </DialogDescription>
+                        </div>
+
+                        <div className="space-y-4">
+
+                            <div className="grid grid-cols-1 gap-3">
+                                {typeof (profile as any).facebookProfileUrl === 'string' && (profile as any).facebookProfileUrl.trim().length > 0 && (
+                                    <Button
+                                        className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold gap-3"
+                                        onClick={() => window.open(getMessengerLink((profile as any).facebookProfileUrl) || '', '_blank')}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
+                                        Messenger Inquiry
+                                        <ExternalLink className="h-4 w-4 opacity-50 ml-auto" />
+                                    </Button>
+                                )}
+
+                            </div>
+                        </div>
+
+                        {(profile as any).facebookVerifiedAt && (
+                            <div className="pt-4 border-t flex items-center justify-center gap-2">
+                                <div className="w-5 h-5 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 text-blue-500"><path d="M20 6 9 17l-5-5"/></svg>
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Verified SlabHub Partner</span>
                             </div>
                         )}
                     </div>
