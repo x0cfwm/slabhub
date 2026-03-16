@@ -263,36 +263,51 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                                             />
                                         </div>
 
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70 flex items-center gap-1">
-                                                <Layers className="h-3 w-3" /> Quantity
-                                            </Label>
-                                            <Input
-                                                type="number"
-                                                min={1}
-                                                className="h-11 bg-background/50 border-primary/10"
-                                                value={formData.quantity || 1}
-                                                onChange={e => setFormData({ ...formData, quantity: parseInt(e.target.value) } as any)}
-                                                disabled={itType === "SINGLE_CARD_GRADED"}
-                                            />
-                                        </div>
-
-                                        {!isSealed && (formData as any).itemType === "SINGLE_CARD_RAW" && (
-                                            <div className="space-y-2 col-span-2">
-                                                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Condition</Label>
-                                                <Select
-                                                    value={(formData as any).condition}
-                                                    onValueChange={(v) => setFormData({ ...formData, condition: v as Condition } as any)}
-                                                >
-                                                    <SelectTrigger className="h-11 bg-background/50 border-primary/10">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {CONDITIONS.map(c => (
-                                                            <SelectItem key={c.value} value={c.value} className="text-sm">{c.label}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                                        {(!isSealed && ((formData as any).itemType === "SINGLE_CARD_RAW" || (formData as any).type === "SINGLE_CARD_RAW" || itType === "SINGLE_CARD_RAW")) ? (
+                                            <>
+                                                <div className="space-y-2">
+                                                    <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Condition</Label>
+                                                    <Select
+                                                        value={(formData as any).condition}
+                                                        onValueChange={(v) => setFormData({ ...formData, condition: v as Condition } as any)}
+                                                    >
+                                                        <SelectTrigger className="w-full !h-11 bg-background/50 border-primary/30 focus:ring-primary/20">
+                                                            <SelectValue placeholder="Select Grade..." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {CONDITIONS.map(c => (
+                                                                <SelectItem key={c.value} value={c.value} className="text-sm">{c.label}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70 flex items-center gap-1">
+                                                        <Layers className="h-3 w-3" /> Quantity
+                                                    </Label>
+                                                    <Input
+                                                        type="number"
+                                                        min={1}
+                                                        className="h-11 bg-background/50 border-primary/10"
+                                                        value={formData.quantity || 1}
+                                                        onChange={e => setFormData({ ...formData, quantity: parseInt(e.target.value) } as any)}
+                                                        disabled={itType === "SINGLE_CARD_GRADED"}
+                                                    />
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70 flex items-center gap-1">
+                                                    <Layers className="h-3 w-3" /> Quantity
+                                                </Label>
+                                                <Input
+                                                    type="number"
+                                                    min={1}
+                                                    className="h-11 bg-background/50 border-primary/10"
+                                                    value={formData.quantity || 1}
+                                                    onChange={e => setFormData({ ...formData, quantity: parseInt(e.target.value) } as any)}
+                                                    disabled={itType === "SINGLE_CARD_GRADED"}
+                                                />
                                             </div>
                                         )}
 
