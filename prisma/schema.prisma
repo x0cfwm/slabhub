@@ -21,6 +21,8 @@ model User {
   oauthIdentities    OAuthIdentity[]
   invites            Invite[]
   acceptedInvites    InviteAcceptance[]
+  workflowStatuses   WorkflowStatus[]
+  inventoryHistory   InventoryHistory[]
 }
 
 /// OTP codes for email verification
@@ -155,6 +157,8 @@ model InventoryItem {
   quantity                  Int                      @default(1)
   stage                     InventoryStage           @default(ACQUIRED)
   listingPrice              Decimal?                 @db.Decimal(10, 2)
+  soldPrice                 Decimal?                 @db.Decimal(10, 2)
+  soldDate                  DateTime?
   acquisitionPrice          Decimal?                 @db.Decimal(10, 2)
   acquisitionDate           DateTime?
   acquisitionSource         String?
@@ -173,10 +177,13 @@ model InventoryItem {
   userId                    String
   sellingDescription        String?
   sortOrder                 Int                      @default(0)
+  statusId                  String?
+  status                    WorkflowStatus?          @relation(fields: [statusId], references: [id])
   cardVariant               CardVariant?             @relation(fields: [cardVariantId], references: [id])
   refPriceChartingProduct   RefPriceChartingProduct? @relation(fields: [refPriceChartingProductId], references: [id])
   seller                    SellerProfile?           @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   user                      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  history                   InventoryHistory[]
 
   // Media references
   frontMediaId String?
@@ -187,10 +194,31 @@ model InventoryItem {
   @@index([sellerId])
   @@index([userId])
   @@index([stage])
+  @@index([statusId])
   @@index([itemType])
   @@index([cardVariantId])
   @@index([refPriceChartingProductId])
   @@index([certificationNumber])
+}
+
+model WorkflowStatus {
+  id        String   @id @default(cuid())
+  name      String
+  color     String?
+  position  Int
+  isEnabled Boolean  @default(true)
+  systemId       String?
+  showOnKanban   Boolean  @default(true)
+  userId         String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items InventoryItem[]
+
+  @@index([userId])
+  @@index([position])
+  @@index([userId, systemId])
 }
 
 model RefGame {
@@ -491,4 +519,22 @@ model InviteAcceptance {
 
   @@unique([inviteId, invitedUserId])
   @@index([invitedUserId])
+}
+
+model InventoryHistory {
+  id           String          @id @default(cuid())
+  itemId       String
+  item         InventoryItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String // "STATUS_CHANGE"
+  fromStage    InventoryStage?
+  toStage      InventoryStage?
+  fromStatusId String?
+  toStatusId   String?
+  notes        String?
+  createdAt    DateTime        @default(now())
+
+  @@index([itemId])
+  @@index([userId])
 }

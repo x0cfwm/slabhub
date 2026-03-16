@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useEffect, useState, useMemo } from "react";
+import { Suspense, useEffect, useState, useMemo, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { listInventory, getMarketProducts } from "@/lib/api";
-import { InventoryItem, MarketProduct, InventoryStage } from "@/lib/types";
+import { listInventory, getMarketProducts, listStatuses } from "@/lib/api";
+import { InventoryItem, MarketProduct, InventoryStage, WorkflowStatus } from "@/lib/types";
 import { ItemCard } from "@/components/inventory/ItemCard";
 import { ItemDrawer } from "@/components/inventory/ItemDrawer";
 import { KanbanBoard } from "@/components/inventory/KanbanBoard";
@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import {
     Select,
     SelectContent,
@@ -24,7 +25,6 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { COLUMNS } from "@/components/inventory/dnd";
 
 function InventoryContent() {
     const [items, setItems] = useState<InventoryItem[]>([]);
@@ -34,6 +34,8 @@ function InventoryContent() {
     const [stageFilter, setStageFilter] = useState<string>("all");
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+    const [statuses, setStatuses] = useState<WorkflowStatus[]>([]);
+    const lastProcessedItemIdRef = useRef<string | null>(null);
 
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -51,18 +53,20 @@ function InventoryContent() {
         const params = new URLSearchParams(searchParams.toString());
         params.delete("itemId");
         params.delete("tab");
-        router.push(pathname, { scroll: false });
-        fetchData();
+        const query = params.toString();
+        router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
     };
 
     const fetchData = async () => {
         try {
-            const [inv, market] = await Promise.all([
+            const [inv, market, stats] = await Promise.all([
                 listInventory(),
-                getMarketProducts({ page: 1, limit: 100 })
+                getMarketProducts({ page: 1, limit: 100 }),
+                listStatuses()
             ]);
             setItems(inv);
             setMarketProducts(market.items);
+            setStatuses(stats);
         } catch (err) {
             toast.error("Failed to load inventory");
         } finally {
@@ -78,13 +82,28 @@ function InventoryContent() {
 
     useEffect(() => {
         if (!loading && items.length > 0) {
-            const itemId = searchParams.get("itemId");
-            if (itemId) {
-                const item = items.find(i => i.id === itemId);
+            const urlItemId = searchParams.get("itemId");
+            
+            // 1. URL has new item ID, update state
+            if (urlItemId && urlItemId !== lastProcessedItemIdRef.current) {
+                const item = items.find(i => i.id === urlItemId);
                 if (item) setSelectedItem(item);
+                lastProcessedItemIdRef.current = urlItemId;
+            } 
+            // 2. URL removed item ID (e.g., back button or closeItem finished), clear state
+            else if (!urlItemId && lastProcessedItemIdRef.current !== null) {
+                setSelectedItem(null);
+                lastProcessedItemIdRef.current = null;
+            }
+            // 3. Keep selectedItem data fresh if items changed (e.g., after fetchData)
+            else if (urlItemId && urlItemId === lastProcessedItemIdRef.current && selectedItem) {
+                const updatedItem = items.find(i => i.id === urlItemId);
+                if (updatedItem && updatedItem !== selectedItem) {
+                    setSelectedItem(updatedItem);
+                }
             }
         }
-    }, [loading, items, searchParams]);
+    }, [loading, items, searchParams, selectedItem]);
 
     const handleViewChange = (val: string) => {
         const mode = val as "kanban" | "list";
@@ -117,7 +136,7 @@ function InventoryContent() {
                     );
                 })();
 
-                const matchesStage = stageFilter === "all" || item.stage === stageFilter;
+                const matchesStage = stageFilter === "all" || item.statusId === stageFilter;
 
                 return matchesSearch && matchesStage;
             });
@@ -144,6 +163,26 @@ function InventoryContent() {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
+
+                    <Select value={stageFilter} onValueChange={setStageFilter}>
+                        <SelectTrigger className="w-[150px] hidden md:flex">
+                            <SelectValue placeholder="All Stages" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Stages</SelectItem>
+                            {statuses.map(s => (
+                                <SelectItem key={s.id} value={s.id}>
+                                    <span className={cn(
+                                        "flex items-center gap-2",
+                                        !s.showOnKanban && "text-muted-foreground italic opacity-70"
+                                    )}>
+                                        {s.name}
+                                        {!s.showOnKanban && <span className="text-[10px] ml-auto font-normal">(Hidden)</span>}
+                                    </span>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
 
                     <Tabs value={viewMode} onValueChange={handleViewChange} className="hidden sm:block">
                         <TabsList className="grid w-[160px] grid-cols-2">
@@ -175,6 +214,7 @@ function InventoryContent() {
                         cards={marketProducts as any}
                         onUpdate={fetchData}
                         onItemClick={openItem}
+                        statuses={statuses}
                     />
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
@@ -186,6 +226,7 @@ function InventoryContent() {
                         cards={marketProducts as any}
                         onUpdate={fetchData}
                         onItemClick={openItem}
+                        statuses={statuses}
                     />
                 </div>
             )}
@@ -199,6 +240,7 @@ function InventoryContent() {
                 }) as any}
                 onClose={closeItem}
                 onUpdate={fetchData}
+                statuses={statuses}
             />
         </div>
     );

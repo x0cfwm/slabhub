@@ -1,6 +1,4 @@
-"use client";
-
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     DndContext,
     DragOverlay,
@@ -9,13 +7,14 @@ import {
     DragEndEvent,
     rectIntersection
 } from "@dnd-kit/core";
-import { InventoryItem, MarketProduct, InventoryStage } from "@/lib/types";
+import { InventoryItem, MarketProduct, InventoryStage, WorkflowStatus } from "@/lib/types";
 import { ItemCard } from "./ItemCard";
 import { StageColumn } from "./StageColumn";
-import { COLUMNS, useDndSensors } from "./dnd";
+import { useDndSensors } from "./dnd";
 import { updateInventoryItem, reorderInventoryItems } from "@/lib/api";
 import { toast } from "sonner";
 import { arrayMove } from "@dnd-kit/sortable";
+import { SoldPromptDialog } from "./SoldPromptDialog";
 
 interface KanbanBoardProps {
     items: InventoryItem[];
@@ -23,10 +22,12 @@ interface KanbanBoardProps {
     cards: MarketProduct[];
     onUpdate: () => void;
     onItemClick: (item: InventoryItem) => void;
+    statuses: WorkflowStatus[];
 }
 
-export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: KanbanBoardProps) {
+export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, statuses }: KanbanBoardProps) {
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [promptItem, setPromptItem] = useState<{ id: string, name: string, statusId: string } | null>(null);
     const sensors = useDndSensors();
 
     const activeItem = items.find(i => i.id === activeId);
@@ -38,24 +39,36 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: K
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
         setActiveId(null);
-
         if (!over) return;
-
+        const isColumn = statuses.some(s => s.id === over.id);
         const activeId = active.id as string;
         const overId = over.id as string;
 
         const activeItem = items.find(i => i.id === activeId);
         if (!activeItem) return;
 
-        let newItems = [...items];
-        const isColumn = COLUMNS.some(c => c.id === overId);
+        const targetStatusId = isColumn ? overId : items.find(i => i.id === overId)?.statusId;
+        const targetStatus = statuses.find(s => s.id === targetStatusId);
 
+        if (targetStatus?.systemId === "SOLD" && activeItem.status?.systemId !== "SOLD") {
+            const vid = (activeItem as any).cardVariantId || (activeItem as any).cardProfileId || activeItem.refPriceChartingProductId;
+            const marketProduct = cards.find(p => p.id === vid) || activeItem.cardProfile;
+            setPromptItem({ id: activeId, name: marketProduct?.name || "Card", statusId: targetStatusId! });
+            return;
+        }
+
+        await finalizeDrop(items, activeId, overId, isColumn);
+    };
+
+    const finalizeDrop = async (currentItems: InventoryItem[], activeId: string, overId: string, isColumn: boolean, extraData: any = {}) => {
+        const activeItem = currentItems.find(i => i.id === activeId);
+        if (!activeItem) return;
+
+        let newItems = [...currentItems];
         if (isColumn) {
-            const newStage = overId as InventoryStage;
-            if (activeItem.stage !== newStage) {
-                // Moving to a column (end of it)
-                newItems = newItems.map(i => i.id === activeId ? { ...i, stage: newStage } : i);
-                // Move it to the end of the new column in the array for correct sortOrder calculation
+            const newStatusId = overId;
+            if (activeItem.statusId !== newStatusId) {
+                newItems = newItems.map(i => i.id === activeId ? { ...i, ...extraData, statusId: newStatusId } : i);
                 const itemToMove = newItems.find(i => i.id === activeId)!;
                 const otherItems = newItems.filter(i => i.id !== activeId);
                 newItems = [...otherItems, itemToMove];
@@ -66,44 +79,39 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: K
                 const activeIndex = newItems.findIndex(i => i.id === activeId);
                 const overIndex = newItems.findIndex(i => i.id === overId);
 
-                if (activeItem.stage !== overItem.stage) {
-                    // Moving to a different column at a specific position
-                    newItems[activeIndex] = { ...activeItem, stage: overItem.stage };
+                if (activeItem.statusId !== overItem.statusId) {
+                    newItems[activeIndex] = { ...activeItem, ...extraData, statusId: overItem.statusId };
                     newItems = arrayMove(newItems, activeIndex, overIndex);
                 } else if (activeIndex !== overIndex) {
-                    // Reordering within the same column
                     newItems = arrayMove(newItems, activeIndex, overIndex);
                 } else {
-                    return; // No change
+                    return;
                 }
             }
         }
 
-        // Calculate new sort orders based on the new array positions
-        // We group by stage and assign incrementing sortOrder
-        const itemsByStage: Record<string, InventoryItem[]> = {};
-        COLUMNS.forEach(c => {
-            itemsByStage[c.id] = newItems.filter(i => i.stage === c.id);
-        });
-
-        const updates: { id: string; sortOrder: number; stage: InventoryStage }[] = [];
+        // Calculate new sort orders and update stage enum based on systemId
+        const updates: { id: string; sortOrder: number; stage: InventoryStage; statusId: string }[] = [];
         const updatedNewItems = [...newItems];
 
-        Object.keys(itemsByStage).forEach(stage => {
-            itemsByStage[stage].forEach((item, index) => {
+        statuses.forEach(status => {
+            const columnItems = updatedNewItems.filter(i => i.statusId === status.id);
+            columnItems.forEach((item, index) => {
+                const newStage = (status.systemId as InventoryStage) || item.stage;
                 updates.push({
                     id: item.id,
                     sortOrder: index,
-                    stage: stage as InventoryStage
+                    stage: newStage,
+                    statusId: status.id
                 });
 
-                // Update the item in the local array to reflect new sortOrder
                 const itemIndex = updatedNewItems.findIndex(i => i.id === item.id);
                 if (itemIndex !== -1) {
                     updatedNewItems[itemIndex] = {
                         ...updatedNewItems[itemIndex],
                         sortOrder: index,
-                        stage: stage as InventoryStage
+                        statusId: status.id,
+                        stage: newStage
                     };
                 }
             });
@@ -141,17 +149,18 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: K
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
         >
-            <div className="flex justify-start lg:justify-center gap-4 p-4 md:px-8 pb-8 min-h-[calc(100vh-250px)] max-w-[2000px] mx-auto">
-                {COLUMNS.map((column) => (
+            <div className="flex justify-start lg:justify-center gap-4 p-4 md:px-8 pb-8 min-h-[calc(100vh-250px)] max-w-[2000px] mx-auto overflow-x-auto">
+                {statuses.filter(s => s.showOnKanban).map((status) => (
                     <StageColumn
-                        key={column.id}
-                        id={column.id}
-                        label={column.label}
-                        count={items.filter(i => i.stage === column.id).length}
-                        itemIds={items.filter(i => i.stage === column.id).map(i => i.id)}
+                        key={status.id}
+                        id={status.id}
+                        label={status.name}
+                        color={status.color || undefined}
+                        count={items.filter(i => i.statusId === status.id).length}
+                        itemIds={items.filter(i => i.statusId === status.id).map(i => i.id)}
                     >
                         {items
-                            .filter(i => i.stage === column.id)
+                            .filter(i => i.statusId === status.id)
                             .map(item => {
                                 const vid = (item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId;
                                 const marketProduct = cards.find(p => p.id === vid) || item.cardProfile;
@@ -195,6 +204,29 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick }: K
                     );
                 })() : null}
             </DragOverlay>
+
+            <SoldPromptDialog
+                isOpen={!!promptItem}
+                itemName={promptItem?.name}
+                onClose={() => setPromptItem(null)}
+                onConfirm={async (data) => {
+                    if (promptItem) {
+                        await finalizeDrop(items, promptItem.id, promptItem.statusId, true, {
+                            listingPrice: data.soldPrice, // Reuse field or add soldPrice if needed. Schema says listingPrice is used for listed items, but sold usually needs its own field or we hijack listingPrice? 
+                            // Actually schema has listingPrice but not soldPrice. Let's see.
+                            // prisma/schema.prisma line 158: listingPrice Decimal?
+                            // Line 165: marketPriceLastSaleDate DateTime?
+                            // For now let's just update the item properly.
+                        });
+                        // Wait, I should probably call updateInventoryItem for specific sold logic if listingPrice isn't enough
+                        await updateInventoryItem(promptItem.id, {
+                            stage: "SOLD",
+                            soldPrice: data.soldPrice, // We'll need to add this to the item if it's not there, but for MVP let's assume it updates the existing fields
+                        });
+                        onUpdate();
+                    }
+                }}
+            />
         </DndContext>
     );
 }

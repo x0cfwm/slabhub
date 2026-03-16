@@ -16,9 +16,9 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { InventoryItem, MarketProduct, InventoryStage } from "@/lib/types";
-import { COLUMNS } from "./dnd";
+import { InventoryItem, MarketProduct, InventoryStage, WorkflowStatus } from "@/lib/types";
 import { updateInventoryItem } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
@@ -30,23 +30,30 @@ interface InventoryListProps {
     cards: MarketProduct[];
     onUpdate: () => void;
     onItemClick: (item: InventoryItem) => void;
+    statuses: WorkflowStatus[];
 }
 
-export function InventoryList({ items, setItems, cards, onUpdate, onItemClick }: InventoryListProps) {
-    const handleStageChange = async (itemId: string, newStage: InventoryStage) => {
+export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, statuses }: InventoryListProps) {
+    const handleStatusChange = async (itemId: string, newStatusId: string) => {
         const item = items.find(i => i.id === itemId);
         if (!item) return;
-        const oldStage = item.stage;
+        const oldStatusId = item.statusId;
+        const selectedStatus = statuses.find(s => s.id === newStatusId);
 
         // Optimistic UI update
-        setItems(prev => prev.map(i => i.id === itemId ? { ...i, stage: newStage, sortOrder: 0 } : i));
+        setItems(prev => prev.map(i => i.id === itemId ? {
+            ...i,
+            statusId: newStatusId,
+            sortOrder: 0,
+            stage: (selectedStatus?.systemId as any) || i.stage
+        } : i));
 
         try {
-            await updateInventoryItem(itemId, { stage: newStage, sortOrder: 0 });
+            await updateInventoryItem(itemId, { statusId: newStatusId, sortOrder: 0 });
         } catch (err) {
             toast.error("Failed to update status");
             // Rollback
-            setItems(prev => prev.map(i => i.id === itemId ? { ...i, stage: oldStage } : i));
+            setItems(prev => prev.map(i => i.id === itemId ? { ...i, statusId: oldStatusId } : i));
         }
     };
 
@@ -121,16 +128,23 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick }:
                                 </TableCell>
                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                     <Select
-                                        defaultValue={item.stage}
-                                        onValueChange={(val) => handleStageChange(item.id, val as InventoryStage)}
+                                        value={item.statusId || ""}
+                                        onValueChange={(val) => handleStatusChange(item.id, val)}
                                     >
                                         <SelectTrigger className="h-7 w-[130px] text-[10px] font-bold bg-background/50 border-primary/20">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {COLUMNS.map(col => (
-                                                <SelectItem key={col.id} value={col.id} className="text-[10px]">
-                                                    {col.label}
+                                            {statuses.map(s => (
+                                                <SelectItem key={s.id} value={s.id} className="text-[10px]">
+                                                    <div className={cn("flex items-center gap-1.5", !s.showOnKanban && "opacity-60 italic")}>
+                                                        <div
+                                                            className={cn("w-1.5 h-1.5 rounded-full", !s.showOnKanban && "grayscale border border-muted-foreground/20")}
+                                                            style={{ backgroundColor: s.color || '#94a3b8' }}
+                                                        />
+                                                        <span>{s.name}</span>
+                                                        {!s.showOnKanban && <span className="text-[8px] font-normal text-muted-foreground/60 ml-auto">(Hidden)</span>}
+                                                    </div>
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>

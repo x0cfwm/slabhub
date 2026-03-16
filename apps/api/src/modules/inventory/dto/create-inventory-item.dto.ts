@@ -151,6 +151,10 @@ export class CreateInventoryItemDto {
 
     @ApiProperty({ required: false, example: 100.0 })
     @IsOptional()
+    @IsString()
+    statusId?: string;
+
+    @IsOptional()
     @IsNumber()
     listingPrice?: number;
 

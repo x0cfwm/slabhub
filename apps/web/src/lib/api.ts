@@ -1,5 +1,5 @@
 import { Grader } from "../../../api/src/modules/grading/types/grading.types";
-import { MarketPriceHistory, MarketProduct, MarketProductsResponse, MarketSet, InventoryItem, SellerProfile, PortfolioHistoryEntry } from "./types";
+import { MarketPriceHistory, MarketProduct, MarketProductsResponse, MarketSet, InventoryItem, SellerProfile, PortfolioHistoryEntry, WorkflowStatus } from "./types";
 
 export interface GradingLookupResult {
     grader: string;
@@ -232,6 +232,15 @@ export async function deleteInventoryItem(id: string): Promise<void> {
     }
 }
 
+export async function getInventoryHistory(id: string): Promise<any[]> {
+    const url = getFullUrl(`/v1/inventory/${id}/history`);
+    const response = await fetch(url.toString(), { credentials: 'include' });
+    if (!response.ok) {
+        throw new Error('Failed to fetch inventory history');
+    }
+    return response.json();
+}
+
 export async function reorderInventoryItems(items: { id: string; sortOrder: number; stage: string }[]): Promise<void> {
     const url = getFullUrl('/v1/inventory/reorder');
     const response = await fetch(url.toString(), {
@@ -371,4 +380,71 @@ export async function getInvitePreview(token: string) {
     const response = await fetch(url.toString());
     if (!response.ok) throw new Error('Invite invalid or expired');
     return response.json();
+}
+
+// Workflow Statuses
+export async function listStatuses(includeDisabled = false): Promise<WorkflowStatus[]> {
+    const url = getFullUrl('/v1/workflow/statuses');
+    if (includeDisabled) url.searchParams.set('includeDisabled', 'true');
+    const response = await fetch(url.toString(), { credentials: 'include' });
+    if (!response.ok) throw new Error('Failed to fetch statuses');
+    return response.json();
+}
+
+export async function seedStatuses(): Promise<WorkflowStatus[]> {
+    const url = getFullUrl('/v1/workflow/statuses/seed');
+    const response = await fetch(url.toString(), {
+        method: 'POST',
+        credentials: 'include',
+    });
+    if (!response.ok) throw new Error('Failed to restore default statuses');
+    return response.json();
+}
+
+export async function createStatus(dto: { name: string, color?: string, position?: number, systemId?: string, showOnKanban?: boolean }): Promise<WorkflowStatus> {
+    const url = getFullUrl('/v1/workflow/statuses');
+    const response = await fetch(url.toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dto),
+        credentials: 'include',
+    });
+    if (!response.ok) throw new Error('Failed to create status');
+    return response.json();
+}
+
+export async function updateStatus(id: string, dto: { name?: string, color?: string, position?: number, isEnabled?: boolean, systemId?: string | null, showOnKanban?: boolean }): Promise<WorkflowStatus> {
+    const url = getFullUrl(`/v1/workflow/statuses/${id}`);
+    const response = await fetch(url.toString(), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dto),
+        credentials: 'include',
+    });
+    if (!response.ok) throw new Error('Failed to update status');
+    return response.json();
+}
+
+export async function deleteStatus(id: string, moveTo?: string): Promise<void> {
+    const url = getFullUrl(`/v1/workflow/statuses/${id}`);
+    if (moveTo) url.searchParams.set('moveTo', moveTo);
+    const response = await fetch(url.toString(), {
+        method: 'DELETE',
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete status');
+    }
+}
+
+export async function reorderStatuses(items: { id: string; position: number }[]): Promise<void> {
+    const url = getFullUrl('/v1/workflow/statuses/reorder');
+    const response = await fetch(url.toString(), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(items),
+        credentials: 'include',
+    });
+    if (!response.ok) throw new Error('Failed to reorder statuses');
 }

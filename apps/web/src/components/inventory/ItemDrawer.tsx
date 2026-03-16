@@ -30,12 +30,13 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { InventoryItem, CardProfile, InventoryStage, GradingCompany, Condition } from "@/lib/types";
-import { Trash2, Save, Info, ShoppingCart, Award, Calendar, DollarSign, StickyNote, Layers, Plus, Loader2, Check, ArrowLeft, Maximize2, X } from "lucide-react";
-import { updateInventoryItem, deleteInventoryItem, uploadFile, deleteFile } from "@/lib/api";
+import { InventoryItem, CardProfile, InventoryStage, GradingCompany, Condition, WorkflowStatus } from "@/lib/types";
+import { Trash2, Save, Info, ShoppingCart, Award, Calendar, DollarSign, StickyNote, Layers, Plus, Loader2, Check, ArrowLeft, Maximize2, X, History as HistoryIcon } from "lucide-react";
+import { updateInventoryItem, deleteInventoryItem, uploadFile, deleteFile, getInventoryHistory } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getOptimizedImageUrl } from "@/lib/image-utils";
+import { InventoryHistoryTab } from "./InventoryHistoryTab";
 
 interface ItemDrawerProps {
     item: InventoryItem | null;
@@ -43,16 +44,9 @@ interface ItemDrawerProps {
     isOpen: boolean;
     onClose: () => void;
     onUpdate: () => void | Promise<void>;
+    statuses: WorkflowStatus[];
 }
 
-const STAGES: { value: InventoryStage; label: string }[] = [
-    { value: "ACQUIRED", label: "Acquired" },
-    { value: "IN_TRANSIT", label: "In Transit" },
-    { value: "BEING_GRADED", label: "Being Graded" },
-    { value: "IN_STOCK", label: "In Stock" },
-    { value: "LISTED", label: "Listed" },
-    { value: "SOLD", label: "Sold" },
-];
 
 const GRADING_COMPANIES: GradingCompany[] = ["BGS", "PSA", "OTHER"];
 const CONDITIONS: { value: Condition; label: string }[] = [
@@ -63,7 +57,7 @@ const CONDITIONS: { value: Condition; label: string }[] = [
     { value: "DMG", label: "Damaged" },
 ];
 
-export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDrawerProps) {
+export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses }: ItemDrawerProps) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -177,7 +171,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
 
                     <div className="mt-4">
                         <Tabs value={activeTab} onValueChange={setTab} className="w-full">
-                            <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1 rounded-xl">
+                            <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-xl">
                                 <TabsTrigger value="basic" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-xs px-2">
                                     <Info className="h-3.5 w-3.5" />
                                     <span>Basic</span>
@@ -194,6 +188,10 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                     <Award className="h-3.5 w-3.5" />
                                     <span>Grading</span>
                                 </TabsTrigger>
+                                <TabsTrigger value="history" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-xs px-2">
+                                    <HistoryIcon className="h-3.5 w-3.5" />
+                                    <span>History</span>
+                                </TabsTrigger>
                             </TabsList>
 
                             <div className="py-4 min-h-[500px]">
@@ -202,15 +200,31 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                         <div className="space-y-2 col-span-2">
                                             <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Workflow State</Label>
                                             <Select
-                                                value={formData.stage}
-                                                onValueChange={(v) => setFormData({ ...formData, stage: v as InventoryStage })}
+                                                value={formData.statusId || ""}
+                                                onValueChange={(v) => {
+                                                    const selectedStatus = statuses.find(s => s.id === v);
+                                                    setFormData({
+                                                        ...formData,
+                                                        statusId: v,
+                                                        stage: (selectedStatus?.systemId as any) || formData.stage
+                                                    });
+                                                }}
                                             >
                                                 <SelectTrigger className="h-11 bg-background/50 border-primary/10 focus:ring-primary/20">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {STAGES.map(s => (
-                                                        <SelectItem key={s.value} value={s.value} className="text-sm font-semibold">{s.label}</SelectItem>
+                                                    {statuses.map(s => (
+                                                        <SelectItem key={s.id} value={s.id} className="text-sm font-semibold">
+                                                            <div className={cn("flex items-center gap-2", !s.showOnKanban && "opacity-60 italic")}>
+                                                                <div
+                                                                    className={cn("w-2 h-2 rounded-full", !s.showOnKanban && "grayscale border border-muted-foreground/20")}
+                                                                    style={{ backgroundColor: s.color || '#94a3b8' }}
+                                                                />
+                                                                <span>{s.name}</span>
+                                                                {!s.showOnKanban && <span className="text-[10px] font-normal text-muted-foreground/60 ml-auto">(Hidden)</span>}
+                                                            </div>
+                                                        </SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
@@ -438,6 +452,38 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                         </div>
                                     </div>
 
+                                    {formData.stage === "SOLD" && (
+                                        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6 space-y-4 animate-in slide-in-from-top-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                                                    <DollarSign className="h-4 w-4" />
+                                                </div>
+                                                <h4 className="font-bold text-emerald-700">Sale Details</h4>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Sale Price ($)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="0.00"
+                                                        className="h-11 bg-background/50 border-emerald-500/10 font-bold text-lg text-emerald-600"
+                                                        value={formData.soldPrice || ""}
+                                                        onChange={e => setFormData({ ...formData, soldPrice: parseFloat(e.target.value) })}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Date Sold</Label>
+                                                    <Input
+                                                        type="date"
+                                                        className="h-11 bg-background/50 border-emerald-500/10"
+                                                        value={formData.soldDate ? new Date(formData.soldDate).toISOString().split('T')[0] : ""}
+                                                        onChange={e => setFormData({ ...formData, soldDate: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className={cn("space-y-6 transition-all duration-300", formData.stage !== "LISTED" && "opacity-50 pointer-events-none grayscale")}>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
@@ -609,6 +655,9 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate }: ItemDra
                                             </p>
                                         </div>
                                     )}
+                                </TabsContent>
+                                <TabsContent value="history" className="space-y-6 mt-0">
+                                    <InventoryHistoryTab itemId={item.id} statuses={statuses} />
                                 </TabsContent>
                             </div>
                         </Tabs>

@@ -14,6 +14,19 @@ export type InventoryStage =
     | "SOLD"
     | "ARCHIVED";
 
+export interface WorkflowStatus {
+    id: string;
+    name: string;
+    color: string | null;
+    position: number;
+    systemId: string | null;
+    isEnabled: boolean;
+    showOnKanban: boolean;
+    _count?: {
+        items: number;
+    };
+}
+
 export type SealedIntegrity = "MINT" | "MINOR_DENTS" | "DAMAGED" | "OPENED";
 
 export type ProductType =
@@ -52,12 +65,16 @@ export interface InventoryBase {
     id: string;
     acquisitionPrice: number;
     listingPrice?: number;
+    soldPrice?: number;
+    soldDate?: string;
     marketPriceSnapshot?: number;
     marketPrice?: number;
     acquisitionDate: string;
     acquisitionSource?: string;
     storageLocation?: string;
     stage: InventoryStage;
+    statusId?: string;
+    status?: WorkflowStatus;
     sortOrder: number;
     notes?: string;
     photos?: string[];

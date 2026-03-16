@@ -152,7 +152,29 @@ async function main() {
     }
     console.log(`✅ Created/updated ${CARD_PROFILES.length} pricing snapshots`);
 
-    // 5. Delete existing inventory items for clean seed
+    // 5. Upsert default statuses
+    console.log('🔄 Seeding default statuses...');
+    const defaultStatuses = [
+        { name: 'Acquired', position: 0, color: '#94a3b8', systemId: 'ACQUIRED' },
+        { name: 'In Transit', position: 1, color: '#f59e0b', systemId: 'IN_TRANSIT' },
+        { name: 'Grading', position: 2, color: '#8b5cf6', systemId: 'BEING_GRADED' },
+        { name: 'In Stock', position: 3, color: '#10b981', systemId: 'IN_STOCK' },
+        { name: 'Listed', position: 4, color: '#3b82f6', systemId: 'LISTED' },
+        { name: 'Sold', position: 5, color: '#ef4444', systemId: 'SOLD' },
+    ];
+
+    const statuses: any[] = [];
+    for (const s of defaultStatuses) {
+        const status = await prisma.workflowStatus.upsert({
+            where: { userId_systemId: { userId: user.id, systemId: s.systemId } },
+            update: {},
+            create: { ...s, userId: user.id },
+        });
+        statuses.push(status);
+    }
+    const statusMap = statuses.reduce((acc, s) => ({ ...acc, [s.systemId]: s.id }), {} as Record<string, string>);
+
+    // 6. Delete existing inventory items for clean seed
     console.log('🗑️ Cleaning existing inventory items...');
     await prisma.inventoryItem.deleteMany({
         where: { sellerId: seller.id },
@@ -182,6 +204,7 @@ async function main() {
                 condition: conditions[i % 3],
                 quantity: i === 0 ? 12 : 1,
                 stage: stages[i % stages.length],
+                statusId: statusMap[stages[i % stages.length]],
                 acquisitionPrice: 5 + i,
                 listingPrice: i % 3 === 0 ? (5 + i) * 1.3 : null,
                 acquisitionDate: new Date('2024-01-01'),
@@ -215,6 +238,7 @@ async function main() {
                 slabImages: {},
                 quantity: 1,
                 stage: i < 2 ? 'LISTED' : stages[i % stages.length],
+                statusId: statusMap[i < 2 ? 'LISTED' : stages[i % stages.length]],
                 acquisitionPrice: 150 + i * 50,
                 listingPrice: i < 2 ? (150 + i * 50) * 1.5 : null,
                 acquisitionDate: new Date('2024-02-01'),
@@ -285,6 +309,7 @@ async function main() {
                 integrity: product.integrity,
                 quantity: product.quantity,
                 stage: product.stage,
+                statusId: statusMap[product.stage],
                 acquisitionPrice: product.acquisitionPrice,
                 listingPrice: product.listingPrice || null,
                 acquisitionDate: new Date('2023-12-15'),

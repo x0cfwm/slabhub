@@ -156,6 +156,8 @@ interface AppContextValue {
   getSoldItems: () => InventoryItem[];
   refreshInventory: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  statuses: any[]; // Using any for now to avoid circular dependency or import issues if not careful
+  refreshStatuses: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -163,6 +165,7 @@ const AppContext = createContext<AppContextValue | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
+  const [statuses, setStatuses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -190,7 +193,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       await Promise.all([
         refreshInventory(),
-        refreshProfile()
+        refreshProfile(),
+        refreshStatuses()
       ]);
     } catch (e) {
       console.error('Failed to load data:', e);
@@ -240,6 +244,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setInventory(apiItems.map(mapApiToUiItem));
     } catch (e) {
       console.error('Failed to refresh inventory:', e);
+    }
+  }, []);
+
+  const refreshStatuses = useCallback(async () => {
+    try {
+      const apiStatuses = await api.listStatuses(true); // Get all to handle visibility/enabled
+      setStatuses(apiStatuses);
+    } catch (e) {
+      console.error('Failed to refresh statuses:', e);
     }
   }, []);
 
@@ -399,8 +412,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       getSoldItems,
       refreshInventory,
       refreshProfile,
+      statuses,
+      refreshStatuses,
     }),
-    [inventory, profile, isLoading, addItem, updateItem, deleteItem, moveItem, updateProfile, getItemsByStage, getTotalMarketValue, getForSaleCount, getSoldItems, refreshInventory, refreshProfile]
+    [inventory, profile, isLoading, addItem, updateItem, deleteItem, moveItem, updateProfile, getItemsByStage, getTotalMarketValue, getForSaleCount, getSoldItems, refreshInventory, refreshProfile, statuses, refreshStatuses]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -103,6 +103,21 @@ export class InventoryController {
         return this.inventoryService.deleteItem(userId, id);
     }
 
+    @Get(':id/history')
+    @ApiOperation({ summary: 'Get history for an inventory item' })
+    @ApiParam({ name: 'id', description: 'Inventory item ID' })
+    @ApiResponse({ status: 200, description: 'Inventory item history' })
+    @ApiResponse({ status: 404, description: 'Item not found' })
+    async getItemHistory(
+        @CurrentUserId() userId: string | undefined,
+        @Param('id') id: string,
+    ) {
+        if (!userId) {
+            throw new NotFoundException('No authenticated user');
+        }
+        return this.inventoryService.getItemHistory(userId, id);
+    }
+
     @Get('stats/market-value-history')
     @ApiOperation({ summary: 'Get market value history' })
     @ApiParam({ name: 'days', required: false, description: 'Number of days for history', example: '90' })

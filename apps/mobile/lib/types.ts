@@ -186,3 +186,15 @@ export interface GradingRecognitionResult {
     durationMs?: number;
     error?: string;
 }
+export interface WorkflowStatus {
+    id: string;
+    name: string;
+    color: string | null;
+    position: number;
+    isEnabled: boolean;
+    systemId: InventoryStage | null;
+    showOnKanban: boolean;
+    _count?: {
+        items: number;
+    };
+}
