@@ -3,35 +3,29 @@
 import { Suspense, useEffect, useState, useMemo, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { listInventory, getMarketProducts, listStatuses } from "@/lib/api";
-import { InventoryItem, MarketProduct, InventoryStage, WorkflowStatus } from "@/lib/types";
+import { InventoryItem, MarketProduct, WorkflowStatus } from "@/lib/types";
 import { ItemCard } from "@/components/inventory/ItemCard";
 import { ItemDrawer } from "@/components/inventory/ItemDrawer";
 import { KanbanBoard } from "@/components/inventory/KanbanBoard";
 import { InventoryList } from "@/components/inventory/InventoryList";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, LayoutGrid, List } from "lucide-react";
+
+import { Plus, Search, LayoutGrid, List } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select";
+
 
 function InventoryContent() {
     const [items, setItems] = useState<InventoryItem[]>([]);
     const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
-    const [stageFilter, setStageFilter] = useState<string>("all");
+
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
     const [statuses, setStatuses] = useState<WorkflowStatus[]>([]);
@@ -136,11 +130,9 @@ function InventoryContent() {
                     );
                 })();
 
-                const matchesStage = stageFilter === "all" || item.statusId === stageFilter;
-
-                return matchesSearch && matchesStage;
+                return matchesSearch;
             });
-    }, [items, marketProducts, search, stageFilter]);
+    }, [items, marketProducts, search]);
 
     if (loading) {
         return <InventorySkeleton />;
@@ -164,25 +156,7 @@ function InventoryContent() {
                         />
                     </div>
 
-                    <Select value={stageFilter} onValueChange={setStageFilter}>
-                        <SelectTrigger className="w-[150px] hidden md:flex">
-                            <SelectValue placeholder="All Stages" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Stages</SelectItem>
-                            {statuses.map(s => (
-                                <SelectItem key={s.id} value={s.id}>
-                                    <span className={cn(
-                                        "flex items-center gap-2",
-                                        !s.showOnKanban && "text-muted-foreground italic opacity-70"
-                                    )}>
-                                        {s.name}
-                                        {!s.showOnKanban && <span className="text-[10px] ml-auto font-normal">(Hidden)</span>}
-                                    </span>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+
 
                     <Tabs value={viewMode} onValueChange={handleViewChange} className="hidden sm:block">
                         <TabsList className="grid w-[160px] grid-cols-2">
