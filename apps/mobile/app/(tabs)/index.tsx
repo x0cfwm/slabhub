@@ -111,7 +111,22 @@ export default function DashboardScreen() {
     }, 0);
 
     // Items by Stage counts
-    const stageCounts = STAGE_ORDER.map((stage) => ({
+    const STAGE_TO_SYSTEM_MAP: Record<string, string[]> = {
+      acquired: ['ACQUIRED', 'ARCHIVED'],
+      in_transit: ['IN_TRANSIT'],
+      grading: ['BEING_GRADED'],
+      in_stock: ['IN_STOCK', 'AUTHENTICATED'],
+      listed: ['LISTED'],
+      sold: ['SOLD'],
+    };
+
+    const visibleStages = STAGE_ORDER.filter(s => {
+      const allowedSystemIds = STAGE_TO_SYSTEM_MAP[s] || [s.toUpperCase()];
+      const status = useApp().statuses.find(ws => allowedSystemIds.includes(ws.systemId));
+      return status ? status.showOnKanban : true;
+    });
+
+    const stageCounts = visibleStages.map((stage) => ({
       stage,
       label: STAGE_LABELS[stage],
       count: inventory.filter((i) => i.stage === stage).reduce((acc, i) => acc + (i.quantity || 1), 0),

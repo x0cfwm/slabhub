@@ -49,11 +49,34 @@ type TabItem = {
 
 export default function InventoryScreen() {
   const insets = useSafeAreaInsets();
-  const { inventory, deleteItem, moveItem, refreshInventory } = useApp();
+  const { inventory, deleteItem, moveItem, refreshInventory, statuses } = useApp();
   const [activeStage, setActiveStage] = useState<ItemStage | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
+
+  // Map ItemStage (lowercase) to backend systemIds
+  const STAGE_TO_SYSTEM_MAP: Record<ItemStage, string[]> = {
+    acquired: ['ACQUIRED', 'ARCHIVED'],
+    in_transit: ['IN_TRANSIT'],
+    grading: ['BEING_GRADED'],
+    in_stock: ['IN_STOCK', 'AUTHENTICATED'],
+    listed: ['LISTED'],
+    sold: ['SOLD'],
+  };
+
+  const visibleStages = useMemo(() => {
+    if (!statuses || statuses.length === 0) return STAGE_ORDER;
+    
+    return STAGE_ORDER.filter(s => {
+      const allowedSystemIds = STAGE_TO_SYSTEM_MAP[s] || [s.toUpperCase()];
+      // Find any status belonging to this semantic group
+      const status = statuses.find(ws => allowedSystemIds.includes(ws.systemId));
+      
+      // Only hide if we found the status and it's explicitly hidden
+      return status ? status.showOnKanban : true;
+    });
+  }, [statuses]);
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -80,12 +103,12 @@ export default function InventoryScreen() {
 
   const tabs: TabItem[] = useMemo(() => [
     { stage: 'all' as const, label: 'All', count: inventory.length },
-    ...STAGE_ORDER.map((s) => ({
+    ...visibleStages.map((s) => ({
       stage: s,
       label: STAGE_LABELS[s],
       count: stageCountMap.get(s) || 0,
     })),
-  ], [inventory.length, stageCountMap]);
+  ], [inventory.length, stageCountMap, visibleStages]);
 
   const handleStageChange = useCallback((stage: ItemStage | 'all') => {
     setActiveStage(stage);
@@ -112,11 +135,17 @@ export default function InventoryScreen() {
       const nextStage = STAGE_ORDER[nextIndex];
       moveItem(item.id, nextStage);
     } else {
+      const enabledNextStages = nextStages.filter(s => {
+        const allowedSystemIds = STAGE_TO_SYSTEM_MAP[s] || [s.toUpperCase()];
+        const status = statuses.find(ws => allowedSystemIds.includes(ws.systemId));
+        return status ? status.isEnabled : true;
+      });
+
       Alert.alert(
         'Move Item',
         `Move "${item.name}" to:`,
         [
-          ...nextStages.map((stage) => ({
+          ...enabledNextStages.map((stage) => ({
             text: STAGE_LABELS[stage],
             onPress: () => moveItem(item.id, stage),
           })),

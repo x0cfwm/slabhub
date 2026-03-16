@@ -22,6 +22,8 @@ import {
   PAYMENT_LABELS,
   FULFILLMENT_LABELS,
 } from '@/constants/types';
+import { listStatuses } from '@/lib/api';
+import { WorkflowStatus } from '@/lib/types';
 
 const c = Colors.dark;
 
@@ -36,6 +38,20 @@ export default function ProfileScreen() {
   const [localProfile, setLocalProfile] = useState(profile);
   const [newTradeshow, setNewTradeshow] = useState({ name: '', date: '', link: '' });
   const [newReference, setNewReference] = useState({ name: '', link: '' });
+  const [statuses, setStatuses] = useState<WorkflowStatus[]>([]);
+
+  React.useEffect(() => {
+    fetchStatuses();
+  }, []);
+
+  const fetchStatuses = async () => {
+    try {
+      const data = await listStatuses(true);
+      setStatuses(data);
+    } catch (err) {
+      console.error('Failed to fetch statuses:', err);
+    }
+  };
 
   React.useEffect(() => {
     if (!editing) {
@@ -369,6 +385,36 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Workflow & Kanban</Text>
+            <View style={styles.webNote}>
+              <Text style={styles.webNoteText}>Web Only</Text>
+            </View>
+          </View>
+          <View style={styles.statusGrid}>
+            {statuses.map((status) => (
+              <View 
+                key={status.id} 
+                style={[
+                  styles.statusChip, 
+                  !status.isEnabled && styles.statusDisabled,
+                  !status.showOnKanban && styles.statusHidden
+                ]}
+              >
+                <View style={[styles.statusColor, { backgroundColor: status.color || '#94a3b8' }]} />
+                <Text style={[styles.statusChipText, !status.isEnabled && { color: c.textTertiary }]}>
+                  {status.name}
+                </Text>
+                {!status.showOnKanban && <Feather name="eye-off" size={10} color={c.textTertiary} style={{marginLeft: 4}} />}
+              </View>
+            ))}
+          </View>
+          <Text style={styles.managementNote}>
+            Kanban customization is available on web version
+          </Text>
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Wishlist</Text>
           {editing ? (
             <TextInput
@@ -626,6 +672,68 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: c.borderLight,
     marginTop: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  webNote: {
+    backgroundColor: c.accentDim,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: c.accent,
+  },
+  webNoteText: {
+    fontSize: 10,
+    color: c.accent,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  statusGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: c.surfaceHighlight,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  statusDisabled: {
+    opacity: 0.4,
+    borderStyle: 'dashed',
+  },
+  statusHidden: {
+    opacity: 0.7,
+    backgroundColor: 'transparent',
+    borderColor: c.borderLight,
+  },
+  statusColor: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  statusChipText: {
+    fontSize: 13,
+    color: c.textSecondary,
+    fontWeight: '600',
+  },
+  managementNote: {
+    fontSize: 11,
+    color: c.textTertiary,
+    marginTop: 12,
+    fontStyle: 'italic',
+    lineHeight: 16,
   },
   logoutText: {
     color: c.error,

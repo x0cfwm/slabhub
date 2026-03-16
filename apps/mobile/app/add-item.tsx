@@ -517,7 +517,19 @@ export default function AddItemScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Stage</Text>
           <View style={styles.chipGrid}>
-            {STAGE_ORDER.map((s) => (
+            {STAGE_ORDER.filter(s => {
+              const STAGE_TO_SYSTEM_MAP: Record<string, string[]> = {
+                acquired: ['ACQUIRED', 'ARCHIVED'],
+                in_transit: ['IN_TRANSIT'],
+                grading: ['BEING_GRADED'],
+                in_stock: ['IN_STOCK', 'AUTHENTICATED'],
+                listed: ['LISTED'],
+                sold: ['SOLD'],
+              };
+              const allowedSystemIds = STAGE_TO_SYSTEM_MAP[s] || [s.toUpperCase()];
+              const status = useApp().statuses.find(ws => allowedSystemIds.includes(ws.systemId));
+              return status ? status.isEnabled : true;
+            }).map((s) => (
               <Pressable
                 key={s}
                 style={[styles.chip, stage === s && styles.chipActive]}

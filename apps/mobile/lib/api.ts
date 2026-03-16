@@ -8,7 +8,8 @@ import {
     MarketPriceHistory,
     SellerProfile,
     PortfolioHistoryEntry,
-    GradingRecognitionResult
+    GradingRecognitionResult,
+    WorkflowStatus
 } from "./types";
 import { optimizeLocalImage } from "./image-utils";
 
@@ -165,4 +166,9 @@ export async function recognizeImage(originalUri: string): Promise<GradingRecogn
     }
 
     return res.json();
+}
+
+export async function listStatuses(includeDisabled = false): Promise<WorkflowStatus[]> {
+    const response = await apiRequest("GET", `/workflow/statuses${includeDisabled ? "?includeDisabled=true" : ""}`);
+    return response.json();
 }
