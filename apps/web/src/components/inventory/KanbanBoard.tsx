@@ -15,6 +15,7 @@ import { updateInventoryItem, reorderInventoryItems } from "@/lib/api";
 import { toast } from "sonner";
 import { arrayMove } from "@dnd-kit/sortable";
 import { SoldPromptDialog } from "./SoldPromptDialog";
+import { ListedPromptDialog } from "./ListedPromptDialog";
 
 interface KanbanBoardProps {
     items: InventoryItem[];
@@ -28,6 +29,7 @@ interface KanbanBoardProps {
 export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, statuses }: KanbanBoardProps) {
     const [activeId, setActiveId] = useState<string | null>(null);
     const [promptItem, setPromptItem] = useState<{ id: string, name: string, statusId: string } | null>(null);
+    const [listedPromptItem, setListedPromptItem] = useState<{ id: string, name: string, statusId: string } | null>(null);
     const sensors = useDndSensors();
 
     const activeItem = items.find(i => i.id === activeId);
@@ -54,6 +56,13 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
             const vid = (activeItem as any).cardVariantId || (activeItem as any).cardProfileId || activeItem.refPriceChartingProductId;
             const marketProduct = cards.find(p => p.id === vid) || activeItem.cardProfile;
             setPromptItem({ id: activeId, name: marketProduct?.name || "Card", statusId: targetStatusId! });
+            return;
+        }
+
+        if (targetStatus?.systemId === "LISTED" && activeItem.status?.systemId !== "LISTED") {
+            const vid = (activeItem as any).cardVariantId || (activeItem as any).cardProfileId || activeItem.refPriceChartingProductId;
+            const marketProduct = cards.find(p => p.id === vid) || activeItem.cardProfile;
+            setListedPromptItem({ id: activeId, name: marketProduct?.name || "Card", statusId: targetStatusId! });
             return;
         }
 
@@ -224,6 +233,31 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
                             soldPrice: data.soldPrice, // We'll need to add this to the item if it's not there, but for MVP let's assume it updates the existing fields
                         });
                         onUpdate();
+                    }
+                }}
+            />
+
+            <ListedPromptDialog
+                key={listedPromptItem?.id}
+                isOpen={!!listedPromptItem}
+                itemName={listedPromptItem?.name}
+                item={items.find(i => i.id === listedPromptItem?.id)}
+                onClose={() => setListedPromptItem(null)}
+                onConfirm={async (data) => {
+                    if (listedPromptItem) {
+                        try {
+                            await finalizeDrop(items, listedPromptItem.id, listedPromptItem.statusId, true, {
+                                listingPrice: data.listingPrice,
+                            });
+                            await updateInventoryItem(listedPromptItem.id, {
+                                stage: "LISTED",
+                                listingPrice: data.listingPrice,
+                                sellingDescription: data.sellingDescription,
+                            });
+                            onUpdate();
+                        } catch (err) {
+                            toast.error("Failed to list item");
+                        }
                     }
                 }}
             />

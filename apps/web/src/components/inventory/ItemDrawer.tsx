@@ -27,7 +27,6 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { InventoryItem, CardProfile, InventoryStage, GradingCompany, Condition, WorkflowStatus } from "@/lib/types";
@@ -437,20 +436,14 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                                 </TabsContent>
 
                                 <TabsContent value="shop" className="space-y-6 mt-0">
-                                    <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="space-y-0.5">
-                                                <Label className="text-base font-bold">List for Sale</Label>
-                                                <p className="text-xs text-muted-foreground">Make this item visible in your public shop</p>
-                                            </div>
-                                            <Switch
-                                                checked={formData.stage === "LISTED"}
-                                                onCheckedChange={(v) => {
-                                                    setFormData({ ...formData, stage: v ? "LISTED" : "IN_STOCK" });
-                                                }}
-                                            />
+                                    {formData.stage !== "LISTED" && (
+                                        <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 flex gap-3 items-center animate-in fade-in slide-in-from-top-1">
+                                            <Info className="h-4 w-4 text-primary shrink-0" />
+                                            <p className="text-xs text-muted-foreground">
+                                                Move an item to the <span className="font-bold text-primary">Listing</span> status to display it in the shop
+                                            </p>
                                         </div>
-                                    </div>
+                                    )}
 
                                     {formData.stage === "SOLD" && (
                                         <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6 space-y-4 animate-in slide-in-from-top-2">
@@ -517,7 +510,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                                         <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl flex gap-3">
                                             <Info className="h-5 w-5 text-amber-500 shrink-0" />
                                             <p className="text-xs text-amber-700/80 leading-relaxed">
-                                                When listed, this item will be discoverable by other users on the Slabhub marketplace.
+                                                When listed, this item will be discoverable by other users on your Slabhub shop page.
                                                 Ensure your description accurately reflects the item's condition.
                                             </p>
                                         </div>
