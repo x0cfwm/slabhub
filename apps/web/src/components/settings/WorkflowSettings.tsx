@@ -100,7 +100,7 @@ function SortableStatusItem({ status, onEdit, onDelete, onToggleVisibility }: So
         <div
             ref={setNodeRef}
             style={style}
-            className={`flex items-center gap-3 p-3 bg-card border rounded-lg shadow-sm transition-all ${isDragging ? 'opacity-50 ring-2 ring-primary' : ''} ${!status.showOnKanban ? 'bg-muted/50 border-dashed' : ''} ${!status.isEnabled ? 'opacity-40 grayscale' : ''}`}
+            className={`flex items-center gap-3 p-3 bg-card border rounded-lg shadow-sm transition-all ${isDragging ? 'opacity-50 ring-2 ring-primary' : ''} ${!status.showOnKanban ? 'bg-muted/50 border-dashed' : ''}`}
         >
             <div {...attributes} {...listeners} className="cursor-grab hover:text-primary transition-colors">
                 <GripVertical className="h-5 w-5 text-muted-foreground" />
@@ -132,17 +132,9 @@ function SortableStatusItem({ status, onEdit, onDelete, onToggleVisibility }: So
                 {!status.showOnKanban && (
                     <span className="text-[10px] text-muted-foreground/60">(Hidden from Kanban)</span>
                 )}
-                {!status.isEnabled && (
-                    <span className="text-[10px] text-destructive/60">(Disabled)</span>
-                )}
             </span>
 
             <div className="flex items-center gap-1">
-                {!status.isEnabled && (
-                    <div className="mr-2 p-1 bg-destructive/10 rounded-full" title="Status is disabled">
-                        <EyeOff className="h-3 w-3 text-destructive/60" />
-                    </div>
-                )}
                 <Button 
                     variant="ghost" 
                     size="icon" 
@@ -185,7 +177,6 @@ export function WorkflowSettings() {
     const [newColor, setNewColor] = useState("#94a3b8");
     const [newSystemId, setNewSystemId] = useState<string>("NONE");
     const [newShowOnKanban, setNewShowOnKanban] = useState(true);
-    const [newIsEnabled, setNewIsEnabled] = useState(true);
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -247,8 +238,7 @@ export function WorkflowSettings() {
                 name: newName, 
                 color: newColor, 
                 systemId: newSystemId === "NONE" ? undefined : newSystemId,
-                showOnKanban: newShowOnKanban,
-                isEnabled: newIsEnabled
+                showOnKanban: newShowOnKanban
             } as any);
             toast.success("Status added");
             setIsAddOpen(false);
@@ -256,7 +246,6 @@ export function WorkflowSettings() {
             setNewColor("#94a3b8");
             setNewSystemId("NONE");
             setNewShowOnKanban(true);
-            setNewIsEnabled(true);
             fetchStatuses();
         } catch (err) {
             toast.error("Failed to add status");
@@ -270,8 +259,7 @@ export function WorkflowSettings() {
                 name: newName, 
                 color: newColor, 
                 systemId: newSystemId === "NONE" ? null : newSystemId,
-                showOnKanban: newShowOnKanban,
-                isEnabled: newIsEnabled
+                showOnKanban: newShowOnKanban
             });
             toast.success("Status updated");
             setIsEditOpen(false);
@@ -280,7 +268,6 @@ export function WorkflowSettings() {
             setNewColor("#94a3b8");
             setNewSystemId("NONE");
             setNewShowOnKanban(true);
-            setNewIsEnabled(true);
             fetchStatuses();
         } catch (err) {
             toast.error("Failed to update status");
@@ -307,7 +294,6 @@ export function WorkflowSettings() {
         setNewColor(status.color || "#94a3b8");
         setNewSystemId(status.systemId || "NONE");
         setNewShowOnKanban(status.showOnKanban);
-        setNewIsEnabled(status.isEnabled);
         setIsEditOpen(true);
     };
 
@@ -432,18 +418,6 @@ export function WorkflowSettings() {
                                     onCheckedChange={setNewShowOnKanban}
                                 />
                             </div>
-
-                            <div className="flex items-center justify-between space-x-2 py-2">
-                                <div className="space-y-0.5">
-                                    <Label htmlFor="status-enabled">Status Enabled</Label>
-                                    <p className="text-[10px] text-muted-foreground">Enable this status in the system (dropdowns/lists)</p>
-                                </div>
-                                <Switch
-                                    id="status-enabled"
-                                    checked={newIsEnabled}
-                                    onCheckedChange={setNewIsEnabled}
-                                />
-                            </div>
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
@@ -512,18 +486,6 @@ export function WorkflowSettings() {
                                     id="edit-kanban-visible"
                                     checked={newShowOnKanban}
                                     onCheckedChange={setNewShowOnKanban}
-                                />
-                            </div>
-
-                            <div className="flex items-center justify-between space-x-2 py-2">
-                                <div className="space-y-0.5">
-                                    <Label htmlFor="edit-status-enabled">Status Enabled</Label>
-                                    <p className="text-[10px] text-muted-foreground">Enable this status in the system (dropdowns/lists)</p>
-                                </div>
-                                <Switch
-                                    id="edit-status-enabled"
-                                    checked={newIsEnabled}
-                                    onCheckedChange={setNewIsEnabled}
                                 />
                             </div>
                         </div>
