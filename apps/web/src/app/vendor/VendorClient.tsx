@@ -227,18 +227,27 @@ export default function VendorClient() {
 
     const getMessengerLink = (fbUrl?: string | null) => {
         if (!fbUrl) return null;
-        try {
-            const url = new URL(fbUrl);
-            const id = url.searchParams.get('id');
-            if (id) return `https://m.me/${id}`;
 
+        // If it's already a full message link, use it as is
+        if (fbUrl.includes('facebook.com/messages/t/')) return fbUrl;
+
+        try {
+            // Case 1: Standard profile URL with ?id= (e.g. for profile.php)
+            const url = new URL(fbUrl.startsWith('http') ? fbUrl : `https://${fbUrl}`);
+            const id = url.searchParams.get('id');
+            if (id) return `https://www.facebook.com/messages/t/${id}`;
+
+            // Case 2: Clean username/handle from path
             const segments = url.pathname.split('/').filter(Boolean);
             const lastSegment = segments[segments.length - 1];
             if (lastSegment && lastSegment !== 'profile.php') {
-                return `https://m.me/${lastSegment}`;
+                return `https://www.facebook.com/messages/t/${lastSegment}`;
             }
         } catch (e) { /* ignore parse errors */ }
-        return fbUrl;
+        
+        // Fallback: If we can't parse it as a URL, treat it as a handle/ID
+        const cleanHandle = fbUrl.replace(/^(https?:\/\/)?(www\.)?facebook\.com\//, '').replace(/\/$/, '');
+        return `https://www.facebook.com/messages/t/${cleanHandle}`;
     };
 
     if (loading) return <div className="p-8 text-center text-primary-foreground/50">Loading public page...</div>;
@@ -373,11 +382,6 @@ export default function VendorClient() {
                             <Button onClick={copyLink} variant="outline" className="flex-1 md:flex-none border-border">
                                 <Share2 className="h-4 w-4 mr-2" /> Share
                             </Button>
-                            {profile.socials.instagram && (
-                                <Button variant="outline" size="icon" className="border-border" onClick={() => window.open(`https://instagram.com/${profile.socials.instagram}`, '_blank')}>
-                                    <Instagram className="h-4 w-4" />
-                                </Button>
-                            )}
                         </div>
                     </div>
                 </div>
