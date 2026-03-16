@@ -103,10 +103,18 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                 updatedAt,
                 type,
                 cardProfile,
+                cardVariant, // Relation object
+                refPriceChartingProduct, // Relation object
                 marketPriceSnapshot,
                 marketPrice,
                 frontMediaUrl,
                 backMediaUrl,
+                status, // Relation object
+                history, // Relation array
+                frontMedia, // Relation object
+                backMedia, // Relation object
+                seller, // Relation object
+                user, // Relation object
                 // Exclude transformed fields that are not in the backend DTO
                 gradingCompany,
                 grade,
