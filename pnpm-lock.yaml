@@ -116,8 +116,8 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1(express@5.0.1)
       zod:
-        specifier: ^4.3.5
-        version: 4.3.5
+        specifier: ^3.24.4
+        version: 3.25.76
     devDependencies:
       '@nestjs/cli':
         specifier: ^11.0.0
@@ -309,7 +309,7 @@ importers:
         specifier: 0.5.1
         version: 0.5.1(@babel/core@7.28.6)(react-native@0.81.5)(react@19.1.0)
       zod:
-        specifier: ^3.24.2
+        specifier: ^3.24.4
         version: 3.25.76
       zod-validation-error:
         specifier: ^3.4.0
@@ -427,8 +427,8 @@ importers:
         specifier: ^3.4.0
         version: 3.4.0
       zod:
-        specifier: ^4.3.5
-        version: 4.3.5
+        specifier: ^3.24.4
+        version: 3.25.76
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
@@ -9828,8 +9828,8 @@ packages:
       '@babel/parser': 7.28.6
       eslint: 9.18.0
       hermes-parser: 0.25.1
-      zod: 4.3.5
-      zod-validation-error: 3.5.4(zod@4.3.5)
+      zod: 3.25.76
+      zod-validation-error: 3.5.4(zod@3.25.76)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -16468,18 +16468,14 @@ packages:
       zod: 3.25.76
     dev: false
 
-  /zod-validation-error@3.5.4(zod@4.3.5):
+  /zod-validation-error@3.5.4(zod@3.25.76):
     resolution: {integrity: sha512-+hEiRIiPobgyuFlEojnqjJnhFvg4r/i3cqgcm67eehZf/WBaK3g6cD02YU9mtdVxZjv8CzCA9n/Rhrs3yAAvAw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       zod: ^3.24.4
     dependencies:
-      zod: 4.3.5
+      zod: 3.25.76
     dev: true
 
   /zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
-    dev: false
-
-  /zod@4.3.5:
-    resolution: {integrity: sha512-k7Nwx6vuWx1IJ9Bjuf4Zt1PEllcwe7cls3VNzm4CQ1/hgtFUK2bRNG3rvnpPUhFjmqJKAKtjV576KnUkHocg/g==}
