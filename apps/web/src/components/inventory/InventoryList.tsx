@@ -70,6 +70,7 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, s
                         <TableHead>Stage</TableHead>
                         <TableHead className="text-right">Market Est.</TableHead>
                         <TableHead className="text-right">Aquisition</TableHead>
+                        <TableHead className="text-right">Listing</TableHead>
                         <TableHead className="text-right">Sale Price</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
@@ -157,11 +158,11 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, s
                                 <TableCell className="text-right font-mono text-xs">
                                     ${Math.round(item.acquisitionPrice || 0).toLocaleString()}
                                 </TableCell>
-                                <TableCell className="text-right font-bold text-xs text-orange-500">
-                                    {item.stage === "SOLD" 
-                                        ? (item.soldPrice ? `$${Math.round(item.soldPrice).toLocaleString()}` : "-")
-                                        : (item.listingPrice ? `$${Math.round(item.listingPrice).toLocaleString()}` : "-")
-                                    }
+                                <TableCell className="text-right font-bold text-xs text-orange-400">
+                                    {item.listingPrice ? `$${Math.round(item.listingPrice).toLocaleString()}` : "-"}
+                                </TableCell>
+                                <TableCell className="text-right font-bold text-xs text-orange-600">
+                                    {item.soldPrice ? `$${Math.round(item.soldPrice).toLocaleString()}` : "-"}
                                 </TableCell>
                                 <TableCell>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -173,7 +174,7 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, s
                     })}
                     {items.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                            <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
                                 No assets found in registry.
                             </TableCell>
                         </TableRow>
