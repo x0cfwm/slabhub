@@ -112,7 +112,7 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, s
                                 <TableCell>
                                     {itType === "SINGLE_CARD_GRADED" || (itType as any) === "GRADED" ? (
                                         <div className="flex flex-col gap-0.5">
-                                            <Badge className="bg-blue-600 text-[9px] w-fit font-mono">
+                                            <Badge className="bg-blue-600 text-white text-[9px] w-fit font-mono">
                                                 {(item as any).gradingCompany || "???"} {(item as any).grade || ""}
                                             </Badge>
                                             <span className="text-[8px] font-mono text-muted-foreground">{(item as any).certNumber}</span>

@@ -116,7 +116,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay, scale = "no
                             {typeLabel}
                         </Badge>
                         {item.type === "SINGLE_CARD_GRADED" && (
-                            <Badge className="bg-blue-600 text-[8px] font-mono">
+                            <Badge className="bg-blue-600 text-white text-[8px] font-mono">
                                 {item.gradingCompany} {item.grade}
                             </Badge>
                         )}
