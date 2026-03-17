@@ -74,11 +74,10 @@ export function ItemCard({ item, profile, price, onClick, isOverlay, scale = "no
             {...attributes}
             {...listeners}
             className={cn(
-                "group cursor-grab active:cursor-grabbing hover:shadow-md transition-all overflow-hidden border-muted-foreground/10 py-0 gap-0",
+                "group cursor-grab active:cursor-grabbing hover:shadow-md transition-all overflow-hidden border-muted-foreground/10 py-0 gap-0 w-full",
                 isDragging && !isOverlay && "opacity-40 grayscale-[0.5]",
                 isOverlay && "shadow-2xl ring-2 ring-primary/20 cursor-grabbing",
-                item.type === "SINGLE_CARD_GRADED" && "border-primary/20 bg-primary/5",
-                scale === "compact" ? "w-32" : scale === "large" ? "w-52" : "w-40 md:w-44"
+                item.type === "SINGLE_CARD_GRADED" && "border-primary/20 bg-primary/5"
             )}
             onClick={(e) => {
                 if (onClick) onClick();
@@ -131,23 +130,25 @@ export function ItemCard({ item, profile, price, onClick, isOverlay, scale = "no
             )}
             <CardContent className={cn(
                 "p-2.5 space-y-1.5 pointer-events-none",
-                scale === "compact" && "p-2 space-y-1",
+                scale === "compact" && "p-1.5 space-y-0.5",
                 scale === "large" && "p-4 space-y-2.5"
             )}>
                 <div className="min-w-0">
                     <h4 className={cn(
-                        "font-bold text-xs line-clamp-2 leading-tight mb-0.5",
-                        scale === "compact" ? "h-6 text-[10px]" : scale === "large" ? "h-10 text-sm" : "h-8"
+                        "font-bold text-xs line-clamp-2 leading-[1.1]",
+                        scale === "compact" ? "text-[10px] min-h-[1.4rem]" : "mb-0.5 h-8",
+                        scale === "large" && "h-10 text-sm"
                     )}>{displayName}</h4>
-                    <p className={cn(
-                        "text-[9px] text-muted-foreground uppercase tracking-tight truncate",
-                        scale === "compact" && "text-[8px]"
-                    )}>{displaySub}</p>
+                    {scale !== "compact" && (
+                        <p className="text-[9px] text-muted-foreground uppercase tracking-tight truncate font-medium opacity-70">
+                            {displaySub}
+                        </p>
+                    )}
                 </div>
 
                 <div className={cn(
                     "flex items-center justify-between text-xs pt-1 border-t border-muted",
-                    scale === "compact" && "pt-0.5"
+                    scale === "compact" && "pt-0"
                 )}>
                     <div className="flex flex-col">
                         {scale !== "compact" && <span className="text-muted-foreground text-[7px] uppercase font-bold">Market</span>}

@@ -206,7 +206,8 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
 
                     return (
                         <div className={cn(
-                            scale === "compact" ? "w-32" : scale === "large" ? "w-52" : "w-40 md:w-44"
+                            "transition-all duration-300",
+                            scale === "compact" ? "w-40 md:w-44" : scale === "large" ? "w-56 md:w-64" : "w-48 md:w-52"
                         )}>
                             <div className="p-3">
                                 <ItemCard
