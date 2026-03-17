@@ -411,7 +411,7 @@ export default function VendorClient() {
                                         )}>
                                             <div className="aspect-[2.5/3.5] overflow-hidden relative bg-accent/5 flex items-center justify-center p-2">
                                                 <img
-                                                    src={getOptimizedImageUrl(item.photos?.[0] || (item as any).frontMediaUrl || cardProfile?.imageUrl || "https://placehold.co/300x400?text=Asset", { height: 400 })}
+                                                    src={getOptimizedImageUrl(item.photos?.[0] || (item as any).frontMediaUrl || cardProfile?.imageUrl || "https://placehold.co/300x400?text=Asset", { height: 800 })}
                                                     className="object-contain w-full h-full transition-all duration-700 group-hover:scale-105"
                                                     alt={displayName}
                                                 />
@@ -562,7 +562,7 @@ export default function VendorClient() {
                                                                 activePhoto === photo ? "border-primary scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-100"
                                                             )}
                                                         >
-                                                            <img src={getOptimizedImageUrl(photo, { width: 48, height: 64, fit: 'cover' })} className="w-full h-full object-cover" alt="prev" />
+                                                            <img src={getOptimizedImageUrl(photo, { width: 96, height: 128, fit: 'cover' })} className="w-full h-full object-cover" alt="prev" />
                                                         </button>
                                                     ))}
                                                 </div>

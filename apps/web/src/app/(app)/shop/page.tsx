@@ -288,7 +288,7 @@ export default function ShopSettingsPage() {
                                 <div className="flex items-center gap-4">
                                     <div className="relative h-20 w-20 rounded-full overflow-hidden bg-muted border-2 border-primary/20 flex items-center justify-center">
                                         {avatarUrl ? (
-                                            <img src={getOptimizedImageUrl(avatarUrl, { width: 80, height: 80, fit: 'cover' })} alt="Avatar" className="h-full w-full object-cover" />
+                                            <img src={getOptimizedImageUrl(avatarUrl, { width: 160, height: 160, fit: 'cover' })} alt="Avatar" className="h-full w-full object-cover" />
                                         ) : (
                                             <ImageIcon className="h-8 w-8 text-muted-foreground" />
                                         )}

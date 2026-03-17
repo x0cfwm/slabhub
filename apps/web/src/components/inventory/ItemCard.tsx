@@ -65,7 +65,7 @@ export function ItemCard({ item, profile, price, onClick, isOverlay, scale = "no
     };
 
     const imageUrl = item.photos?.[0] || (item as any).frontMediaUrl || finalProfile?.imageUrl || `https://placehold.co/300x400?text=${isSealed ? 'Sealed' : 'Card'}`;
-    const optimizedImageUrl = getOptimizedImageUrl(imageUrl, { height: 400, quality: 85 });
+    const optimizedImageUrl = getOptimizedImageUrl(imageUrl, { height: 800, quality: 85 });
 
     return (
         <Card
