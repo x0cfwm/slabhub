@@ -2,38 +2,37 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { getStoredTheme } from "@/lib/theme";
+import { cn } from "@/lib/utils";
+import { useTheme } from "next-themes";
 
-export function Logo({ className }: { className?: string }) {
-    const [theme, setTheme] = useState<string>("light");
+interface LogoProps {
+    className?: string;
+    iconOnly?: boolean;
+}
+
+export function Logo({ className, iconOnly }: LogoProps) {
+    const { theme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
-        // Initial theme
-        setTheme(getStoredTheme());
-
-        // Listen for theme changes (custom event or interval since we don't have a context)
-        const checkTheme = () => {
-            const currentTheme = getStoredTheme();
-            if (currentTheme !== theme) {
-                setTheme(currentTheme);
-            }
-        };
-
-        const interval = setInterval(checkTheme, 500);
-        return () => clearInterval(interval);
-    }, [theme]);
+    }, []);
 
     if (!mounted) {
         return <div className={className} style={{ height: "40px" }} />;
     }
 
     // Determine which logo to use
-    // Dark theme and Cyberpunk use the white SLAB logo
-    // Light theme uses the black SLAB logo
     const isDark = theme === "dark" || theme === "cyberpunk";
     const src = isDark ? "/logo-dark.svg" : "/logo-light.svg";
+
+    if (iconOnly) {
+        return (
+            <div className={cn("flex items-center justify-center h-10 w-10 bg-primary/10 rounded-xl overflow-hidden ring-1 ring-primary/20", className)}>
+                <div className="text-primary font-black text-xl italic">S</div>
+            </div>
+        );
+    }
 
     return (
         <div className={className}>

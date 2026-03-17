@@ -58,6 +58,11 @@ export default function RootLayout({
           enableSystem
           storageKey="slabhub-theme"
           disableTransitionOnChange
+          value={{
+            light: "theme-light",
+            dark: "theme-dark",
+            cyberpunk: "theme-cyberpunk",
+          }}
         >
           <AuthProvider>
             {children}

@@ -35,18 +35,27 @@ const NAV_ITEMS = [
     { label: "Settings", href: "/settings", icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+    isCollapsed?: boolean;
+}
+
+export function Sidebar({ isCollapsed }: SidebarProps) {
     const pathname = usePathname();
     const { user, logout } = useAuth();
 
     return (
-        <div className="hidden md:flex h-full w-64 flex-col border-r bg-card">
-            <div className="p-6">
-                <Link href="/dashboard" className="block">
-                    <Logo />
+        <div 
+            className={cn(
+                "hidden md:flex h-full flex-col border-r bg-card transition-all duration-300",
+                isCollapsed ? "w-20" : "w-64"
+            )}
+        >
+            <div className={cn("p-6 flex flex-col transition-all duration-300", isCollapsed ? "items-center px-4" : "items-start")}>
+                <Link href="/dashboard" className={cn("transition-all duration-300", isCollapsed ? "w-10" : "w-full")}>
+                    <Logo iconOnly={isCollapsed} />
                 </Link>
             </div>
-            <nav className="flex-1 space-y-2 px-4">
+            <nav className={cn("flex-1 px-4 space-y-2", isCollapsed && "flex flex-col items-center")}>
                 {NAV_ITEMS.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname.startsWith(item.href);
@@ -56,37 +65,44 @@ export function Sidebar() {
                             href={item.href}
                             className={cn(
                                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                                isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                                isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+                                isCollapsed && "h-10 w-10 justify-center px-0 rounded-xl"
                             )}
+                            title={isCollapsed ? item.label : undefined}
                         >
-                            <Icon className="h-4 w-4" />
-                            {item.label}
+                            <Icon className={cn("shrink-0", isCollapsed ? "h-5 w-5" : "h-4 w-4")} />
+                            {!isCollapsed && <span>{item.label}</span>}
                         </Link>
                     );
                 })}
             </nav>
 
-            <ThemeToggle />
+            <div className={cn("px-4 py-4 border-t flex flex-col gap-4 transition-all duration-300", isCollapsed && "items-center")}>
+                <ThemeToggle iconOnly={isCollapsed} />
 
-            {user && (
-                <div className="p-4 border-t">
+                {user && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground outline-none">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                            <button className={cn(
+                                "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground outline-none",
+                                isCollapsed && "justify-center px-0"
+                            )}>
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
                                     <UserIcon className="h-4 w-4" />
                                 </div>
-                                <div className="flex flex-1 flex-col items-start overflow-hidden text-left">
-                                    <span className="w-full truncate text-sm font-medium text-foreground">
-                                        {user.profile?.shopName || user.email.split('@')[0]}
-                                    </span>
-                                    <span className="w-full truncate text-xs text-muted-foreground">
-                                        {user.email}
-                                    </span>
-                                </div>
+                                {!isCollapsed && (
+                                    <div className="flex flex-1 flex-col items-start overflow-hidden text-left">
+                                        <span className="w-full truncate text-sm font-medium text-foreground">
+                                            {user.profile?.shopName || user.email.split('@')[0]}
+                                        </span>
+                                        <span className="w-full truncate text-xs text-muted-foreground">
+                                            {user.email}
+                                        </span>
+                                    </div>
+                                )}
                             </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuContent align={isCollapsed ? "start" : "end"} className="w-56" side={isCollapsed ? "right" : "top"}>
                             <DropdownMenuLabel>My Account</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild>
@@ -111,8 +127,8 @@ export function Sidebar() {
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }
