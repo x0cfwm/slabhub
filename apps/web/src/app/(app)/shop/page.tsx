@@ -80,7 +80,7 @@ export default function ShopSettingsPage() {
         control,
         formState: { errors },
     } = useForm<any>({
-        resolver: zodResolver(profileSchema),
+        resolver: zodResolver(profileSchema as any),
         defaultValues: {
             shopName: "",
             handle: "",
