@@ -409,7 +409,7 @@ export default function VendorClient() {
                                     <div key={item.id} className="group relative cursor-pointer" onClick={() => handleOpenItem(item)}>
                                         <div className="absolute -inset-0.5 bg-gradient-to-b from-primary/20 to-transparent rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
                                         <Card className={cn(
-                                            "relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md border-primary/10 bg-card/50 backdrop-blur-md border border-muted-foreground/10",
+                                            "relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md border-primary/10 bg-card/50 backdrop-blur-md border border-muted-foreground/10 py-0 gap-0",
                                             itType === "SINGLE_CARD_GRADED" && "border-primary/20 bg-primary/5"
                                         )}>
                                             <div className="aspect-[2.5/3.5] overflow-hidden relative bg-accent/5">
@@ -437,10 +437,10 @@ export default function VendorClient() {
                                                 </div>
                                             </div>
                                             
-                                            <CardContent className="p-3 space-y-1.5">
+                                            <CardContent className="p-4 pt-3 space-y-2">
                                                 <div className="min-w-0">
-                                                    <h4 className="font-bold text-[13px] tracking-tight group-hover:text-primary transition-colors leading-tight line-clamp-2 h-10">{displayName}</h4>
-                                                    <p className="text-[10px] text-muted-foreground uppercase tracking-tight truncate">
+                                                    <h4 className="font-bold text-[13px] tracking-tight group-hover:text-primary transition-colors leading-[1.2rem] line-clamp-2 h-[2.4rem] overflow-hidden">{displayName}</h4>
+                                                    <p className="text-[10px] text-muted-foreground uppercase tracking-tight truncate opacity-80">
                                                         {displaySub}
                                                     </p>
                                                 </div>
