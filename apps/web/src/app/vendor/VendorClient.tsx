@@ -195,19 +195,18 @@ export default function VendorClient() {
     const filteredItems = useMemo(() => {
         const s = search.toLowerCase();
         return items.filter(item => {
-            const vid = (item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId;
-            const card = marketProducts.find(c => c.id === vid);
-
             if (!search) return true;
 
             const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
+            const profile = (item as any).cardProfile;
+
             if (itType === "SEALED_PRODUCT" || itType === "SEALED") {
                 return (item as any).productName?.toLowerCase().includes(s);
             }
 
-            return card?.name.toLowerCase().includes(s) || card?.set.toLowerCase().includes(s);
+            return profile?.name.toLowerCase().includes(s) || profile?.set.toLowerCase().includes(s);
         });
-    }, [items, marketProducts, search]);
+    }, [items, search]);
 
     const currentItemIndex = useMemo(() =>
         selectedItem ? filteredItems.findIndex(i => i.id === selectedItem.id) : -1
@@ -401,52 +400,60 @@ export default function VendorClient() {
                             {filteredItems.map(item => {
                                 const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
                                 const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
+                                const cardProfile = (item as any).cardProfile;
 
-                                const vid = (item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId;
-                                const marketProduct = marketProducts.find(p => p.id === vid);
-
-                                const marketPrice = isSealed ? marketProduct?.sealedPrice : marketProduct?.rawPrice;
-                                const displayName = isSealed ? (item as any).productName : marketProduct?.name || "Unknown Asset";
+                                const displayName = isSealed ? (item as any).productName : cardProfile?.name || "Unknown Asset";
+                                const displaySub = isSealed ? "Sealed Product" : cardProfile?.set || "TCG Asset";
 
                                 return (
                                     <div key={item.id} className="group relative cursor-pointer" onClick={() => handleOpenItem(item)}>
                                         <div className="absolute -inset-0.5 bg-gradient-to-b from-primary/20 to-transparent rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                                        <Card className="relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md border-primary/10 bg-card/50 backdrop-blur-md">
-                                            <div className="aspect-[3/4] overflow-hidden relative bg-accent/5">
+                                        <Card className={cn(
+                                            "relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md border-primary/10 bg-card/50 backdrop-blur-md border border-muted-foreground/10",
+                                            itType === "SINGLE_CARD_GRADED" && "border-primary/20 bg-primary/5"
+                                        )}>
+                                            <div className="aspect-[2.5/3.5] overflow-hidden relative bg-accent/5">
                                                 <img
-                                                    src={getOptimizedImageUrl(item.photos?.[0] || (item as any).frontMediaUrl || marketProduct?.imageUrl || "https://placehold.co/300x400?text=Asset", { height: 400 })}
+                                                    src={getOptimizedImageUrl(item.photos?.[0] || (item as any).frontMediaUrl || cardProfile?.imageUrl || "https://placehold.co/300x400?text=Asset", { height: 400 })}
                                                     className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-110"
                                                     alt={displayName}
                                                 />
-                                                <div className="absolute inset-x-0 bottom-0 px-3 py-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-                                                    <p className="text-[9px] text-primary font-black uppercase tracking-[0.2em] truncate">{marketProduct?.set || "TCG Asset"}</p>
+                                                
+                                                {/* Status Badges - Top Right (Matching Kanban) */}
+                                                <div className="absolute top-2 right-2 flex flex-col gap-1 items-end pointer-events-none">
+                                                    <Badge variant="secondary" className="backdrop-blur-md bg-white/50 text-[8px] uppercase font-bold text-black border-none">
+                                                        {itType.replace("SINGLE_CARD_", "").replace("_PRODUCT", "")}
+                                                    </Badge>
+                                                    {(item as any).grade && (
+                                                        <Badge className="bg-blue-600 text-[8px] font-mono border-none">
+                                                            {(item as any).gradingCompany} {(item as any).grade}
+                                                        </Badge>
+                                                    )}
+                                                    {(item as any).condition && !isSealed && (
+                                                        <Badge variant="outline" className="bg-background/80 text-[8px] font-bold border-none">
+                                                            {(item as any).condition}
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <CardContent className="p-3 space-y-3">
-                                                <div className="space-y-1.5">
-                                                    <h4 className="font-bold text-[13px] tracking-tight group-hover:text-primary transition-colors leading-tight line-clamp-3 min-h-[2.5rem]">{displayName}</h4>
-                                                    <div className="flex items-center gap-1 flex-wrap">
-                                                        {item.quantity > 1 && (
-                                                            <Badge className="text-[9px] h-4 px-2 uppercase font-black bg-primary text-black">
-                                                                {item.quantity} In Stock
-                                                            </Badge>
-                                                        )}
-                                                        {(item as any).condition && !isSealed && (
-                                                            <Badge variant="outline" className="text-[9px] h-4 px-2 font-bold border-primary/20">
-                                                                {(item as any).condition}
-                                                            </Badge>
-                                                        )}
-                                                    </div>
+                                            
+                                            <CardContent className="p-3 space-y-1.5">
+                                                <div className="min-w-0">
+                                                    <h4 className="font-bold text-[13px] tracking-tight group-hover:text-primary transition-colors leading-tight line-clamp-2 h-10">{displayName}</h4>
+                                                    <p className="text-[10px] text-muted-foreground uppercase tracking-tight truncate">
+                                                        {displaySub}
+                                                    </p>
                                                 </div>
 
-                                                <div className="pt-2.5 border-t border-border flex items-center justify-between">
+                                                <div className="pt-2 border-t border-border flex items-center justify-between">
                                                     <div className="text-left">
-                                                        <span className="text-[9px] text-primary uppercase font-black block leading-none mb-1">Price</span>
+                                                        <span className="text-[8px] text-muted-foreground uppercase font-black block leading-none mb-1">Price</span>
                                                         <span className="text-base font-black tracking-tighter leading-none">${Math.round(item.listingPrice || 0).toLocaleString()}</span>
                                                     </div>
-                                                    {(item as any).grade && (
-                                                        <Badge variant="outline" className="text-[10px] h-5 px-2 font-bold border-primary/20 bg-primary/5 text-primary">
-                                                            {(item as any).gradingCompany} {(item as any).grade}
+                                                    
+                                                    {item.quantity > 1 && (
+                                                        <Badge className="text-[9px] h-4 px-2 uppercase font-black bg-primary text-black">
+                                                            x{item.quantity}
                                                         </Badge>
                                                     )}
                                                 </div>
@@ -575,16 +582,16 @@ export default function VendorClient() {
                                         <div className="space-y-4">
                                             <div className="flex justify-between items-start gap-12">
                                                 <div className="space-y-1">
-                                                    <DialogDescription asChild>
-                                                        <p className="text-primary font-bold tracking-[0.2em] uppercase text-[10px] animate-in slide-in-from-left duration-500">
-                                                            {marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.set || "TCG Asset"}
-                                                        </p>
-                                                    </DialogDescription>
                                                     <DialogTitle asChild>
                                                         <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight">
-                                                            {((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? (selectedItem as any).productName : (marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || "Asset Details")}
+                                                            {((selectedItem as any).type === "SEALED_PRODUCT" || (selectedItem as any).itemType === "SEALED") ? (selectedItem as any).productName : (selectedItem as any).cardProfile?.name || "Asset Details"}
                                                         </h2>
                                                     </DialogTitle>
+                                                    <DialogDescription asChild>
+                                                        <p className="text-muted-foreground font-bold tracking-[0.1em] uppercase text-[11px] animate-in slide-in-from-left duration-500">
+                                                            {(selectedItem as any).cardProfile?.set || "TCG Asset"}
+                                                        </p>
+                                                    </DialogDescription>
                                                 </div>
                                                 <div className="flex gap-2 shrink-0">
                                                     <Button variant="outline" size="icon" className="rounded-full h-10 w-10">
@@ -600,6 +607,9 @@ export default function VendorClient() {
                                             </div>
 
                                             <div className="flex items-center gap-2 flex-wrap">
+                                                <Badge variant="secondary" className="backdrop-blur-md bg-muted text-[10px] py-1 px-3 uppercase font-bold text-foreground border border-border">
+                                                    {((selectedItem as any).type || (selectedItem as any).itemType || "UNKNOWN").replace("SINGLE_CARD_", "").replace("_PRODUCT", "")}
+                                                </Badge>
                                                 {selectedItem.quantity > 1 && (
                                                     <Badge className="bg-primary hover:bg-primary text-black font-black uppercase text-[10px] py-1 px-3 rounded-md">
                                                         {selectedItem.quantity} In Stock
