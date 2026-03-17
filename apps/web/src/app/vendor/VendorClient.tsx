@@ -632,7 +632,10 @@ export default function VendorClient() {
                                     {/* Scrollable Body */}
                                     <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-10 min-h-0">
                                         {/* Pricing Block */}
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className={cn(
+                                            "grid gap-4",
+                                            (selectedItem.marketPrice && selectedItem.marketPrice > 0) ? "grid-cols-2" : "grid-cols-1"
+                                        )}>
                                             <div className="bg-accent/5 rounded-[2rem] p-6 border border-primary/10 relative overflow-hidden group hover:border-primary/30 transition-colors">
                                                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                                                     <ShoppingCart className="h-8 w-8 text-primary" />
@@ -644,15 +647,17 @@ export default function VendorClient() {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="bg-muted/10 rounded-[2rem] p-6 border border-border/50">
-                                                <span className="text-[10px] text-muted-foreground uppercase font-black block mb-2 tracking-widest">Market Value</span>
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className="text-2xl font-bold text-muted-foreground tracking-tight">
-                                                        ${Math.round(selectedItem.marketPrice || 0).toLocaleString()}
-                                                    </span>
-                                                    <span className="text-[10px] text-muted-foreground font-black">EST.</span>
+                                            {selectedItem.marketPrice && selectedItem.marketPrice > 0 && (
+                                                <div className="bg-muted/10 rounded-[2rem] p-6 border border-border/50">
+                                                    <span className="text-[10px] text-muted-foreground uppercase font-black block mb-2 tracking-widest">Market Value</span>
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-2xl font-bold text-muted-foreground tracking-tight">
+                                                            ${Math.round(selectedItem.marketPrice || 0).toLocaleString()}
+                                                        </span>
+                                                        <span className="text-[10px] text-muted-foreground font-black">EST.</span>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            )}
                                         </div>
 
                                         {/* Description */}
