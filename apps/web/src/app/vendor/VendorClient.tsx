@@ -267,62 +267,59 @@ export default function VendorClient() {
     return (
         <div className="min-h-screen bg-background text-foreground pb-20">
             {/* Header / Shop Info */}
-            <div className="bg-gradient-to-b from-primary/5 whitespace-nowrap to-transparent border-b">
-                <div className="max-w-6xl mx-auto px-4 py-16">
-                    <div className="flex flex-col md:flex-row gap-8 items-start">
+            <div className="bg-muted/30 border-b relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none" />
+                <div className="max-w-6xl mx-auto px-4 py-8 md:py-12 relative">
+                    <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-center md:items-center text-center md:text-left">
                         {profile.avatarUrl ? (
                             <img
-                                src={getOptimizedImageUrl(profile.avatarUrl, { width: 112, height: 112, fit: 'cover' })}
+                                src={getOptimizedImageUrl(profile.avatarUrl, { width: 120, height: 120, fit: 'cover' })}
                                 alt={profile.shopName}
-                                className="w-28 h-28 rounded-3xl object-cover border-4 border-primary/20 rotate-3 shadow-xl"
+                                className="w-24 h-24 md:w-32 md:h-32 rounded-3xl object-cover ring-4 ring-primary/10 shadow-2xl transition-transform hover:scale-105"
                             />
                         ) : (
-                            <div className="w-28 h-28 bg-primary rounded-3xl flex items-center justify-center text-4xl font-black text-white border-4 border-primary/20 rotate-3 shadow-xl">
+                            <div className="w-24 h-24 md:w-32 md:h-32 bg-primary rounded-3xl flex items-center justify-center text-4xl font-black text-white ring-4 ring-primary/10 shadow-2xl">
                                 {profile.shopName.charAt(0)}
                             </div>
                         )}
-                        <div className="flex-1 space-y-4">
+                        <div className="flex-1 space-y-3">
                             <div>
-                                <h1 className="text-5xl font-black tracking-tighter">
+                                <h1 className="text-3xl md:text-5xl font-black tracking-tight flex items-center gap-3 justify-center md:justify-start">
                                     {profile.shopName}
+                                    <CheckCircle2 className="h-6 w-6 text-blue-500 fill-blue-500/10" />
                                 </h1>
-                                <p className="text-primary/70 flex items-center gap-1 mt-2 font-bold tracking-widest uppercase text-xs">
-                                    @{profile.handle}
+                                <p className="text-muted-foreground flex items-center justify-center md:justify-start gap-1.5 mt-1 font-bold tracking-wider uppercase text-[10px] md:text-xs">
+                                    <span className="text-primary/70">@{profile.handle}</span>
                                     {profile.location && (
                                         <>
-                                            {" • "}
-                                            <MapPin className="h-3 w-3" />
+                                            <span className="opacity-50">•</span>
+                                            <MapPin className="h-3 w-3 inline" />
                                             {profile.location}
                                         </>
                                     )}
                                 </p>
                             </div>
 
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-1.5 justify-center md:justify-start">
                                 {(profile.fulfillmentOptions || []).includes("shipping") && (
-                                    <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
+                                    <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 hover:bg-primary/10 transition-colors">
                                         <Truck className="h-3 w-3 mr-1" /> Shipping
                                     </Badge>
                                 )}
                                 {(profile.fulfillmentOptions || []).includes("meetups_local") && (
-                                    <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
+                                    <Badge variant="secondary" className="bg-blue-500/5 text-blue-500 border-blue-500/10 hover:bg-blue-500/10 transition-colors">
                                         <Users className="h-3 w-3 mr-1" /> Local Meetups
                                     </Badge>
                                 )}
-                                {(profile.fulfillmentOptions || []).includes("meetups_travel") && (
-                                    <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
-                                        <Users className="h-3 w-3 mr-1" /> Travel Meetups
-                                    </Badge>
-                                )}
                                 {profile.paymentsAccepted && profile.paymentsAccepted.length > 0 && (
-                                    <Badge variant="outline" className="border-border bg-muted/50">
+                                    <Badge variant="outline" className="border-border bg-muted/30">
                                         <CreditCard className="h-3 w-3 mr-1" /> {profile.paymentsAccepted.join(", ")}
                                     </Badge>
                                 )}
                                 {(profile as any).facebookVerifiedAt && (
-                                    <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border-blue-500/20 cursor-pointer" onClick={() => window.open((profile as any).facebookProfileUrl, '_blank')}>
+                                    <Badge variant="secondary" className="bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer border-none shadow-sm" onClick={() => window.open((profile as any).facebookProfileUrl, '_blank')}>
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-facebook mr-1.5 h-3 w-3"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
-                                        Verified profile by Facebook
+                                        Verified
                                     </Badge>
                                 )}
                             </div>
@@ -362,10 +359,10 @@ export default function VendorClient() {
                                 </div>
                             )}
                         </div>
-                        <div className="flex gap-2 w-full md:w-auto pt-4 md:pt-0 items-center">
+                        <div className="flex gap-2 w-full md:w-auto pt-6 md:pt-0 items-center justify-center md:justify-end">
                             <SimpleThemeToggle />
-                            <Button onClick={copyLink} variant="outline" className="flex-1 md:flex-none border-border">
-                                <Share2 className="h-4 w-4 mr-2" /> Share
+                            <Button onClick={copyLink} variant="outline" className="flex-1 md:flex-none h-11 rounded-xl border-border hover:bg-accent group">
+                                <Share2 className="h-4 w-4 mr-2 group-hover:rotate-12 transition-transform" /> Share Shop
                             </Button>
                         </div>
                     </div>
@@ -373,22 +370,22 @@ export default function VendorClient() {
             </div>
 
             <div className="max-w-6xl mx-auto px-4 py-12">
-                <Tabs defaultValue="for-sale" className="space-y-12">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-6 border-b pb-6">
-                        <TabsList className="p-1 rounded-xl">
-                            <TabsTrigger value="for-sale" className="px-10 py-2.5 rounded-lg font-bold uppercase text-xs tracking-widest transition-all">
+                <Tabs defaultValue="for-sale" className="space-y-8">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-muted/20 p-2 md:p-3 rounded-[2rem] border border-border/50">
+                        <TabsList className="bg-background/50 backdrop-blur-sm p-1 rounded-2xl w-full md:w-auto">
+                            <TabsTrigger value="for-sale" className="flex-1 md:flex-none px-6 md:px-10 py-2.5 rounded-xl font-bold uppercase text-[10px] md:text-xs tracking-widest transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
                                 Items For Sale
                             </TabsTrigger>
-                            <TabsTrigger value="wishlist" className="px-10 py-2.5 rounded-lg font-bold uppercase text-xs tracking-widest transition-all">
+                            <TabsTrigger value="wishlist" className="flex-1 md:flex-none px-6 md:px-10 py-2.5 rounded-xl font-bold uppercase text-[10px] md:text-xs tracking-widest transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
                                 Wishlist
                             </TabsTrigger>
                         </TabsList>
 
-                        <div className="relative w-full md:w-80">
-                            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <div className="relative w-full md:w-72">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder="Search inventory..."
-                                className="pl-10 focus:border-primary/50 transition-all h-10"
+                                className="pl-11 pr-4 bg-background/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20 h-11 rounded-2xl md:min-w-[300px]"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                             />
@@ -409,52 +406,48 @@ export default function VendorClient() {
                                     <div key={item.id} className="group relative cursor-pointer" onClick={() => handleOpenItem(item)}>
                                         <div className="absolute -inset-0.5 bg-gradient-to-b from-primary/20 to-transparent rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
                                         <Card className={cn(
-                                            "relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-md border-primary/10 bg-card/50 backdrop-blur-md border border-muted-foreground/10 py-0 gap-0",
-                                            itType === "SINGLE_CARD_GRADED" && "border-primary/20 bg-primary/5"
+                                            "relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border-border/50 bg-card/50 backdrop-blur-md border py-0 gap-0",
+                                            itType === "SINGLE_CARD_GRADED" && "ring-1 ring-primary/20 bg-primary/[0.02]"
                                         )}>
-                                            <div className="aspect-[2.5/3.5] overflow-hidden relative bg-accent/5">
+                                            <div className="aspect-[2.5/3.5] overflow-hidden relative bg-accent/5 flex items-center justify-center p-2">
                                                 <img
                                                     src={getOptimizedImageUrl(item.photos?.[0] || (item as any).frontMediaUrl || cardProfile?.imageUrl || "https://placehold.co/300x400?text=Asset", { height: 400 })}
-                                                    className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-110"
+                                                    className="object-contain w-full h-full transition-all duration-700 group-hover:scale-105"
                                                     alt={displayName}
                                                 />
                                                 
-                                                {/* Status Badges - Top Right (Matching Kanban) */}
-                                                <div className="absolute top-2 right-2 flex flex-col gap-1 items-end pointer-events-none">
-                                                    <Badge variant="secondary" className="backdrop-blur-md bg-white/50 text-[8px] uppercase font-bold text-black border-none">
+                                                {/* Status Badges - Top Right */}
+                                                <div className="absolute top-2 right-2 flex flex-col gap-1 items-end pointer-events-none z-10">
+                                                    <Badge variant="secondary" className="backdrop-blur-md bg-white/70 dark:bg-black/70 text-[8px] uppercase font-bold border-none">
                                                         {itType.replace("SINGLE_CARD_", "").replace("_PRODUCT", "")}
                                                     </Badge>
                                                     {(item as any).grade && (
-                                                        <Badge className="bg-blue-600 text-[8px] font-mono border-none">
+                                                        <Badge className="bg-primary text-black text-[8px] font-bold border-none shadow-sm">
                                                             {(item as any).gradingCompany} {(item as any).grade}
-                                                        </Badge>
-                                                    )}
-                                                    {(item as any).condition && !isSealed && (
-                                                        <Badge variant="outline" className="bg-background/80 text-[8px] font-bold border-none">
-                                                            {(item as any).condition}
                                                         </Badge>
                                                     )}
                                                 </div>
                                             </div>
                                             
-                                            <CardContent className="p-4 pt-3 space-y-2">
+                                            <CardContent className="p-3 md:p-4 space-y-2.5">
                                                 <div className="min-w-0">
-                                                    <h4 className="font-bold text-[13px] tracking-tight group-hover:text-primary transition-colors leading-[1.2rem] line-clamp-2 h-[2.4rem] overflow-hidden">{displayName}</h4>
-                                                    <p className="text-[10px] text-muted-foreground uppercase tracking-tight truncate opacity-80">
+                                                    <h4 className="font-bold text-[13px] tracking-tight group-hover:text-primary transition-colors leading-[1.2rem] line-clamp-2 min-h-[2.4rem]">{displayName}</h4>
+                                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate font-medium opacity-70">
                                                         {displaySub}
                                                     </p>
                                                 </div>
 
-                                                <div className="pt-2 border-t border-border flex items-center justify-between">
+                                                <div className="pt-2.5 border-t border-border/50 flex items-center justify-between">
                                                     <div className="text-left">
-                                                        <span className="text-[8px] text-muted-foreground uppercase font-black block leading-none mb-1">Price</span>
-                                                        <span className="text-base font-black tracking-tighter leading-none">${Math.round(item.listingPrice || 0).toLocaleString()}</span>
+                                                        <span className="text-base font-black tracking-tight leading-none">${Math.round(item.listingPrice || 0).toLocaleString()}</span>
                                                     </div>
                                                     
-                                                    {item.quantity > 1 && (
-                                                        <Badge className="text-[9px] h-4 px-2 uppercase font-black bg-primary text-black">
-                                                            x{item.quantity}
+                                                    {item.quantity > 1 ? (
+                                                        <Badge variant="outline" className="text-[9px] h-5 px-1.5 uppercase font-bold border-primary/20 text-primary">
+                                                            x{item.quantity} Stock
                                                         </Badge>
+                                                    ) : (
+                                                        <span className="text-[9px] text-muted-foreground font-bold uppercase">1 in stock</span>
                                                     )}
                                                 </div>
                                             </CardContent>
@@ -471,14 +464,17 @@ export default function VendorClient() {
                     </TabsContent>
 
                     <TabsContent value="wishlist">
-                        <Card className="border-border bg-gradient-to-br from-card to-muted/20 rounded-[2.5rem] p-8 md:p-16">
-                            <CardHeader className="text-center pb-12 border-b">
-                                <div className="w-16 h-1 bg-primary mx-auto mb-8 rounded-full"></div>
-                                <CardTitle className="text-4xl font-black uppercase tracking-tighter">Looking For / Wishlist</CardTitle>
-                                <CardDescription className="text-lg font-medium text-muted-foreground mt-4">Contact this seller if you have these items available for trade or sale.</CardDescription>
+                        <Card className="border-border/50 bg-gradient-to-br from-card to-muted/30 rounded-[2.5rem] overflow-hidden shadow-xl">
+                            <CardHeader className="text-center pt-16 pb-12 bg-muted/20 relative overflow-hidden">
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(var(--primary),0.05),transparent)] pointer-events-none" />
+                                <Heart className="h-12 w-12 text-primary mx-auto mb-6 fill-primary/10 animate-pulse" />
+                                <CardTitle className="text-3xl md:text-4xl font-black uppercase tracking-tighter">Sellers' Wishlist</CardTitle>
+                                <CardDescription className="text-base md:text-lg font-medium text-muted-foreground max-w-xl mx-auto mt-4 px-6">
+                                    I'm actively looking for these items. Contact me if you have them available for trade or sale!
+                                </CardDescription>
                             </CardHeader>
-                            <CardContent className="pt-12">
-                                <div className="whitespace-pre-wrap font-medium text-2xl leading-relaxed text-muted-foreground text-center italic">
+                            <CardContent className="p-8 md:p-16">
+                                <div className="max-w-3xl mx-auto whitespace-pre-wrap font-medium text-xl md:text-3xl leading-relaxed text-foreground text-center italic opacity-90">
                                     "{profile.wishlistText || "No wishlist items specified yet."}"
                                 </div>
                             </CardContent>
@@ -488,7 +484,7 @@ export default function VendorClient() {
             </div>
 
             <Dialog open={!!selectedItem} onOpenChange={(open) => !open && handleOpenItem(null)}>
-                <DialogContent showCloseButton={false} className="max-w-[98vw] md:max-w-7xl w-full h-[95vh] md:h-[85vh] p-0 gap-0 border-none bg-black overflow-hidden rounded-none md:rounded-[2.5rem] shadow-2xl">
+                <DialogContent showCloseButton={false} className="max-w-[100vw] md:max-w-7xl w-full h-[100vh] md:h-[90vh] p-0 gap-0 border-none bg-background md:bg-black overflow-hidden rounded-none md:rounded-[2.5rem] shadow-2xl">
                     <div className="relative h-full w-full flex flex-col overflow-hidden">
                         {selectedItem ? (
                             <div className="flex flex-col md:flex-row h-full w-full min-h-0">
@@ -593,17 +589,19 @@ export default function VendorClient() {
                                                         </p>
                                                     </DialogDescription>
                                                 </div>
-                                                <div className="flex gap-2 shrink-0">
-                                                    <Button variant="outline" size="icon" className="rounded-full h-10 w-10">
-                                                        <Share2 className="h-4 w-4" />
-                                                    </Button>
-                                                    <button
-                                                        className="h-10 w-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
-                                                        onClick={() => handleOpenItem(null)}
-                                                    >
-                                                        <X className="h-5 w-5" />
-                                                    </button>
-                                                </div>
+                                                    <div className="flex gap-2 shrink-0">
+                                                        <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border bg-background/50 backdrop-blur-sm" onClick={copyLink}>
+                                                            <Share2 className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="secondary"
+                                                            size="icon"
+                                                            className="h-10 w-10 rounded-full bg-muted/80 hover:bg-muted"
+                                                            onClick={() => handleOpenItem(null)}
+                                                        >
+                                                            <X className="h-5 w-5" />
+                                                        </Button>
+                                                    </div>
                                             </div>
 
                                             <div className="flex items-center gap-2 flex-wrap">
@@ -673,13 +671,20 @@ export default function VendorClient() {
                                         )}
 
                                         {/* Seller info Mini */}
-                                        <div className="p-6 bg-muted/30 rounded-2xl border border-border flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-xl font-black text-white">
-                                                {profile.shopName.charAt(0)}
-                                            </div>
+                                        <div className="p-5 bg-muted/20 rounded-2xl border border-border/50 flex items-center gap-4 transition-colors hover:bg-muted/30">
+                                            {profile.avatarUrl ? (
+                                                <img src={getOptimizedImageUrl(profile.avatarUrl, { width: 48, height: 48 })} className="w-12 h-12 rounded-xl object-cover ring-2 ring-primary/10" alt={profile.shopName} />
+                                            ) : (
+                                                <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-xl font-black text-white">
+                                                    {profile.shopName.charAt(0)}
+                                                </div>
+                                            )}
                                             <div>
-                                                <p className="text-sm font-bold">{profile.shopName}</p>
-                                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                <p className="text-sm font-bold flex items-center gap-1.5">
+                                                    {profile.shopName}
+                                                    <CheckCircle2 className="h-3 w-3 text-blue-500 fill-blue-500/10" />
+                                                </p>
+                                                <p className="text-xs text-muted-foreground flex items-center gap-1 opacity-70">
                                                     @{profile.handle}
                                                     {profile.location && (
                                                         <>
@@ -698,9 +703,9 @@ export default function VendorClient() {
                                         if (!hasContact) return null;
 
                                         return (
-                                            <div className="p-6 md:p-10 border-t border-border/50 bg-card shrink-0">
+                                            <div className="p-6 md:p-10 border-t border-border/50 bg-card/80 backdrop-blur-md shrink-0 sticky bottom-0 z-10 md:static">
                                                 <Button
-                                                    className="w-full h-16 text-lg font-black rounded-2xl shadow-xl shadow-primary/20 gap-3 hover:scale-[1.02] active:scale-95 transition-all bg-primary hover:bg-primary/90 text-black"
+                                                    className="w-full h-14 md:h-16 text-base md:text-lg font-black rounded-2xl shadow-xl shadow-primary/10 gap-3 hover:scale-[1.01] active:scale-95 transition-all bg-primary hover:bg-primary/90 text-black border-none"
                                                     onClick={() => {
                                                         if (profile?.handle) {
                                                             trackEvent({ type: 'INQUIRY_START', handle: profile.handle, itemId: selectedItem?.id });
@@ -708,7 +713,7 @@ export default function VendorClient() {
                                                         setIsContactOpen(true);
                                                     }}
                                                 >
-                                                    <MessageSquare className="h-6 w-6" />
+                                                    <MessageSquare className="h-5 w-5 md:h-6 md:w-6" />
                                                     Inquire About Purchase
                                                 </Button>
                                             </div>
@@ -760,21 +765,21 @@ export default function VendorClient() {
                         <div className="space-y-4">
 
                             <div className="grid grid-cols-1 gap-3">
-                                {profile.facebookProfileUrl ? (
+                                {profile?.facebookProfileUrl ? (
                                     <Button
                                         className="w-full h-14 rounded-2xl bg-[#1877F2] hover:bg-[#1877F2]/90 text-white font-bold gap-3"
                                         onClick={() => {
                                             if (profile?.handle) {
                                                 trackEvent({ type: 'INQUIRY_COMPLETE', handle: profile.handle, itemId: selectedItem?.id, channel: 'facebook' });
                                             }
-                                            window.open(profile.facebookProfileUrl || '', '_blank');
+                                            window.open(profile?.facebookProfileUrl || '', '_blank');
                                         }}
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
                                         Facebook profile
                                         <ExternalLink className="h-4 w-4 opacity-50 ml-auto" />
                                     </Button>
-                                ) : profile.email ? (
+                                ) : profile?.email ? (
                                     <Button
                                         className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-black font-bold gap-3"
                                         onClick={() => {
@@ -788,8 +793,8 @@ export default function VendorClient() {
                                             ) : "an item";
                                             const price = selectedItem?.listingPrice ? ` ($${selectedItem.listingPrice})` : "";
                                             const subject = encodeURIComponent(`Inquiry about ${itemName} on SlabHub`);
-                                            const body = encodeURIComponent(`Hi ${profile.shopName},\n\nI'm interested in inquiring about "${itemName}"${price} that I saw on your SlabHub page.\n\nIs it still available?`);
-                                            window.location.href = `mailto:${profile.email}?subject=${subject}&body=${body}`;
+                                            const body = encodeURIComponent(`Hi ${profile?.shopName},\n\nI'm interested in inquiring about "${itemName}"${price} that I saw on your SlabHub page.\n\nIs it still available?`);
+                                            window.location.href = `mailto:${profile?.email}?subject=${subject}&body=${body}`;
                                         }}
                                     >
                                         <MessageSquare className="h-5 w-5" />
