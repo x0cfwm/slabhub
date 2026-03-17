@@ -273,7 +273,7 @@ export default function VendorClient() {
                     <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-center md:items-center text-center md:text-left">
                         {profile.avatarUrl ? (
                             <img
-                                src={getOptimizedImageUrl(profile.avatarUrl, { width: 120, height: 120, fit: 'cover' })}
+                                src={getOptimizedImageUrl(profile.avatarUrl, { width: 400, height: 400, fit: 'cover' })}
                                 alt={profile.shopName}
                                 className="w-24 h-24 md:w-32 md:h-32 rounded-3xl object-cover ring-4 ring-primary/10 shadow-2xl transition-transform hover:scale-105"
                             />
@@ -670,10 +670,9 @@ export default function VendorClient() {
                                             </div>
                                         )}
 
-                                        {/* Seller info Mini */}
                                         <div className="p-5 bg-muted/20 rounded-2xl border border-border/50 flex items-center gap-4 transition-colors hover:bg-muted/30">
                                             {profile.avatarUrl ? (
-                                                <img src={getOptimizedImageUrl(profile.avatarUrl, { width: 48, height: 48 })} className="w-12 h-12 rounded-xl object-cover ring-2 ring-primary/10" alt={profile.shopName} />
+                                                <img src={getOptimizedImageUrl(profile.avatarUrl, { width: 128, height: 128 })} className="w-12 h-12 rounded-xl object-cover ring-2 ring-primary/10" alt={profile.shopName} />
                                             ) : (
                                                 <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-xl font-black text-white">
                                                     {profile.shopName.charAt(0)}
