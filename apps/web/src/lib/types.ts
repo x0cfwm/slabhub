@@ -263,4 +263,5 @@ export interface PortfolioHistoryEntry {
     date: string;
     value: number;
     cost: number;
+    count: number;
 }

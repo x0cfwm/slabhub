@@ -502,12 +502,14 @@ export class InventoryService {
 
             let totalMarketValue = 0;
             let totalCost = 0;
+            let totalCount = 0;
 
             itemsWithAcqDate.forEach(item => {
                 if (item.acqDate > currentDate) return; // Not acquired yet
 
                 const qty = item.quantity || 1;
                 totalCost += (Number(item.acquisitionPrice) || 0) * qty;
+                totalCount += qty;
 
                 let itemPrice = 0;
                 const cacheKey = `${item.refPriceChartingProductId}_${item.itemType}_${item.gradeValue}`;
@@ -547,7 +549,8 @@ export class InventoryService {
             history.push({
                 date: currentDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
                 value: Math.round(totalMarketValue),
-                cost: Math.round(totalCost)
+                cost: Math.round(totalCost),
+                count: totalCount
             });
         }
 

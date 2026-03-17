@@ -45,6 +45,10 @@ const chartConfig = {
         label: "Acquisition Cost",
         color: "var(--chart-2)",
     },
+    count: {
+        label: "Item Count",
+        color: "var(--chart-1)",
+    },
 } satisfies ChartConfig;
 
 interface MarketValueChartProps {
@@ -133,6 +137,18 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
                                     stopOpacity={0.01}
                                 />
                             </linearGradient>
+                            <linearGradient id="fillCount" x1="0" y1="0" x2="0" y2="1">
+                                <stop
+                                    offset="5%"
+                                    stopColor="var(--color-count)"
+                                    stopOpacity={0.1}
+                                />
+                                <stop
+                                    offset="95%"
+                                    stopColor="var(--color-count)"
+                                    stopOpacity={0.01}
+                                />
+                            </linearGradient>
                         </defs>
                         <CartesianGrid vertical={false} className="stroke-muted/50" />
                         <XAxis
@@ -144,11 +160,21 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
                             className="text-muted-foreground"
                         />
                         <YAxis
+                            yAxisId="left"
                             tickLine={false}
                             axisLine={false}
                             tickMargin={12}
                             className="text-muted-foreground"
                             tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                        />
+                        <YAxis
+                            yAxisId="right"
+                            orientation="right"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={12}
+                            className="text-muted-foreground"
+                            tickFormatter={(value) => `${value}`}
                         />
                         <ChartTooltip
                             cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }}
@@ -160,6 +186,7 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
                             }
                         />
                         <Area
+                            yAxisId="left"
                             dataKey="cost"
                             type="monotone"
                             fill="url(#fillCost)"
@@ -169,6 +196,7 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
                             activeDot={{ r: 4, strokeWidth: 0 }}
                         />
                         <Area
+                            yAxisId="left"
                             dataKey="value"
                             type="monotone"
                             fill="url(#fillValue)"
@@ -176,6 +204,17 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
                             strokeWidth={2}
                             dot={false}
                             activeDot={{ r: 6, strokeWidth: 0 }}
+                        />
+                        <Area
+                            yAxisId="right"
+                            dataKey="count"
+                            type="monotone"
+                            fill="url(#fillCount)"
+                            stroke="var(--color-count)"
+                            strokeWidth={2}
+                            strokeDasharray="5 5"
+                            dot={false}
+                            activeDot={{ r: 4, strokeWidth: 0 }}
                         />
                     </AreaChart>
                 </ChartContainer>
