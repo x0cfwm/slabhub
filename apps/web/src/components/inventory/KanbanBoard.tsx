@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import {
     DndContext,
     DragOverlay,
@@ -24,9 +25,10 @@ interface KanbanBoardProps {
     onUpdate: () => void;
     onItemClick: (item: InventoryItem) => void;
     statuses: WorkflowStatus[];
+    scale?: "compact" | "normal" | "large";
 }
 
-export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, statuses }: KanbanBoardProps) {
+export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, statuses, scale = "normal" }: KanbanBoardProps) {
     const [activeId, setActiveId] = useState<string | null>(null);
     const [promptItem, setPromptItem] = useState<{ id: string, name: string, statusId: string } | null>(null);
     const [listedPromptItem, setListedPromptItem] = useState<{ id: string, name: string, statusId: string } | null>(null);
@@ -167,6 +169,7 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
                         color={status.color || undefined}
                         count={items.filter(i => i.statusId === status.id).length}
                         itemIds={items.filter(i => i.statusId === status.id).map(i => i.id)}
+                        scale={scale}
                     >
                         {items
                             .filter(i => i.statusId === status.id)
@@ -180,6 +183,7 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
                                         item={item}
                                         profile={marketProduct as any}
                                         onClick={() => onItemClick(item)}
+                                        scale={scale}
                                     />
                                 );
                             })}
@@ -201,12 +205,15 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
                     const marketProduct = cards.find(p => p.id === vid) || activeItem.cardProfile;
 
                     return (
-                        <div className="w-40 md:w-44">
+                        <div className={cn(
+                            scale === "compact" ? "w-32" : scale === "large" ? "w-52" : "w-40 md:w-44"
+                        )}>
                             <div className="p-3">
                                 <ItemCard
                                     item={activeItem}
                                     profile={marketProduct as any}
                                     isOverlay
+                                    scale={scale}
                                 />
                             </div>
                         </div>

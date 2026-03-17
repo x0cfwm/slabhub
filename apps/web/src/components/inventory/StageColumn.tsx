@@ -10,15 +10,19 @@ interface StageColumnProps {
     color?: string;
     children: React.ReactNode;
     itemIds: string[];
+    scale?: "compact" | "normal" | "large";
 }
 
-export function StageColumn({ id, label, count, color, children, itemIds }: StageColumnProps) {
+export function StageColumn({ id, label, count, color, children, itemIds, scale = "normal" }: StageColumnProps) {
     const { isOver, setNodeRef } = useDroppable({
         id: id,
     });
 
     return (
-        <div className="w-48 md:w-52 shrink-0 flex flex-col gap-4">
+        <div className={cn(
+            "shrink-0 flex flex-col gap-4 transition-all duration-300",
+            scale === "compact" ? "w-40 md:w-44" : scale === "large" ? "w-56 md:w-64" : "w-48 md:w-52"
+        )}>
             <div className="flex items-center justify-between px-2">
                 <h3 className="font-semibold text-sm flex items-center gap-2 min-w-0 w-full overflow-hidden">
                     <div

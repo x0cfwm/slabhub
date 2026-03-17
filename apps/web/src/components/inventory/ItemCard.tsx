@@ -17,9 +17,10 @@ interface ItemCardProps {
     price?: PricingSnapshot;
     onClick?: () => void;
     isOverlay?: boolean;
+    scale?: "compact" | "normal" | "large";
 }
 
-export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardProps) {
+export function ItemCard({ item, profile, price, onClick, isOverlay, scale = "normal" }: ItemCardProps) {
     const {
         attributes,
         listeners,
@@ -76,83 +77,108 @@ export function ItemCard({ item, profile, price, onClick, isOverlay }: ItemCardP
                 "group cursor-grab active:cursor-grabbing hover:shadow-md transition-all overflow-hidden border-muted-foreground/10 py-0 gap-0",
                 isDragging && !isOverlay && "opacity-40 grayscale-[0.5]",
                 isOverlay && "shadow-2xl ring-2 ring-primary/20 cursor-grabbing",
-                item.type === "SINGLE_CARD_GRADED" && "border-primary/20 bg-primary/5"
+                item.type === "SINGLE_CARD_GRADED" && "border-primary/20 bg-primary/5",
+                scale === "compact" ? "w-32" : scale === "large" ? "w-52" : "w-40 md:w-44"
             )}
             onClick={(e) => {
                 if (onClick) onClick();
             }}
         >
-            <div className="relative pointer-events-none">
-                <AspectRatio ratio={2.5 / 3.5}>
-                    <div className="flex items-center justify-center w-full h-full bg-accent/10 relative overflow-hidden">
-                        <img
-                            src={optimizedImageUrl}
-                            alt={displayName}
-                            className={cn(
-                                "object-contain w-full h-full transition-all duration-500 group-hover:scale-110",
-                                variantType === "ALTERNATE_ART" && "hue-rotate-15 saturate-110",
-                                variantType === "PARALLEL_FOIL" && "contrast-125 brightness-110"
+            {scale !== "compact" && (
+                <div className="relative pointer-events-none">
+                    <AspectRatio ratio={2.5 / 3.5}>
+                        <div className="flex items-center justify-center w-full h-full bg-accent/10 relative overflow-hidden">
+                            <img
+                                src={optimizedImageUrl}
+                                alt={displayName}
+                                className={cn(
+                                    "object-contain w-full h-full transition-all duration-500 group-hover:scale-110",
+                                    variantType === "ALTERNATE_ART" && "hue-rotate-15 saturate-110",
+                                    variantType === "PARALLEL_FOIL" && "contrast-125 brightness-110"
+                                )}
+                            />
+                            {variantType === "PARALLEL_FOIL" && (
+                                <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-white/20 pointer-events-none animate-pulse" />
                             )}
-                        />
-                        {variantType === "PARALLEL_FOIL" && (
-                            <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-white/20 pointer-events-none animate-pulse" />
+                            {variantType !== "NORMAL" && (
+                                <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent pointer-events-none mix-blend-overlay" />
+                            )}
+                            {isNewVariantId && (
+                                <div className="absolute bottom-2 left-2">
+                                    <Badge className="bg-black/60 backdrop-blur-md text-[8px] px-1 py-0 h-4 border-white/10 text-white select-none">
+                                        {language}
+                                    </Badge>
+                                </div>
+                            )}
+                        </div>
+                    </AspectRatio>
+                    <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
+                        <Badge variant="secondary" className="backdrop-blur-md bg-white/50 text-[8px] uppercase font-bold">
+                            {typeLabel}
+                        </Badge>
+                        {item.type === "SINGLE_CARD_GRADED" && (
+                            <Badge className="bg-blue-600 text-[8px] font-mono">
+                                {item.gradingCompany} {item.grade}
+                            </Badge>
                         )}
-                        {variantType !== "NORMAL" && (
-                            <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent pointer-events-none mix-blend-overlay" />
-                        )}
-                        {isNewVariantId && (
-                            <div className="absolute bottom-2 left-2">
-                                <Badge className="bg-black/60 backdrop-blur-md text-[8px] px-1 py-0 h-4 border-white/10 text-white select-none">
-                                    {language}
-                                </Badge>
-                            </div>
+                        {item.type === "SINGLE_CARD_RAW" && (
+                            <Badge variant="outline" className="bg-background/80 text-[8px] font-bold">
+                                {item.condition}
+                            </Badge>
                         )}
                     </div>
-                </AspectRatio>
-                <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
-                    <Badge variant="secondary" className="backdrop-blur-md bg-white/50 text-[8px] uppercase font-bold">
-                        {typeLabel}
-                    </Badge>
-                    {item.type === "SINGLE_CARD_GRADED" && (
-                        <Badge className="bg-blue-600 text-[8px] font-mono">
-                            {item.gradingCompany} {item.grade}
-                        </Badge>
-                    )}
-                    {item.type === "SINGLE_CARD_RAW" && (
-                        <Badge variant="outline" className="bg-background/80 text-[8px] font-bold">
-                            {item.condition}
-                        </Badge>
-                    )}
                 </div>
-            </div>
-            <CardContent className="p-2.5 space-y-1.5 pointer-events-none">
+            )}
+            <CardContent className={cn(
+                "p-2.5 space-y-1.5 pointer-events-none",
+                scale === "compact" && "p-2 space-y-1",
+                scale === "large" && "p-4 space-y-2.5"
+            )}>
                 <div className="min-w-0">
-                    <h4 className="font-bold text-xs line-clamp-2 leading-tight h-8 mb-0.5">{displayName}</h4>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-tight truncate">{displaySub}</p>
+                    <h4 className={cn(
+                        "font-bold text-xs line-clamp-2 leading-tight mb-0.5",
+                        scale === "compact" ? "h-6 text-[10px]" : scale === "large" ? "h-10 text-sm" : "h-8"
+                    )}>{displayName}</h4>
+                    <p className={cn(
+                        "text-[9px] text-muted-foreground uppercase tracking-tight truncate",
+                        scale === "compact" && "text-[8px]"
+                    )}>{displaySub}</p>
                 </div>
 
-                <div className="flex items-center justify-between text-xs pt-1 border-t border-muted">
+                <div className={cn(
+                    "flex items-center justify-between text-xs pt-1 border-t border-muted",
+                    scale === "compact" && "pt-0.5"
+                )}>
                     <div className="flex flex-col">
-                        <span className="text-muted-foreground text-[7px] uppercase font-bold">Market</span>
-                        <span className="font-bold text-primary text-[10px]">
+                        {scale !== "compact" && <span className="text-muted-foreground text-[7px] uppercase font-bold">Market</span>}
+                        <span className={cn(
+                            "font-bold text-primary",
+                            scale === "compact" ? "text-[8px]" : "text-[10px]"
+                        )}>
                             {typeof marketPrice === 'number' ? `$${Math.round(marketPrice).toLocaleString()}` : "N/A"}
                         </span>
                     </div>
                     <div className="flex flex-col items-end">
                         <div className="flex items-center gap-1">
                             {item.quantity > 1 && (
-                                <Badge variant="outline" className="h-4 px-1 text-[7px] border-primary/30 text-primary">
+                                <Badge variant="outline" className={cn(
+                                    "h-4 px-1 text-[7px] border-primary/30 text-primary",
+                                    scale === "compact" && "h-3 text-[6px]"
+                                )}>
                                     x{item.quantity}
                                 </Badge>
                             )}
-                            <span className="text-muted-foreground text-[7px] uppercase font-bold text-black border px-1 rounded-sm bg-accent">Cost</span>
+                            {scale !== "compact" && <span className="text-muted-foreground text-[7px] uppercase font-bold text-black border px-1 rounded-sm bg-accent">Cost</span>}
                         </div>
-                        <span className="font-bold text-[10px]">
+                        <span className={cn(
+                            "font-bold",
+                            scale === "compact" ? "text-[8px]" : "text-[10px]"
+                        )}>
                             ${Math.round(Number(item.acquisitionPrice) || 0).toLocaleString()}
                         </span>
                     </div>
                 </div>
-                {item.type === "SINGLE_CARD_GRADED" && item.certNumber && (
+                {scale === "large" && item.type === "SINGLE_CARD_GRADED" && item.certNumber && (
                     <div className="text-[7px] font-mono text-muted-foreground truncate border-t border-muted/50 pt-1">
                         CERT: {item.certNumber}
                     </div>

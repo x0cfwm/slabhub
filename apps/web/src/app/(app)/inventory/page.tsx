@@ -28,6 +28,7 @@ function InventoryContent() {
 
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+    const [kanbanScale, setKanbanScale] = useState<"compact" | "normal" | "large">("normal");
     const [statuses, setStatuses] = useState<WorkflowStatus[]>([]);
     const lastProcessedItemIdRef = useRef<string | null>(null);
 
@@ -72,6 +73,8 @@ function InventoryContent() {
         fetchData();
         const savedView = localStorage.getItem("inventory_view_mode") as "kanban" | "list";
         if (savedView) setViewMode(savedView);
+        const savedScale = localStorage.getItem("kanban_scale") as "compact" | "normal" | "large";
+        if (savedScale) setKanbanScale(savedScale);
     }, []);
 
     useEffect(() => {
@@ -103,6 +106,13 @@ function InventoryContent() {
         const mode = val as "kanban" | "list";
         setViewMode(mode);
         localStorage.setItem("inventory_view_mode", mode);
+    };
+    
+    const handleScaleChange = (val: string) => {
+        if (!val) return;
+        const scale = val as "compact" | "normal" | "large";
+        setKanbanScale(scale);
+        localStorage.setItem("kanban_scale", scale);
     };
 
     const filteredItems = useMemo(() => {
@@ -171,6 +181,24 @@ function InventoryContent() {
                         </TabsList>
                     </Tabs>
 
+                    {viewMode === "kanban" && (
+                        <div className="hidden lg:block">
+                            <Tabs value={kanbanScale} onValueChange={handleScaleChange}>
+                                <TabsList className="h-9 bg-muted/50 p-1 rounded-full border border-border/50">
+                                    <TabsTrigger value="compact" className="h-7 px-3 rounded-full text-[10px] font-bold uppercase data-[state=active]:bg-background data-[state=active]:shadow-sm" title="Compact">
+                                        S
+                                    </TabsTrigger>
+                                    <TabsTrigger value="normal" className="h-7 px-3 rounded-full text-[10px] font-bold uppercase data-[state=active]:bg-background data-[state=active]:shadow-sm" title="Medium">
+                                        M
+                                    </TabsTrigger>
+                                    <TabsTrigger value="large" className="h-7 px-3 rounded-full text-[10px] font-bold uppercase data-[state=active]:bg-background data-[state=active]:shadow-sm" title="Large">
+                                        L
+                                    </TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        </div>
+                    )}
+
                     <Button asChild className="shrink-0">
                         <Link href="/inventory/add">
                             <Plus className="mr-2 h-4 w-4" />
@@ -189,6 +217,7 @@ function InventoryContent() {
                         onUpdate={fetchData}
                         onItemClick={openItem}
                         statuses={statuses}
+                        scale={kanbanScale}
                     />
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
