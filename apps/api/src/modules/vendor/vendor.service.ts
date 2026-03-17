@@ -87,6 +87,7 @@ export class VendorService {
                 avatarUrl: seller.avatarMedia ? this.mediaService.getPublicUrl(seller.avatarMedia, { preferCdn: true }) : null,
                 facebookVerifiedAt: seller.user?.facebookVerifiedAt?.toISOString() || null,
                 facebookProfileUrl: facebookIdentity?.profileUrl || null,
+                email: seller.user?.email || null,
             },
             items,
             itemCount: items.length,

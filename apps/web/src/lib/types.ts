@@ -173,6 +173,9 @@ export interface SellerProfile {
     upcomingEvents: { name: string; date?: string; location?: string }[];
     avatarId?: string | null;
     avatarUrl?: string | null;
+    email?: string | null;
+    facebookProfileUrl?: string | null;
+    facebookVerifiedAt?: string | null;
 }
 
 export interface AppState {

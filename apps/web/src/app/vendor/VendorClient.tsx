@@ -225,30 +225,6 @@ export default function VendorClient() {
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [selectedItem, currentItemIndex, filteredItems, isContactOpen]);
 
-    const getMessengerLink = (fbUrl?: string | null) => {
-        if (!fbUrl) return null;
-
-        // If it's already a full message link, use it as is
-        if (fbUrl.includes('facebook.com/messages/t/')) return fbUrl;
-
-        try {
-            // Case 1: Standard profile URL with ?id= (e.g. for profile.php)
-            const url = new URL(fbUrl.startsWith('http') ? fbUrl : `https://${fbUrl}`);
-            const id = url.searchParams.get('id');
-            if (id) return `https://www.facebook.com/messages/t/${id}`;
-
-            // Case 2: Clean username/handle from path
-            const segments = url.pathname.split('/').filter(Boolean);
-            const lastSegment = segments[segments.length - 1];
-            if (lastSegment && lastSegment !== 'profile.php') {
-                return `https://www.facebook.com/messages/t/${lastSegment}`;
-            }
-        } catch (e) { /* ignore parse errors */ }
-        
-        // Fallback: If we can't parse it as a URL, treat it as a handle/ID
-        const cleanHandle = fbUrl.replace(/^(https?:\/\/)?(www\.)?facebook\.com\//, '').replace(/\/$/, '');
-        return `https://www.facebook.com/messages/t/${cleanHandle}`;
-    };
 
     if (loading) return <div className="p-8 text-center text-primary-foreground/50">Loading public page...</div>;
     if (!profile) return <div className="p-8 text-center text-primary-foreground/50">Vendor not found</div>;
@@ -692,9 +668,9 @@ export default function VendorClient() {
                                     </div>
 
                                     {(() => {
-                                        const hasFb = typeof (profile as any).facebookProfileUrl === 'string' && (profile as any).facebookProfileUrl.trim().length > 0;
+                                        const hasContact = !!(profile.facebookProfileUrl || profile.email);
                                         
-                                        if (!hasFb) return null;
+                                        if (!hasContact) return null;
 
                                         return (
                                             <div className="p-6 md:p-10 border-t border-border/50 bg-card shrink-0">
@@ -754,17 +730,35 @@ export default function VendorClient() {
                         <div className="space-y-4">
 
                             <div className="grid grid-cols-1 gap-3">
-                                {typeof (profile as any).facebookProfileUrl === 'string' && (profile as any).facebookProfileUrl.trim().length > 0 && (
+                                {profile.facebookProfileUrl ? (
                                     <Button
-                                        className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold gap-3"
-                                        onClick={() => window.open(getMessengerLink((profile as any).facebookProfileUrl) || '', '_blank')}
+                                        className="w-full h-14 rounded-2xl bg-[#1877F2] hover:bg-[#1877F2]/90 text-white font-bold gap-3"
+                                        onClick={() => window.open(profile.facebookProfileUrl || '', '_blank')}
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
-                                        Messenger Inquiry
+                                        Facebook profile
                                         <ExternalLink className="h-4 w-4 opacity-50 ml-auto" />
                                     </Button>
-                                )}
-
+                                ) : profile.email ? (
+                                    <Button
+                                        className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-black font-bold gap-3"
+                                        onClick={() => {
+                                            const itemName = selectedItem ? (
+                                                (selectedItem as any).productName || 
+                                                marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || 
+                                                "this item"
+                                            ) : "an item";
+                                            const price = selectedItem?.listingPrice ? ` ($${selectedItem.listingPrice})` : "";
+                                            const subject = encodeURIComponent(`Inquiry about ${itemName} on SlabHub`);
+                                            const body = encodeURIComponent(`Hi ${profile.shopName},\n\nI'm interested in inquiring about "${itemName}"${price} that I saw on your SlabHub page.\n\nIs it still available?`);
+                                            window.location.href = `mailto:${profile.email}?subject=${subject}&body=${body}`;
+                                        }}
+                                    >
+                                        <MessageSquare className="h-5 w-5" />
+                                        Contact via email
+                                        <ExternalLink className="h-4 w-4 opacity-50 ml-auto" />
+                                    </Button>
+                                ) : null}
                             </div>
                         </div>
 
