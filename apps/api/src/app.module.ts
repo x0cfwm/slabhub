@@ -25,6 +25,7 @@ import { join } from 'path';
 import { z } from 'zod';
 import { SentryInterceptor } from './common/interceptors/sentry.interceptor';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
     imports: [
@@ -102,6 +103,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
         OauthFacebookModule,
         InviteModule,
         WorkflowModule,
+        AnalyticsModule,
     ],
     providers: [
         {

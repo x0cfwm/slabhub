@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { getVendorPage } from "@/lib/api";
+import { getVendorPage, trackEvent } from "@/lib/api";
 import { InventoryItem, MarketProduct, SellerProfile } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -78,11 +78,21 @@ export default function VendorClient() {
         return () => window.removeEventListener("popstate", syncFromUrl);
     }, [items]);
 
+    // Initial Page View Tracking
+    useEffect(() => {
+        if (profile?.handle) {
+            trackEvent({ type: 'VIEW_SHOP', handle: profile.handle });
+        }
+    }, [profile?.handle]);
+
     const handleOpenItem = (item: InventoryItem | null) => {
         setSelectedItem(item);
         const url = new URL(window.location.href);
         if (item) {
             url.searchParams.set("itemId", item.id);
+            if (profile?.handle) {
+                trackEvent({ type: 'VIEW_ITEM', handle: profile.handle, itemId: item.id });
+            }
         } else {
             url.searchParams.delete("itemId");
         }
@@ -676,7 +686,12 @@ export default function VendorClient() {
                                             <div className="p-6 md:p-10 border-t border-border/50 bg-card shrink-0">
                                                 <Button
                                                     className="w-full h-16 text-lg font-black rounded-2xl shadow-xl shadow-primary/20 gap-3 hover:scale-[1.02] active:scale-95 transition-all bg-primary hover:bg-primary/90 text-black"
-                                                    onClick={() => setIsContactOpen(true)}
+                                                    onClick={() => {
+                                                        if (profile?.handle) {
+                                                            trackEvent({ type: 'INQUIRY_START', handle: profile.handle, itemId: selectedItem?.id });
+                                                        }
+                                                        setIsContactOpen(true);
+                                                    }}
                                                 >
                                                     <MessageSquare className="h-6 w-6" />
                                                     Inquire About Purchase
@@ -733,7 +748,12 @@ export default function VendorClient() {
                                 {profile.facebookProfileUrl ? (
                                     <Button
                                         className="w-full h-14 rounded-2xl bg-[#1877F2] hover:bg-[#1877F2]/90 text-white font-bold gap-3"
-                                        onClick={() => window.open(profile.facebookProfileUrl || '', '_blank')}
+                                        onClick={() => {
+                                            if (profile?.handle) {
+                                                trackEvent({ type: 'INQUIRY_COMPLETE', handle: profile.handle, itemId: selectedItem?.id, channel: 'facebook' });
+                                            }
+                                            window.open(profile.facebookProfileUrl || '', '_blank');
+                                        }}
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
                                         Facebook profile
@@ -743,6 +763,9 @@ export default function VendorClient() {
                                     <Button
                                         className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-black font-bold gap-3"
                                         onClick={() => {
+                                            if (profile?.handle) {
+                                                trackEvent({ type: 'INQUIRY_COMPLETE', handle: profile.handle, itemId: selectedItem?.id, channel: 'email' });
+                                            }
                                             const itemName = selectedItem ? (
                                                 (selectedItem as any).productName || 
                                                 marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || 

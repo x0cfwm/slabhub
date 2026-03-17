@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
     Plus,
     Package,
@@ -21,9 +22,21 @@ import { InventoryItem, MarketProduct, SellerProfile, PortfolioHistoryEntry } fr
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { MarketValueChart } from "@/components/dashboard/MarketValueChart";
+import { AnalyticsDashboard } from "@/components/dashboard/AnalyticsDashboard";
 import { formatRelativeTime } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function DashboardPage() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const activeTab = searchParams.get("tab") || "overview";
+
+    const handleTabChange = (value: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("tab", value);
+        router.push(`/dashboard?${params.toString()}`);
+    };
+
     const [items, setItems] = useState<InventoryItem[]>([]);
     const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
     const [history, setHistory] = useState<PortfolioHistoryEntry[]>([]);
@@ -148,7 +161,7 @@ export default function DashboardPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
                     {profile && (
                         <Badge
                             variant={profile.isActive ? "default" : "secondary"}
@@ -170,113 +183,126 @@ export default function DashboardPage() {
                 </Button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Items</CardTitle>
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.totalItems}</div>
-                        <p className="text-xs text-muted-foreground">Across all stages</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">For Sale</CardTitle>
-                        <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{stats.forSaleItems}</div>
-                        <p className="text-xs text-muted-foreground">Visible on public page</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Est. Market Value</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">${Math.round(stats.marketValue).toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">Based on market data</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Price Refreshed</CardTitle>
-                        <History className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold" title={lastUpdatedFull || ""}>
-                            {lastUpdated || "N/A"}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Last valuation update</p>
-                    </CardContent>
-                </Card>
-            </div>
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+                <TabsList>
+                    <TabsTrigger value="overview">Inventory Overview</TabsTrigger>
+                    <TabsTrigger value="analytics">Shop Analytics</TabsTrigger>
+                </TabsList>
 
-            <MarketValueChart items={items} history={history} />
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <Card className="col-span-4">
-                    <CardHeader>
-                        <CardTitle>Inventory Breakdown</CardTitle>
-                        <CardDescription>Items distributed by current status.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {Object.entries(stats.stages).map(([stage, count]) => (
-                                <div key={stage} className="flex items-center">
-                                    <div className="w-full">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="text-sm font-medium capitalize">
-                                                {stage.replace(/_/g, " ").toLowerCase()}
-                                            </span>
-                                            <span className="text-sm text-muted-foreground">{count}</span>
-                                        </div>
-                                        <div className="w-full bg-accent rounded-full h-2">
-                                            <div
-                                                className="bg-primary h-2 rounded-full"
-                                                style={{ width: `${(count / stats.totalItems) * 100}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
+                <TabsContent value="overview" className="space-y-6 border-none p-0 outline-none">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+                                <Package className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats.totalItems}</div>
+                                <p className="text-xs text-muted-foreground">Across all stages</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">For Sale</CardTitle>
+                                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-green-600">{stats.forSaleItems}</div>
+                                <p className="text-xs text-muted-foreground">Visible on public page</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Est. Market Value</CardTitle>
+                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">${Math.round(stats.marketValue).toLocaleString()}</div>
+                                <p className="text-xs text-muted-foreground">Based on market data</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Price Refreshed</CardTitle>
+                                <History className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold" title={lastUpdatedFull || ""}>
+                                    {lastUpdated || "N/A"}
                                 </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="col-span-3">
-                    <CardHeader>
-                        <CardTitle>Recent Activity</CardTitle>
-                        <CardDescription>Mock recent updates.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-8">
-                            {items.slice(0, 5).map((item) => {
-                                const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
-                                const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
+                                <p className="text-xs text-muted-foreground">Last valuation update</p>
+                            </CardContent>
+                        </Card>
+                    </div>
 
-                                const displayName = isSealed ? (item as any).productName : item.cardProfile?.name || "Unknown Asset";
+                    <MarketValueChart items={items} history={history} />
 
-                                return (
-                                    <div key={item.id} className="flex items-center">
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-medium leading-none">{displayName}</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                Status: <span className="font-semibold text-primary">{item.stage.replace(/_/g, " ").toLowerCase()}</span>
-                                            </p>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                        <Card className="col-span-4">
+                            <CardHeader>
+                                <CardTitle>Inventory Breakdown</CardTitle>
+                                <CardDescription>Items distributed by current status.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {Object.entries(stats.stages).map(([stage, count]) => (
+                                        <div key={stage} className="flex items-center">
+                                            <div className="w-full">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="text-sm font-medium capitalize">
+                                                        {stage.replace(/_/g, " ").toLowerCase()}
+                                                    </span>
+                                                    <span className="text-sm text-muted-foreground">{count}</span>
+                                                </div>
+                                                <div className="w-full bg-accent rounded-full h-2">
+                                                    <div
+                                                        className="bg-primary h-2 rounded-full"
+                                                        style={{ width: `${(count / stats.totalItems) * 100}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="ml-auto font-medium">
-                                            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card className="col-span-3">
+                            <CardHeader>
+                                <CardTitle>Recent Activity</CardTitle>
+                                <CardDescription>Mock recent updates.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-8">
+                                    {items.slice(0, 5).map((item) => {
+                                        const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
+                                        const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
+
+                                        const displayName = isSealed ? (item as any).productName : item.cardProfile?.name || "Unknown Asset";
+
+                                        return (
+                                            <div key={item.id} className="flex items-center">
+                                                <div className="space-y-1">
+                                                    <p className="text-sm font-medium leading-none">{displayName}</p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Status: <span className="font-semibold text-primary">{item.stage.replace(/_/g, " ").toLowerCase()}</span>
+                                                    </p>
+                                                </div>
+                                                <div className="ml-auto font-medium">
+                                                    <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="analytics" className="border-none p-0 outline-none">
+                    <AnalyticsDashboard />
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

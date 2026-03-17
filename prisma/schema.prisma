@@ -79,6 +79,7 @@ model SellerProfile {
   inventoryItems   InventoryItem[]
   user             User?           @relation(fields: [userId], references: [id])
   avatarMedia      Media?          @relation("AvatarMedia", fields: [avatarId], references: [id])
+  shopEvents       ShopEvent[]
 
   @@index([handle])
   @@index([userId])
@@ -184,6 +185,7 @@ model InventoryItem {
   seller                    SellerProfile?           @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   user                      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   history                   InventoryHistory[]
+  shopEvents                ShopEvent[]
 
   // Media references
   frontMediaId String?
@@ -537,4 +539,30 @@ model InventoryHistory {
 
   @@index([itemId])
   @@index([userId])
+}
+
+enum ShopEventType {
+  VIEW_SHOP
+  VIEW_ITEM
+  INQUIRY_START
+  INQUIRY_COMPLETE
+}
+
+model ShopEvent {
+  id              String         @id @default(cuid())
+  sellerProfileId String
+  sellerProfile   SellerProfile  @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
+  type            ShopEventType
+  itemId          String?
+  item            InventoryItem? @relation(fields: [itemId], references: [id])
+  referrer        String?
+  channel         String?        // For custom tracking like ?ref=discord
+  ipHash          String?        // To identify unique visitors without PII
+  userAgent       String?
+  countryCode     String?        // Country code from GeoIP (e.g. US, GB)
+  createdAt       DateTime       @default(now())
+
+  @@index([sellerProfileId])
+  @@index([createdAt])
+  @@index([type])
 }

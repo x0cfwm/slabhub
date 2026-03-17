@@ -448,3 +448,32 @@ export async function reorderStatuses(items: { id: string; position: number }[])
     });
     if (!response.ok) throw new Error('Failed to reorder statuses');
 }
+
+// Analytics
+export async function trackEvent(data: { type: string; handle: string; itemId?: string; channel?: string }) {
+    try {
+        const url = getFullUrl('/v1/analytics/track');
+        // Extra check for channel in URL if not provided
+        if (!data.channel && typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            data.channel = params.get('ref') || params.get('channel') || undefined;
+        }
+        
+        await fetch(url.toString(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+            credentials: 'include',
+        });
+    } catch (e) {
+        console.warn('Analytics tracking failed:', e);
+    }
+}
+
+export async function getAnalyticsStats(days: number = 7) {
+    const url = getFullUrl('/v1/analytics/dashboard');
+    url.searchParams.set('days', days.toString());
+    const response = await fetch(url.toString(), { credentials: 'include' });
+    if (!response.ok) throw new Error('Failed to fetch analytics stats');
+    return response.json();
+}
