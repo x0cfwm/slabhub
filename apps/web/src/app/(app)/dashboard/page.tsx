@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -10,7 +10,6 @@ import {
     ShoppingCart,
     History,
     ArrowUpRight,
-    RefreshCw,
     Monitor,
     MonitorOff
 } from "lucide-react";
@@ -26,7 +25,7 @@ import { AnalyticsDashboard } from "@/components/dashboard/AnalyticsDashboard";
 import { formatRelativeTime } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default function DashboardPage() {
+function DashboardPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const activeTab = searchParams.get("tab") || "overview";
@@ -304,5 +303,22 @@ export default function DashboardPage() {
                 </TabsContent>
             </Tabs>
         </div>
+    );
+}
+
+export default function DashboardPage() {
+    return (
+        <Suspense fallback={
+            <div className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {[...Array(4)].map((_, i) => (
+                        <Skeleton key={i} className="h-32 w-full rounded-xl" />
+                    ))}
+                </div>
+                <Skeleton className="h-[400px] w-full rounded-xl" />
+            </div>
+        }>
+            <DashboardPageContent />
+        </Suspense>
     );
 }
