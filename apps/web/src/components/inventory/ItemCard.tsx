@@ -64,17 +64,17 @@ export function ItemCard({ item, profile, price, onClick, isOverlay, scale = "no
         if (item.soldPrice && Number(item.soldPrice) > 0) {
             return {
                 value: Number(item.soldPrice),
-                label: "Sale",
-                color: "text-foreground",
-                labelBg: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                label: "Sold",
+                color: "text-orange-600",
+                labelBg: "bg-orange-500/10 text-orange-600 border-orange-500/20"
             };
         }
         if (item.listingPrice && Number(item.listingPrice) > 0) {
             return {
                 value: Number(item.listingPrice),
                 label: "Listing",
-                color: "text-orange-500",
-                labelBg: "bg-orange-500/10 text-orange-600 border-orange-500/20"
+                color: "text-orange-400",
+                labelBg: "bg-orange-400/10 text-orange-400 border-orange-400/20"
             };
         }
         return {
