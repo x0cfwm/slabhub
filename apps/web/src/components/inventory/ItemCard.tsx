@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CardProfile, InventoryItem, PricingSnapshot } from "@/lib/types";
@@ -57,6 +59,31 @@ export function ItemCard({ item, profile, price, onClick, isOverlay, scale = "no
         : finalProfile?.set || "Unknown Set";
 
     const typeLabel = itemType.replace("SINGLE_CARD_", "").replace("_PRODUCT", "");
+
+    const rightPriceInfo = useMemo(() => {
+        if (item.soldPrice && Number(item.soldPrice) > 0) {
+            return {
+                value: Number(item.soldPrice),
+                label: "Sale",
+                color: "text-foreground",
+                labelBg: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+            };
+        }
+        if (item.listingPrice && Number(item.listingPrice) > 0) {
+            return {
+                value: Number(item.listingPrice),
+                label: "Listing",
+                color: "text-orange-500",
+                labelBg: "bg-orange-500/10 text-orange-600 border-orange-500/20"
+            };
+        }
+        return {
+            value: Number(item.acquisitionPrice) || 0,
+            label: "Cost",
+            color: "text-foreground",
+            labelBg: "bg-accent text-black border-muted-foreground/10"
+        };
+    }, [item.soldPrice, item.listingPrice, item.acquisitionPrice]);
 
     // Apply transform only if not in overlay (overlay handled by DndContext)
     const style = {
@@ -169,13 +196,21 @@ export function ItemCard({ item, profile, price, onClick, isOverlay, scale = "no
                                     x{item.quantity}
                                 </Badge>
                             )}
-                            {scale !== "compact" && <span className="text-muted-foreground text-[7px] uppercase font-bold text-black border px-1 rounded-sm bg-accent">Cost</span>}
+                            {scale !== "compact" && (
+                                <span className={cn(
+                                    "text-[7px] uppercase font-bold border px-1 rounded-sm",
+                                    rightPriceInfo.labelBg
+                                )}>
+                                    {rightPriceInfo.label}
+                                </span>
+                            )}
                         </div>
                         <span className={cn(
                             "font-bold",
+                            rightPriceInfo.color,
                             scale === "compact" ? "text-[8px]" : "text-[10px]"
                         )}>
-                            ${Math.round(Number(item.acquisitionPrice) || 0).toLocaleString()}
+                            ${Math.round(rightPriceInfo.value).toLocaleString()}
                         </span>
                     </div>
                 </div>
