@@ -261,6 +261,38 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                                             </Select>
                                         </div>
 
+                                        {formData.stage === "SOLD" && (
+                                            <div className="col-span-2 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6 space-y-4 animate-in slide-in-from-top-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                                                        <DollarSign className="h-4 w-4" />
+                                                    </div>
+                                                    <h4 className="font-bold text-emerald-700">Sale Details</h4>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Sale Price ($)</Label>
+                                                        <Input
+                                                            type="number"
+                                                            placeholder="0.00"
+                                                            className="h-11 bg-background/50 border-emerald-500/10 font-bold text-lg text-emerald-600"
+                                                            value={formData.soldPrice || ""}
+                                                            onChange={e => setFormData({ ...formData, soldPrice: parseFloat(e.target.value) })}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Date Sold</Label>
+                                                        <Input
+                                                            type="date"
+                                                            className="h-11 bg-background/50 border-emerald-500/10"
+                                                            value={formData.soldDate ? new Date(formData.soldDate).toISOString().split('T')[0] : ""}
+                                                            onChange={e => setFormData({ ...formData, soldDate: e.target.value })}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70 flex items-center gap-1">
                                                 <DollarSign className="h-3 w-3" /> Acquisition Price ($)
@@ -286,6 +318,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                                                 onChange={e => setFormData({ ...formData, acquisitionDate: e.target.value })}
                                             />
                                         </div>
+
 
                                         {(!isSealed && ((formData as any).itemType === "SINGLE_CARD_RAW" || (formData as any).type === "SINGLE_CARD_RAW" || itType === "SINGLE_CARD_RAW")) ? (
                                             <>
@@ -492,37 +525,6 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                                         </div>
                                     )}
 
-                                    {formData.stage === "SOLD" && (
-                                        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6 space-y-4 animate-in slide-in-from-top-2">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                                                    <DollarSign className="h-4 w-4" />
-                                                </div>
-                                                <h4 className="font-bold text-emerald-700">Sale Details</h4>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Sale Price ($)</Label>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="0.00"
-                                                        className="h-11 bg-background/50 border-emerald-500/10 font-bold text-lg text-emerald-600"
-                                                        value={formData.soldPrice || ""}
-                                                        onChange={e => setFormData({ ...formData, soldPrice: parseFloat(e.target.value) })}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Date Sold</Label>
-                                                    <Input
-                                                        type="date"
-                                                        className="h-11 bg-background/50 border-emerald-500/10"
-                                                        value={formData.soldDate ? new Date(formData.soldDate).toISOString().split('T')[0] : ""}
-                                                        onChange={e => setFormData({ ...formData, soldDate: e.target.value })}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
 
                                     <div className={cn("space-y-6 transition-all duration-300", formData.stage !== "LISTED" && "opacity-50 pointer-events-none grayscale")}>
                                         <div className="grid grid-cols-2 gap-4">
