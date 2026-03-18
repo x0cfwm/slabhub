@@ -117,6 +117,8 @@ export class InventoryService {
                     sortOrder: dto.sortOrder || 0,
                     stage: dto.stage || 'ACQUIRED',
                     listingPrice: dto.listingPrice,
+                    soldPrice: dto.soldPrice,
+                    soldDate: dto.soldDate ? new Date(dto.soldDate) : null,
                     acquisitionPrice: dto.acquisitionPrice,
                     acquisitionDate: dto.acquisitionDate
                         ? new Date(dto.acquisitionDate)
@@ -227,9 +229,11 @@ export class InventoryService {
                 sortOrder: dto.sortOrder,
                 stage: dto.stage,
                 listingPrice: dto.listingPrice,
+                soldPrice: dto.soldPrice,
+                soldDate: dto.soldDate !== undefined ? (dto.soldDate ? new Date(dto.soldDate) : null) : undefined,
                 acquisitionPrice: dto.acquisitionPrice,
-                acquisitionDate: dto.acquisitionDate
-                    ? new Date(dto.acquisitionDate)
+                acquisitionDate: dto.acquisitionDate !== undefined
+                    ? (dto.acquisitionDate ? new Date(dto.acquisitionDate) : null)
                     : undefined,
                 acquisitionSource: dto.acquisitionSource,
                 storageLocation: dto.storageLocation,
@@ -779,6 +783,8 @@ export class InventoryService {
                 ? Number(item.acquisitionPrice)
                 : null,
             listingPrice: item.listingPrice ? Number(item.listingPrice) : null,
+            soldPrice: item.soldPrice ? Number(item.soldPrice) : null,
+            soldDate: item.soldDate?.toISOString?.() || null,
             marketPriceSnapshot: item.marketPriceSnapshot
                 ? Number(item.marketPriceSnapshot)
                 : null,

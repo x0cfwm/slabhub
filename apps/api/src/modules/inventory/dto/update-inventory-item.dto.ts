@@ -140,14 +140,17 @@ export class UpdateInventoryItemDto {
     @IsString()
     statusId?: string;
 
+    @ApiProperty({ required: false })
     @IsOptional()
     @IsNumber()
     listingPrice?: number;
 
+    @ApiProperty({ required: false })
     @IsOptional()
     @IsNumber()
     soldPrice?: number;
 
+    @ApiProperty({ required: false })
     @IsOptional()
     @IsString()
     soldDate?: string;

@@ -149,14 +149,25 @@ export class CreateInventoryItemDto {
     @IsEnum(InventoryStage)
     stage?: InventoryStage;
 
-    @ApiProperty({ required: false, example: 100.0 })
+    @ApiProperty({ required: false, example: 'uuid-v4-status' })
     @IsOptional()
     @IsString()
     statusId?: string;
 
+    @ApiProperty({ required: false, example: 100.0 })
     @IsOptional()
     @IsNumber()
     listingPrice?: number;
+
+    @ApiProperty({ required: false, example: 120.0 })
+    @IsOptional()
+    @IsNumber()
+    soldPrice?: number;
+
+    @ApiProperty({ required: false, example: '2024-03-18' })
+    @IsOptional()
+    @IsString()
+    soldDate?: string;
 
     @ApiProperty({ required: false, example: 80.0 })
     @IsOptional()

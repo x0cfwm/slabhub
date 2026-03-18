@@ -228,19 +228,21 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
                 onClose={() => setPromptItem(null)}
                 onConfirm={async (data) => {
                     if (promptItem) {
-                        await finalizeDrop(items, promptItem.id, promptItem.statusId, true, {
-                            listingPrice: data.soldPrice, // Reuse field or add soldPrice if needed. Schema says listingPrice is used for listed items, but sold usually needs its own field or we hijack listingPrice? 
-                            // Actually schema has listingPrice but not soldPrice. Let's see.
-                            // prisma/schema.prisma line 158: listingPrice Decimal?
-                            // Line 165: marketPriceLastSaleDate DateTime?
-                            // For now let's just update the item properly.
-                        });
-                        // Wait, I should probably call updateInventoryItem for specific sold logic if listingPrice isn't enough
-                        await updateInventoryItem(promptItem.id, {
-                            stage: "SOLD",
-                            soldPrice: data.soldPrice, // We'll need to add this to the item if it's not there, but for MVP let's assume it updates the existing fields
-                        });
-                        onUpdate();
+                        try {
+                            await finalizeDrop(items, promptItem.id, promptItem.statusId, true, {
+                                soldPrice: data.soldPrice,
+                                soldDate: data.soldDate,
+                                stage: "SOLD"
+                            });
+                            await updateInventoryItem(promptItem.id, {
+                                stage: "SOLD",
+                                soldPrice: data.soldPrice,
+                                soldDate: data.soldDate,
+                            });
+                            onUpdate();
+                        } catch (err) {
+                            toast.error("Failed to mark as sold");
+                        }
                     }
                 }}
             />
@@ -256,11 +258,14 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
                         try {
                             await finalizeDrop(items, listedPromptItem.id, listedPromptItem.statusId, true, {
                                 listingPrice: data.listingPrice,
+                                sellingDescription: data.sellingDescription,
+                                stage: "LISTED"
                             });
                             await updateInventoryItem(listedPromptItem.id, {
                                 stage: "LISTED",
                                 listingPrice: data.listingPrice,
                                 sellingDescription: data.sellingDescription,
+                                statusId: listedPromptItem.statusId
                             });
                             onUpdate();
                         } catch (err) {
