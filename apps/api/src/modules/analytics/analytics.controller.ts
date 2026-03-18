@@ -16,7 +16,7 @@ export class AnalyticsController {
   async trackEvent(@Body() dto: TrackEventDto, @Req() req: Request) {
     const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
-    const referrer = req.headers['referer'] as string | undefined;
+    const referrer = dto.referrer || (req.headers['referer'] as string | undefined);
 
     return this.analyticsService.trackEvent({
       ...dto,

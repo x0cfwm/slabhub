@@ -20,4 +20,9 @@ export class TrackEventDto {
   @IsString()
   @IsOptional()
   channel?: string;
+
+  @ApiProperty({ description: 'Optional explicit referrer URL', required: false, example: 'https://google.com' })
+  @IsString()
+  @IsOptional()
+  referrer?: string;
 }

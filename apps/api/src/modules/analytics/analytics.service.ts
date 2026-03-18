@@ -32,7 +32,7 @@ export class AnalyticsService {
     const geo = geoip.lookup(data.ip);
     const countryCode = geo?.country || null;
 
-    return this.prisma.shopEvent.create({
+    return (this.prisma as any).shopEvent.create({
       data: {
         sellerProfileId: seller.id,
         type: data.type as any,
@@ -66,7 +66,7 @@ export class AnalyticsService {
     startDate.setHours(0, 0, 0, 0);
 
     // 1. Fetch all events for the period
-    const events = await this.prisma.shopEvent.findMany({
+    const events = await (this.prisma as any).shopEvent.findMany({
       where: {
         sellerProfileId: seller.id,
         createdAt: { gte: startDate },
@@ -91,7 +91,7 @@ export class AnalyticsService {
         viewsByDay.set(dayStr, { date: dayStr, views: 0, unique: new Set() });
     }
 
-    events.forEach((e) => {
+    (events as any[]).forEach((e) => {
         if (e.type === ShopEventType.VIEW_SHOP) {
             const day = e.createdAt.toISOString().split('T')[0];
             const stats = viewsByDay.get(day);
@@ -108,7 +108,7 @@ export class AnalyticsService {
 
     // 3. Aggregate Top Items
     const itemsMap = new Map<string, { name: string; views: number }>();
-    events.forEach((e) => {
+    (events as any[]).forEach((e) => {
         if (e.type === ShopEventType.VIEW_ITEM && e.itemId) {
             const item = e.item as any;
             const name = item?.productName || item?.cardVariant?.card?.name || item?.refPriceChartingProduct?.title || 'Unknown Item';
@@ -124,7 +124,7 @@ export class AnalyticsService {
 
     // 4. Aggregate Sources
     const sourcesMap = new Map<string, number>();
-    events.forEach((e) => {
+    (events as any[]).forEach((e) => {
         if (e.type === ShopEventType.VIEW_SHOP) {
             let source = 'Direct';
             if (e.channel) {
@@ -132,9 +132,16 @@ export class AnalyticsService {
             } else if (e.referrer) {
                 try {
                     const url = new URL(e.referrer);
-                    source = url.hostname.replace('www.', '');
+                    const hostname = url.hostname.replace('www.', '');
+                    
+                    // Filter out internal referrers
+                    if (hostname === 'slabhub.com' || hostname === 'localhost' || hostname.includes('netlify.app')) {
+                        source = 'Direct';
+                    } else {
+                        source = hostname;
+                    }
                 } catch {
-                    source = 'Other';
+                    source = 'Direct';
                 }
             }
             sourcesMap.set(source, (sourcesMap.get(source) || 0) + 1);
@@ -147,7 +154,7 @@ export class AnalyticsService {
 
     // 5. Aggregate Countries
     const countriesMap = new Map<string, number>();
-    events.forEach((e) => {
+    (events as any[]).forEach((e) => {
         if (e.type === ShopEventType.VIEW_SHOP && e.countryCode) {
             countriesMap.set(e.countryCode, (countriesMap.get(e.countryCode) || 0) + 1);
         }
@@ -159,9 +166,9 @@ export class AnalyticsService {
         .slice(0, 5);
 
     // 6. Summary Metrics
-    const totalViews = events.filter((e) => e.type === ShopEventType.VIEW_SHOP).length;
-    const uniqueVisitors = new Set(events.filter((e) => e.type === ShopEventType.VIEW_SHOP).map((e) => e.ipHash)).size;
-    const inquiries = events.filter((e) => e.type === ShopEventType.INQUIRY_START).length;
+    const totalViews = (events as any[]).filter((e) => e.type === ShopEventType.VIEW_SHOP).length;
+    const uniqueVisitors = new Set((events as any[]).filter((e) => e.type === ShopEventType.VIEW_SHOP).map((e) => e.ipHash)).size;
+    const inquiries = (events as any[]).filter((e) => e.type === ShopEventType.INQUIRY_START).length;
     const conversionRate = totalViews > 0 ? (inquiries / totalViews) * 100 : 0;
 
     return {

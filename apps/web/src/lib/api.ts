@@ -450,13 +450,18 @@ export async function reorderStatuses(items: { id: string; position: number }[])
 }
 
 // Analytics
-export async function trackEvent(data: { type: string; handle: string; itemId?: string; channel?: string }) {
+export async function trackEvent(data: { type: string; handle: string; itemId?: string; channel?: string; referrer?: string }) {
     try {
         const url = getFullUrl('/v1/analytics/track');
         // Extra check for channel in URL if not provided
         if (!data.channel && typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
             data.channel = params.get('ref') || params.get('channel') || undefined;
+        }
+
+        // Include referrer if not provided
+        if (!data.referrer && typeof document !== 'undefined') {
+            data.referrer = document.referrer || undefined;
         }
         
         await fetch(url.toString(), {
