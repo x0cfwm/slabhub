@@ -30,7 +30,7 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, statuses, scale = "normal" }: KanbanBoardProps) {
     const [activeId, setActiveId] = useState<string | null>(null);
-    const [promptItem, setPromptItem] = useState<{ id: string, name: string, statusId: string } | null>(null);
+    const [promptItem, setPromptItem] = useState<{ id: string, name: string, statusId: string, listingPrice?: number } | null>(null);
     const [listedPromptItem, setListedPromptItem] = useState<{ id: string, name: string, statusId: string } | null>(null);
     const sensors = useDndSensors();
 
@@ -57,7 +57,12 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
         if (targetStatus?.systemId === "SOLD" && activeItem.status?.systemId !== "SOLD") {
             const vid = (activeItem as any).cardVariantId || (activeItem as any).cardProfileId || activeItem.refPriceChartingProductId;
             const marketProduct = cards.find(p => p.id === vid) || activeItem.cardProfile;
-            setPromptItem({ id: activeId, name: marketProduct?.name || "Card", statusId: targetStatusId! });
+            setPromptItem({ 
+                id: activeId, 
+                name: marketProduct?.name || "Card", 
+                statusId: targetStatusId!,
+                listingPrice: activeItem.listingPrice ? Number(activeItem.listingPrice) : undefined
+            });
             return;
         }
 
@@ -225,6 +230,7 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
             <SoldPromptDialog
                 isOpen={!!promptItem}
                 itemName={promptItem?.name}
+                listingPrice={promptItem?.listingPrice}
                 onClose={() => setPromptItem(null)}
                 onConfirm={async (data) => {
                     if (promptItem) {

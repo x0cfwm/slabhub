@@ -12,16 +12,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DollarSign, Calendar, Loader2 } from "lucide-react";
+import { DollarSign, Calendar, Loader2, TrendingUp } from "lucide-react";
 
 interface SoldPromptDialogProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: (data: { soldPrice: number; soldDate: string }) => Promise<void>;
     itemName?: string;
+    listingPrice?: number;
 }
 
-export function SoldPromptDialog({ isOpen, onClose, onConfirm, itemName }: SoldPromptDialogProps) {
+export function SoldPromptDialog({ isOpen, onClose, onConfirm, itemName, listingPrice }: SoldPromptDialogProps) {
     const [soldPrice, setSoldPrice] = useState<string>("");
     const [soldDate, setSoldDate] = useState<string>(new Date().toISOString().split("T")[0]);
     const [loading, setLoading] = useState(false);
@@ -62,6 +63,18 @@ export function SoldPromptDialog({ isOpen, onClose, onConfirm, itemName }: SoldP
                             onChange={(e) => setSoldPrice(e.target.value)}
                             autoFocus
                         />
+                        {listingPrice && listingPrice > 0 && String(listingPrice) !== soldPrice && (
+                            <div className="flex justify-start pt-1">
+                                <button 
+                                    type="button"
+                                    onClick={() => setSoldPrice(listingPrice.toString())}
+                                    className="text-xs font-bold text-primary/80 hover:text-primary transition-colors flex items-center gap-1.5 group"
+                                >
+                                    <TrendingUp className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100" />
+                                    <span>Use <span className="underline decoration-primary/40 underline-offset-4 font-black">${listingPrice}</span> listing price</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-2">
