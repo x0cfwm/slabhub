@@ -36,6 +36,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getOptimizedImageUrl } from "@/lib/image-utils";
 import { InventoryHistoryTab } from "./InventoryHistoryTab";
+import { SoldPromptDialog } from "./SoldPromptDialog";
+import { ListedPromptDialog } from "./ListedPromptDialog";
 
 interface ItemDrawerProps {
     item: InventoryItem | null;
@@ -64,6 +66,8 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
     const [loading, setLoading] = useState(false);
     const [uploadingPhotos, setUploadingPhotos] = useState<Record<string, boolean>>({});
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+    const [promptItem, setPromptItem] = useState<{ id: string, name: string, statusId: string, listingPrice?: number } | null>(null);
+    const [listedPromptItem, setListedPromptItem] = useState<{ id: string, name: string, statusId: string } | null>(null);
 
     // Get active tab from URL or default to "basic"
     const activeTab = searchParams.get("tab") || "basic";
@@ -210,6 +214,26 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                                                 value={formData.statusId || ""}
                                                 onValueChange={(v) => {
                                                     const selectedStatus = statuses.find(s => s.id === v);
+                                                    
+                                                    if (selectedStatus?.systemId === "SOLD" && formData.stage !== "SOLD") {
+                                                        setPromptItem({ 
+                                                            id: item.id, 
+                                                            name: displayName || "Card", 
+                                                            statusId: v,
+                                                            listingPrice: formData.listingPrice ? Number(formData.listingPrice) : undefined
+                                                        });
+                                                        return;
+                                                    }
+
+                                                    if (selectedStatus?.systemId === "LISTED" && formData.stage !== "LISTED") {
+                                                        setListedPromptItem({ 
+                                                            id: item.id, 
+                                                            name: displayName || "Card", 
+                                                            statusId: v 
+                                                        });
+                                                        return;
+                                                    }
+
                                                     setFormData({
                                                         ...formData,
                                                         statusId: v,
@@ -771,6 +795,55 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                     )}
                 </DialogContent>
             </Dialog>
+
+            <SoldPromptDialog
+                isOpen={!!promptItem}
+                itemName={promptItem?.name}
+                listingPrice={promptItem?.listingPrice}
+                onClose={() => setPromptItem(null)}
+                onConfirm={async (data) => {
+                    if (promptItem) {
+                        try {
+                            const updated = await updateInventoryItem(promptItem.id, {
+                                stage: "SOLD",
+                                statusId: promptItem.statusId,
+                                soldPrice: data.soldPrice,
+                                soldDate: data.soldDate,
+                            });
+                            setFormData(prev => ({ ...prev, ...updated }));
+                            toast.success("Item marked as sold");
+                            await onUpdate();
+                        } catch (err) {
+                            toast.error("Failed to mark as sold");
+                        }
+                    }
+                }}
+            />
+
+            <ListedPromptDialog
+                key={listedPromptItem?.id}
+                isOpen={!!listedPromptItem}
+                itemName={listedPromptItem?.name}
+                item={item}
+                onClose={() => setListedPromptItem(null)}
+                onConfirm={async (data) => {
+                    if (listedPromptItem) {
+                        try {
+                            const updated = await updateInventoryItem(listedPromptItem.id, {
+                                stage: "LISTED",
+                                statusId: listedPromptItem.statusId,
+                                listingPrice: data.listingPrice,
+                                sellingDescription: data.sellingDescription,
+                            });
+                            setFormData(prev => ({ ...prev, ...updated }));
+                            toast.success("Item listed");
+                            await onUpdate();
+                        } catch (err) {
+                            toast.error("Failed to list item");
+                        }
+                    }
+                }}
+            />
         </Sheet>
     );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
     Table,
     TableBody,
@@ -23,6 +24,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { getOptimizedImageUrl } from "@/lib/image-utils";
+import { SoldPromptDialog } from "./SoldPromptDialog";
+import { ListedPromptDialog } from "./ListedPromptDialog";
 
 interface InventoryListProps {
     items: InventoryItem[];
@@ -34,11 +37,37 @@ interface InventoryListProps {
 }
 
 export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, statuses }: InventoryListProps) {
+    const [promptItem, setPromptItem] = useState<{ id: string, name: string, statusId: string, listingPrice?: number } | null>(null);
+    const [listedPromptItem, setListedPromptItem] = useState<{ id: string, name: string, statusId: string } | null>(null);
+
     const handleStatusChange = async (itemId: string, newStatusId: string) => {
         const item = items.find(i => i.id === itemId);
         if (!item) return;
         const oldStatusId = item.statusId;
         const selectedStatus = statuses.find(s => s.id === newStatusId);
+
+        if (selectedStatus?.systemId === "SOLD" && item.status?.systemId !== "SOLD") {
+            const variantId = (item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId;
+            const marketProduct = cards.find(p => p.id === variantId) || item.cardProfile;
+            setPromptItem({ 
+                id: itemId, 
+                name: marketProduct?.name || "Card", 
+                statusId: newStatusId,
+                listingPrice: item.listingPrice ? Number(item.listingPrice) : undefined
+            });
+            return;
+        }
+
+        if (selectedStatus?.systemId === "LISTED" && item.status?.systemId !== "LISTED") {
+            const variantId = (item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId;
+            const marketProduct = cards.find(p => p.id === variantId) || item.cardProfile;
+            setListedPromptItem({ 
+                id: itemId, 
+                name: marketProduct?.name || "Card", 
+                statusId: newStatusId 
+            });
+            return;
+        }
 
         // Optimistic UI update
         setItems(prev => prev.map(i => i.id === itemId ? {
@@ -50,6 +79,7 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, s
 
         try {
             await updateInventoryItem(itemId, { statusId: newStatusId, sortOrder: 0 });
+            onUpdate();
         } catch (err) {
             toast.error("Failed to update status");
             // Rollback
@@ -181,6 +211,51 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, s
                     )}
                 </TableBody>
             </Table>
+
+            <SoldPromptDialog
+                isOpen={!!promptItem}
+                itemName={promptItem?.name}
+                listingPrice={promptItem?.listingPrice}
+                onClose={() => setPromptItem(null)}
+                onConfirm={async (data) => {
+                    if (promptItem) {
+                        try {
+                            await updateInventoryItem(promptItem.id, {
+                                stage: "SOLD",
+                                statusId: promptItem.statusId,
+                                soldPrice: data.soldPrice,
+                                soldDate: data.soldDate,
+                            });
+                            onUpdate();
+                        } catch (err) {
+                            toast.error("Failed to mark as sold");
+                        }
+                    }
+                }}
+            />
+
+            <ListedPromptDialog
+                key={listedPromptItem?.id}
+                isOpen={!!listedPromptItem}
+                itemName={listedPromptItem?.name}
+                item={items.find(i => i.id === listedPromptItem?.id)}
+                onClose={() => setListedPromptItem(null)}
+                onConfirm={async (data) => {
+                    if (listedPromptItem) {
+                        try {
+                            await updateInventoryItem(listedPromptItem.id, {
+                                stage: "LISTED",
+                                statusId: listedPromptItem.statusId,
+                                listingPrice: data.listingPrice,
+                                sellingDescription: data.sellingDescription,
+                            });
+                            onUpdate();
+                        } catch (err) {
+                            toast.error("Failed to list item");
+                        }
+                    }
+                }}
+            />
         </div>
     );
 }
