@@ -76,6 +76,7 @@ model SellerProfile {
   updatedAt        DateTime        @updatedAt
   userId           String?         @unique
   avatarId         String?
+  discordWebhookUrl String?
   inventoryItems   InventoryItem[]
   user             User?           @relation(fields: [userId], references: [id])
   avatarMedia      Media?          @relation("AvatarMedia", fields: [avatarId], references: [id])
@@ -558,6 +559,7 @@ model ShopEvent {
   referrer        String?
   channel         String?        // For custom tracking like ?ref=discord
   ipHash          String?        // To identify unique visitors without PII
+  ip              String?        // Original IP for debugging (PII)
   userAgent       String?
   countryCode     String?        // Country code from GeoIP (e.g. US, GB)
   createdAt       DateTime       @default(now())

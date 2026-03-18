@@ -25,21 +25,47 @@ export class AnalyticsService {
       throw new NotFoundException(`Vendor with handle "${data.handle}" not found`);
     }
 
-    // Hash IP to track unique visitors without storing PII
+    // Hash IP for uniqueness, but also store for debug as requested
     const ipHash = createHash('sha256').update(data.ip).digest('hex');
 
+    // Enhanced channel detection from User-Agent
+    let channel = data.channel;
+    const ua = data.userAgent.toLowerCase();
+    if (!channel) {
+        if (ua.includes('telegrambot') || ua.includes('telegram')) {
+            channel = 'telegram';
+        } else if (ua.includes('facebook') || ua.includes('fban') || ua.includes('fbav')) {
+            channel = 'facebook';
+        } else if (ua.includes('instagram')) {
+            channel = 'instagram';
+        } else if (ua.includes('discord')) {
+            channel = 'discord';
+        }
+    }
+
     // GeoIP resolution
-    const geo = geoip.lookup(data.ip);
+    let geo = null;
+    try {
+        // filter out internal addresses for lookup but it's fine for geoip-lite
+        geo = geoip.lookup(data.ip);
+    } catch (e) {
+        console.error('GeoIP lookup failed:', e);
+    }
     const countryCode = geo?.country || null;
+
+    if (!countryCode) {
+        console.log(`Analytics: Could not resolve country for IP ${data.ip}`);
+    }
 
     return (this.prisma as any).shopEvent.create({
       data: {
         sellerProfileId: seller.id,
         type: data.type as any,
         itemId: data.itemId,
-        channel: data.channel,
+        channel,
         referrer: data.referrer,
         ipHash,
+        ip: data.ip, // Store raw IP for debugging as requested
         userAgent: data.userAgent,
         countryCode,
       },
@@ -155,8 +181,9 @@ export class AnalyticsService {
     // 5. Aggregate Countries
     const countriesMap = new Map<string, number>();
     (events as any[]).forEach((e) => {
-        if (e.type === ShopEventType.VIEW_SHOP && e.countryCode) {
-            countriesMap.set(e.countryCode, (countriesMap.get(e.countryCode) || 0) + 1);
+        if (e.type === ShopEventType.VIEW_SHOP) {
+            const countryCode = e.countryCode || 'Unknown';
+            countriesMap.set(countryCode, (countriesMap.get(countryCode) || 0) + 1);
         }
     });
 

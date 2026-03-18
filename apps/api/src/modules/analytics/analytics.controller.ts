@@ -14,7 +14,10 @@ export class AnalyticsController {
   @ApiOperation({ summary: 'Track a shop interaction event' })
   @ApiResponse({ status: 201, description: 'Event tracked successfully' })
   async trackEvent(@Body() dto: TrackEventDto, @Req() req: Request) {
-    const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
+    let ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
+    if (ip.includes(',')) {
+      ip = ip.split(',')[0].trim();
+    }
     const userAgent = req.headers['user-agent'] || 'unknown';
     const referrer = dto.referrer || (req.headers['referer'] as string | undefined);
 
