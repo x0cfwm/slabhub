@@ -543,6 +543,42 @@ export default function AddItemScreen() {
           </View>
         </View>
 
+        {stage === 'sold' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Sale Details</Text>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Sold Price</Text>
+              <View style={styles.priceInputRow}>
+                <Text style={styles.dollarSign}>$</Text>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  value={soldPrice}
+                  onChangeText={setSoldPrice}
+                  placeholder="0.00"
+                  placeholderTextColor={c.textTertiary}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Channel</Text>
+              <View style={styles.chipGrid}>
+                {(['ebay', 'tcgplayer', 'mercari', 'facebook', 'instagram', 'discord', 'in_person', 'other'] as SaleChannel[]).map((ch) => (
+                  <Pressable
+                    key={ch}
+                    style={[styles.chip, soldChannel === ch && styles.chipActive]}
+                    onPress={() => setSoldChannel(ch)}
+                  >
+                    <Text style={[styles.chipText, soldChannel === ch && styles.chipTextActive]}>
+                      {CHANNEL_LABELS[ch]}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Condition</Text>
           <View style={styles.chipGrid}>
@@ -694,39 +730,6 @@ export default function AddItemScreen() {
           )}
         </View>
 
-        {stage === 'sold' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Sale Details</Text>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Sold Price</Text>
-              <View style={styles.priceInputRow}>
-                <Text style={styles.dollarSign}>$</Text>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  value={soldPrice}
-                  onChangeText={setSoldPrice}
-                  placeholder="0.00"
-                  placeholderTextColor={c.textTertiary}
-                  keyboardType="decimal-pad"
-                />
-              </View>
-            </View>
-            <Text style={styles.fieldLabel}>Channel</Text>
-            <View style={styles.chipGrid}>
-              {(['ebay', 'tcgplayer', 'mercari', 'facebook', 'instagram', 'discord', 'in_person', 'other'] as SaleChannel[]).map((ch) => (
-                <Pressable
-                  key={ch}
-                  style={[styles.chip, soldChannel === ch && styles.chipActive]}
-                  onPress={() => setSoldChannel(ch)}
-                >
-                  <Text style={[styles.chipText, soldChannel === ch && styles.chipTextActive]}>
-                    {CHANNEL_LABELS[ch]}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notes</Text>
