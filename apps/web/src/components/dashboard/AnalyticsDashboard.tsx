@@ -268,7 +268,7 @@ export function AnalyticsDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Top Countries</CardTitle>
-            <CardDescription>Where your visitors are located.</CardDescription>
+            <CardDescription>Visitor locations based on IP address.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-5">
