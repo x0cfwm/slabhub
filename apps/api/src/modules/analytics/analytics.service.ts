@@ -6,7 +6,7 @@ import * as geoip from 'geoip-lite';
 
 @Injectable()
 export class AnalyticsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async trackEvent(data: {
     type: ShopEventType;
@@ -32,29 +32,29 @@ export class AnalyticsService {
     let channel = data.channel;
     const ua = data.userAgent.toLowerCase();
     if (!channel) {
-        if (ua.includes('telegrambot') || ua.includes('telegram')) {
-            channel = 'telegram';
-        } else if (ua.includes('facebook') || ua.includes('fban') || ua.includes('fbav')) {
-            channel = 'facebook';
-        } else if (ua.includes('instagram')) {
-            channel = 'instagram';
-        } else if (ua.includes('discord')) {
-            channel = 'discord';
-        }
+      if (ua.includes('telegrambot') || ua.includes('telegram')) {
+        channel = 'telegram';
+      } else if (ua.includes('facebook') || ua.includes('fban') || ua.includes('fbav')) {
+        channel = 'facebook';
+      } else if (ua.includes('instagram')) {
+        channel = 'instagram';
+      } else if (ua.includes('discord')) {
+        channel = 'discord';
+      }
     }
 
     // GeoIP resolution
     let geo = null;
     try {
-        // filter out internal addresses for lookup but it's fine for geoip-lite
-        geo = geoip.lookup(data.ip);
+      // filter out internal addresses for lookup but it's fine for geoip-lite
+      geo = geoip.lookup(data.ip);
     } catch (e) {
-        console.error('GeoIP lookup failed:', e);
+      console.error('GeoIP lookup failed:', e);
     }
     const countryCode = geo?.country || null;
 
     if (!countryCode) {
-        console.log(`Analytics: Could not resolve country for IP ${data.ip}`);
+      console.log(`Analytics: Could not resolve country for IP ${data.ip}`);
     }
 
     return (this.prisma as any).shopEvent.create({
@@ -111,86 +111,113 @@ export class AnalyticsService {
     // 2. Aggregate data for Line Chart (Views over time)
     const viewsByDay = new Map<string, { date: string; views: number; unique: Set<string> }>();
     for (let i = 0; i < days; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dayStr = d.toISOString().split('T')[0];
-        viewsByDay.set(dayStr, { date: dayStr, views: 0, unique: new Set() });
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayStr = d.toISOString().split('T')[0];
+      viewsByDay.set(dayStr, { date: dayStr, views: 0, unique: new Set() });
     }
 
     (events as any[]).forEach((e) => {
-        if (e.type === ShopEventType.VIEW_SHOP) {
-            const day = e.createdAt.toISOString().split('T')[0];
-            const stats = viewsByDay.get(day);
-            if (stats) {
-                stats.views++;
-                if (e.ipHash) stats.unique.add(e.ipHash);
-            }
+      if (e.type === ShopEventType.VIEW_SHOP) {
+        const day = e.createdAt.toISOString().split('T')[0];
+        const stats = viewsByDay.get(day);
+        if (stats) {
+          stats.views++;
+          if (e.ipHash) stats.unique.add(e.ipHash);
         }
+      }
     });
 
     const viewsChartData = Array.from(viewsByDay.values())
-        .map(v => ({ date: v.date, views: v.views, unique: v.unique.size }))
-        .sort((a, b) => a.date.localeCompare(b.date));
+      .map(v => ({ date: v.date, views: v.views, unique: v.unique.size }))
+      .sort((a, b) => a.date.localeCompare(b.date));
 
     // 3. Aggregate Top Items
     const itemsMap = new Map<string, { name: string; views: number }>();
     (events as any[]).forEach((e) => {
-        if (e.type === ShopEventType.VIEW_ITEM && e.itemId) {
-            const item = e.item as any;
-            const name = item?.productName || item?.cardVariant?.card?.name || item?.refPriceChartingProduct?.title || 'Unknown Item';
-            const stats = itemsMap.get(e.itemId) || { name, views: 0 };
-            stats.views++;
-            itemsMap.set(e.itemId, stats);
-        }
+      if (e.type === ShopEventType.VIEW_ITEM && e.itemId) {
+        const item = e.item as any;
+        const name = item?.productName || item?.cardVariant?.card?.name || item?.refPriceChartingProduct?.title || 'Unknown Item';
+        const stats = itemsMap.get(e.itemId) || { name, views: 0 };
+        stats.views++;
+        itemsMap.set(e.itemId, stats);
+      }
     });
 
     const topItems = Array.from(itemsMap.values())
-        .sort((a, b) => b.views - a.views)
-        .slice(0, 5);
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 5);
 
     // 4. Aggregate Sources
     const sourcesMap = new Map<string, number>();
     (events as any[]).forEach((e) => {
-        if (e.type === ShopEventType.VIEW_SHOP) {
-            let source = 'Direct';
-            if (e.channel) {
-                source = e.channel.charAt(0).toUpperCase() + e.channel.slice(1);
-            } else if (e.referrer) {
-                try {
-                    const url = new URL(e.referrer);
-                    const hostname = url.hostname.replace('www.', '');
-                    
-                    // Filter out internal referrers
-                    if (hostname === 'slabhub.com' || hostname === 'localhost' || hostname.includes('netlify.app')) {
-                        source = 'Direct';
-                    } else {
-                        source = hostname;
-                    }
-                } catch {
-                    source = 'Direct';
-                }
+      if (e.type === ShopEventType.VIEW_SHOP) {
+        let source = 'Direct';
+        if (e.channel) {
+          const channelMap: Record<string, string> = {
+            'tg': 'Telegram',
+            'telegram': 'Telegram',
+            'fb': 'Facebook',
+            'facebook': 'Facebook',
+            'ig': 'Instagram',
+            'instagram': 'Instagram',
+            'tw': 'Twitter',
+            'twitter': 'Twitter',
+            'dc': 'Discord',
+            'discord': 'Discord',
+          };
+          source = channelMap[e.channel.toLowerCase()] || (e.channel.charAt(0).toUpperCase() + e.channel.slice(1));
+        } else if (e.referrer) {
+          try {
+            const url = new URL(e.referrer);
+            const hostname = url.hostname.replace('www.', '');
+
+            const internalDomains = ['slabhub.gg', 'localhost'];
+            const isInternal = internalDomains.some(d => hostname === d || hostname.endsWith('.' + d)) || hostname.includes('netlify.app');
+
+            const searchEngines = ['google.', 'bing.', 'duckduckgo.', 'yahoo.', 'yandex.', 'baidu.'];
+            const isSearch = searchEngines.some(se => hostname.includes(se));
+
+            if (isInternal || isSearch) {
+              source = 'Organic';
+            } else if (hostname.includes('facebook.com') || hostname.includes('fb.me')) {
+              source = 'Facebook';
+            } else if (hostname.includes('t.me') || hostname.includes('telegram.org')) {
+              source = 'Telegram';
+            } else if (hostname.includes('instagram.com')) {
+              source = 'Instagram';
+            } else if (hostname.includes('discord.com') || hostname.includes('discord.gg')) {
+              source = 'Discord';
+            } else if (hostname.includes('t.co') || hostname.includes('twitter.com') || hostname.includes('x.com')) {
+              source = 'Twitter';
+            } else {
+              source = hostname;
             }
-            sourcesMap.set(source, (sourcesMap.get(source) || 0) + 1);
+          } catch {
+            source = 'Direct';
+          }
         }
+        sourcesMap.set(source, (sourcesMap.get(source) || 0) + 1);
+      }
     });
 
     const sources = Array.from(sourcesMap.entries())
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value);
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
 
     // 5. Aggregate Countries
     const countriesMap = new Map<string, number>();
     (events as any[]).forEach((e) => {
-        if (e.type === ShopEventType.VIEW_SHOP) {
-            const countryCode = e.countryCode || 'Unknown';
-            countriesMap.set(countryCode, (countriesMap.get(countryCode) || 0) + 1);
-        }
+      if (e.type === ShopEventType.VIEW_SHOP) {
+        const countryCode = e.countryCode || 'Unknown';
+        countriesMap.set(countryCode, (countriesMap.get(countryCode) || 0) + 1);
+      }
     });
 
     const topCountries = Array.from(countriesMap.entries())
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 5);
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
 
     // 6. Summary Metrics
     const totalViews = (events as any[]).filter((e) => e.type === ShopEventType.VIEW_SHOP).length;
