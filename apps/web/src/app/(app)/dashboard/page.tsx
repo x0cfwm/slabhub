@@ -73,15 +73,21 @@ function DashboardPageContent() {
         now.setHours(23, 59, 59, 999);
 
         // Only include items that are not archived and were acquired as of now to match chart logic
-        const activeItems = items.filter(item => {
+        const allItems = items.filter(item => {
             if (item.stage === "ARCHIVED") return false;
 
             const acqDate = item.acquisitionDate ? new Date(item.acquisitionDate) : new Date(item.createdAt);
             return acqDate <= now;
         });
 
+        // Split into active (in portfolio) and sold
+        const activeItems = allItems.filter(i => i.stage !== "SOLD");
+        const soldItems = allItems.filter(i => i.stage === "SOLD");
+
         const totalItems = activeItems.reduce((acc, i) => acc + (i.quantity || 1), 0);
         const forSaleItems = activeItems.filter(i => i.stage === "LISTED").reduce((acc, i) => acc + (i.quantity || 1), 0);
+        const soldItemCount = soldItems.reduce((acc, i) => acc + (i.quantity || 1), 0);
+        const soldRevenue = soldItems.reduce((acc, i) => acc + ((i.soldPrice || 0) * (i.quantity || 1)), 0);
 
         const marketValue = activeItems.reduce((acc, item) => {
             const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
@@ -123,12 +129,12 @@ function DashboardPageContent() {
             return acc + (unitPrice * (item.quantity || 1));
         }, 0);
 
-        const stages = activeItems.reduce((acc, item) => {
+        const stages = allItems.reduce((acc, item) => {
             acc[item.stage] = (acc[item.stage] || 0) + (item.quantity || 1);
             return acc;
         }, {} as Record<string, number>);
 
-        return { totalItems, forSaleItems, marketValue, stages };
+        return { totalItems, forSaleItems, marketValue, stages, soldItemCount, soldRevenue };
     }, [items, marketProducts]);
 
     const lastUpdated = useMemo(() => {
@@ -192,12 +198,12 @@ function DashboardPageContent() {
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+                                <CardTitle className="text-sm font-medium">Active Items</CardTitle>
                                 <Package className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{stats.totalItems}</div>
-                                <p className="text-xs text-muted-foreground">Across all stages</p>
+                                <p className="text-xs text-muted-foreground">In portfolio</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -217,19 +223,23 @@ function DashboardPageContent() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">${Math.round(stats.marketValue).toLocaleString()}</div>
-                                <p className="text-xs text-muted-foreground">Based on market data</p>
+                                <p className="text-xs text-muted-foreground" title={lastUpdatedFull || ""}>
+                                    {lastUpdated ? `Updated ${lastUpdated}` : "Based on market data"}
+                                </p>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Price Refreshed</CardTitle>
+                                <CardTitle className="text-sm font-medium">Sold Items</CardTitle>
                                 <History className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold" title={lastUpdatedFull || ""}>
-                                    {lastUpdated || "N/A"}
-                                </div>
-                                <p className="text-xs text-muted-foreground">Last valuation update</p>
+                                <div className="text-2xl font-bold">{stats.soldItemCount}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    {stats.soldRevenue > 0
+                                        ? `$${Math.round(stats.soldRevenue).toLocaleString()} revenue`
+                                        : "No sales yet"}
+                                </p>
                             </CardContent>
                         </Card>
                     </div>

@@ -16,23 +16,13 @@ import {
     ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Button } from "@/components/ui/button";
+import { TrendingUp, TrendingDown, DollarSign, BarChart3 } from "lucide-react";
 
 import { InventoryItem, PortfolioHistoryEntry } from "@/lib/types";
 
 const calculateChartData = (history: PortfolioHistoryEntry[], days: number) => {
     if (!history || history.length === 0) return [];
-
-    // Backend returns history from days ago to today.
-    // history[0] is 90 days ago, history[last] is today.
-
     const slice = history.slice(-days - 1);
-
-    // If we want to reduce points for 3m to make it cleaner (optional)
-    if (days > 30) {
-        // Return every 2nd or 3rd point if needed, but daily is usually fine for Area chart
-        return slice;
-    }
-
     return slice;
 };
 
@@ -50,6 +40,54 @@ const chartConfig = {
         color: "var(--chart-1)",
     },
 } satisfies ChartConfig;
+
+const formatCurrency = (value: number) => {
+    if (Math.abs(value) >= 1000) {
+        return `$${(value / 1000).toFixed(1)}k`;
+    }
+    return `$${value.toLocaleString()}`;
+};
+
+const formatPnl = (value: number) => {
+    const sign = value >= 0 ? "+" : "";
+    if (Math.abs(value) >= 1000) {
+        return `${sign}$${(value / 1000).toFixed(1)}k`;
+    }
+    return `${sign}$${value.toLocaleString()}`;
+};
+
+const formatPercent = (pnl: number, cost: number) => {
+    if (!cost || cost === 0) return "";
+    const pct = (pnl / cost) * 100;
+    const sign = pct >= 0 ? "+" : "";
+    return `${sign}${pct.toFixed(1)}%`;
+};
+
+interface PnlSummaryCardProps {
+    label: string;
+    value: string;
+    subtext: string;
+    icon: React.ReactNode;
+    positive?: boolean;
+    neutral?: boolean;
+}
+
+function PnlSummaryCard({ label, value, subtext, icon, positive, neutral }: PnlSummaryCardProps) {
+    return (
+        <div className="flex flex-col gap-1 rounded-lg border p-3 bg-card">
+            <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">{label}</span>
+                <span className="text-muted-foreground">{icon}</span>
+            </div>
+            <span className={`text-lg font-bold tabular-nums ${
+                neutral ? "text-foreground" : positive ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
+            }`}>
+                {value}
+            </span>
+            <span className="text-xs text-muted-foreground">{subtext}</span>
+        </div>
+    );
+}
 
 interface MarketValueChartProps {
     items: InventoryItem[];
@@ -70,13 +108,18 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
         }
     }, [history, timeRange]);
 
+    // Get the latest data point for summary cards
+    const latest = data.length > 0 ? data[data.length - 1] : null;
+
+    const hasSoldItems = latest && latest.soldCount > 0;
+
     return (
         <Card className="w-full">
             <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
                 <div className="grid flex-1 gap-1 text-center sm:text-left">
-                    <CardTitle>Est. Market Value</CardTitle>
+                    <CardTitle>Portfolio Performance</CardTitle>
                     <CardDescription>
-                        Historical portfolio performance over the selected period
+                        Historical portfolio value & profit tracking
                     </CardDescription>
                 </div>
                 <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
@@ -106,6 +149,48 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
                     </Button>
                 </div>
             </CardHeader>
+
+            {/* PnL Summary Cards */}
+            {latest && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-4 sm:px-6 pt-4">
+                    <PnlSummaryCard
+                        label="Active Portfolio"
+                        value={formatCurrency(latest.value)}
+                        subtext={`${latest.count} items · Cost ${formatCurrency(latest.cost)}`}
+                        icon={<BarChart3 className="h-3.5 w-3.5" />}
+                        neutral
+                    />
+                    <PnlSummaryCard
+                        label="Unrealized P&L"
+                        value={formatPnl(latest.unrealizedPnl)}
+                        subtext={formatPercent(latest.unrealizedPnl, latest.cost) || "No cost basis"}
+                        icon={latest.unrealizedPnl >= 0
+                            ? <TrendingUp className="h-3.5 w-3.5" />
+                            : <TrendingDown className="h-3.5 w-3.5" />}
+                        positive={latest.unrealizedPnl >= 0}
+                    />
+                    <PnlSummaryCard
+                        label="Realized P&L"
+                        value={hasSoldItems ? formatPnl(latest.realizedPnl) : "—"}
+                        subtext={hasSoldItems
+                            ? `${latest.soldCount} sold · Rev ${formatCurrency(latest.soldRevenue)}`
+                            : "No sold items"}
+                        icon={<DollarSign className="h-3.5 w-3.5" />}
+                        positive={!hasSoldItems || latest.realizedPnl >= 0}
+                        neutral={!hasSoldItems}
+                    />
+                    <PnlSummaryCard
+                        label="Total P&L"
+                        value={formatPnl(latest.totalPnl)}
+                        subtext={formatPercent(latest.totalPnl, latest.cost + latest.soldCost) || "N/A"}
+                        icon={latest.totalPnl >= 0
+                            ? <TrendingUp className="h-3.5 w-3.5" />
+                            : <TrendingDown className="h-3.5 w-3.5" />}
+                        positive={latest.totalPnl >= 0}
+                    />
+                </div>
+            )}
+
             <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
                 <ChartContainer
                     config={chartConfig}
@@ -181,7 +266,52 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
                             content={
                                 <ChartTooltipContent
                                     indicator="dot"
-                                    className="w-[180px]"
+                                    className="w-[220px]"
+                                    formatter={(value, name, item) => {
+                                        const payload = item?.payload;
+                                        if (name === "value") {
+                                            const pnlValue = payload?.unrealizedPnl ?? 0;
+                                            const pnlColor = pnlValue >= 0 ? "text-green-600" : "text-red-500";
+                                            return (
+                                                <div className="flex flex-col gap-0.5 w-full">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Market Value</span>
+                                                        <span className="font-mono font-medium">{Number(value).toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className={`text-xs ${pnlColor}`}>Unrealized P&L</span>
+                                                        <span className={`text-xs font-mono ${pnlColor}`}>{formatPnl(pnlValue)}</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        if (name === "cost") {
+                                            return (
+                                                <div className="flex justify-between w-full">
+                                                    <span className="text-muted-foreground">Cost Basis</span>
+                                                    <span className="font-mono font-medium">{Number(value).toLocaleString()}</span>
+                                                </div>
+                                            );
+                                        }
+                                        if (name === "count") {
+                                            const soldCount = payload?.soldCount ?? 0;
+                                            return (
+                                                <div className="flex flex-col gap-0.5 w-full">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Item Count</span>
+                                                        <span className="font-mono font-medium">{Number(value)}</span>
+                                                    </div>
+                                                    {soldCount > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-xs text-muted-foreground">Sold</span>
+                                                            <span className="text-xs font-mono">{soldCount}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        }
+                                        return <span className="font-mono font-medium">{Number(value).toLocaleString()}</span>;
+                                    }}
                                 />
                             }
                         />

@@ -261,7 +261,13 @@ export interface InviteAcceptance {
 
 export interface PortfolioHistoryEntry {
     date: string;
-    value: number;
-    cost: number;
-    count: number;
+    value: number;          // Active portfolio market value
+    cost: number;           // Active portfolio cost basis
+    count: number;          // Active item count
+    soldRevenue: number;    // Cumulative revenue from sold items
+    soldCost: number;       // Cumulative cost basis of sold items
+    soldCount: number;      // Cumulative count of sold items
+    realizedPnl: number;    // soldRevenue - soldCost
+    unrealizedPnl: number;  // value - cost
+    totalPnl: number;       // realizedPnl + unrealizedPnl
 }
