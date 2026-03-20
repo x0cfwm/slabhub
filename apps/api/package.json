@@ -12,6 +12,7 @@
         "test": "jest --selectProjects unit --runInBand",
         "test:unit": "jest --selectProjects unit --runInBand",
         "test:int": "jest --selectProjects integration --runInBand",
+        "test:int:mobile": "jest --selectProjects integration --runInBand --testPathPattern=mobile-api-contracts\\.spec\\.ts$",
         "test:coverage": "jest --coverage --selectProjects unit integration --runInBand",
         "test:ci": "pnpm run test:unit && pnpm run test:int && pnpm run test:coverage",
         "test:watch": "jest --watch",
