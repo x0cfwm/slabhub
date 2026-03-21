@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { isWithinInterval, startOfDay, endOfDay, parseISO, addSeconds, subDays } from "date-fns";
 import {
     Card,
     CardContent,
@@ -22,46 +21,60 @@ const calculateChartData = (history: PortfolioHistoryEntry[], items: InventoryIt
     if (!history || history.length === 0) return [];
     const slice = history.slice(-days - 1);
 
-    // Pre-filter sold items for faster lookups
-    const soldItems = items.filter(i => i.stage === "SOLD" && i.soldDate);
+    // Pre-filter sold items and sort them by the "effective" date they enter the sold items list.
+    // The backend counts an item as sold on the later of its acquisitionDate and soldDate.
+    const soldItems = items
+        .filter(i => i.stage === "SOLD" && i.soldDate)
+        .sort((a, b) => {
+            const aAcq = a.acquisitionDate ? new Date(a.acquisitionDate).getTime() : new Date(a.createdAt).getTime();
+            const aSold = new Date(a.soldDate!).getTime();
+            const aEffective = Math.max(aAcq, aSold);
 
-    // Backend history array always ends on exactly "today" at 23:59:59.999
-    // `slice[i]` corresponds to `slice.length - 1 - i` days ago.
+            const bAcq = b.acquisitionDate ? new Date(b.acquisitionDate).getTime() : new Date(b.createdAt).getTime();
+            const bSold = new Date(b.soldDate!).getTime();
+            const bEffective = Math.max(bAcq, bSold);
+
+            return aEffective - bEffective;
+        });
+
+    let pointer = 0;
+    let consumedCount = 0;
+    const initialExpectedSoldCount = slice.length > 0 ? slice[0].soldCount : 0;
+    
+    // Fast-forward pointer to skip everything that was sold before the start of the chart slice
+    while (pointer < soldItems.length && consumedCount < initialExpectedSoldCount) {
+        consumedCount += soldItems[pointer].quantity || 1;
+        pointer++;
+    }
+
     return slice.map((entry, i) => {
         const prev = slice[i - 1];
         const delta = prev ? entry.soldCount - prev.soldCount : 0;
 
         let intervalItems: { name: string; pnl: number }[] = [];
-        if (prev && delta > 0) {
-            try {
-                const daysAgoEnd = slice.length - 1 - i;
-                const daysAgoStart = slice.length - 1 - (i - 1);
-
-                // Use the exact same date math as the backend to avoid mismatches
-                const start = addSeconds(endOfDay(subDays(new Date(), daysAgoStart)), 1);
-                const end = endOfDay(subDays(new Date(), daysAgoEnd));
+        if (delta > 0) {
+            let itemsToTake = delta;
+            while (pointer < soldItems.length && itemsToTake > 0) {
+                const item = soldItems[pointer];
+                const qty = item.quantity || 1;
                 
-                intervalItems = soldItems
-                    .filter(item => {
-                        const sDate = new Date(item.soldDate!);
-                        return isWithinInterval(sDate, { start, end });
-                    })
-                    .map(item => {
-                        const acqPrice = item.acquisitionPrice || 0;
-                        const soldPrice = item.soldPrice || 0;
-                        const gradingCost = (item as any).gradingCost || 0;
-                        // Use product name of sealed, or generic name, or title from PriceCharting.
-                        const name = (item as any).refPriceChartingProduct?.title 
-                            || item.productName 
-                            || (item as any).cardProfile?.name 
-                            || "Unknown Item";
-                        return {
-                            name,
-                            pnl: soldPrice - acqPrice - gradingCost,
-                        };
-                    });
-            } catch (err) {
-                console.error("Date comparison failed:", err);
+                const acqPrice = item.acquisitionPrice || 0;
+                const soldPrice = item.soldPrice || 0;
+                const gradingCost = (item as any).gradingCost || 0;
+                
+                const name = (item as any).refPriceChartingProduct?.title 
+                    || item.productName 
+                    || (item as any).cardProfile?.name 
+                    || "Unknown Item";
+                
+                intervalItems.push({
+                    name: qty > 1 ? `${qty}x ${name}` : name,
+                    pnl: (soldPrice * qty) - (acqPrice * qty) - gradingCost,
+                });
+                
+                // Keep consuming
+                itemsToTake -= qty;
+                pointer++;
             }
         }
 
