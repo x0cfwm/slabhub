@@ -66,9 +66,9 @@ export class PostingService {
 
         const imageDataUrls: string[] = [];
         if (generationTarget !== PostingGenerationTarget.TEXT_ONLY) {
-            for (const chunk of chunkedItems) {
-                imageDataUrls.push(await this.buildImageDataUrl(dto.visualOptions, chunk));
-            }
+            const imagePromises = chunkedItems.map((chunk) => this.buildImageDataUrl(dto.visualOptions, chunk));
+            const generatedImages = await Promise.all(imagePromises);
+            imageDataUrls.push(...generatedImages);
         } else if (previous?.imageDataUrl) {
             imageDataUrls.push(...(previous.imageDataUrl as string[]));
         }
@@ -366,27 +366,53 @@ export class PostingService {
             return map;
         }
 
-        await Promise.all(
-            urls.map(async (originalUrl) => {
-                const dataUrl = await this.fetchImageAsDataUrl(originalUrl);
-                map.set(originalUrl, dataUrl);
-            }),
-        );
+        // Fetch images in smaller batches to avoid connection pooling limits/throttling
+        const BATCH_SIZE = 5; 
+        for (let i = 0; i < urls.length; i += BATCH_SIZE) {
+            const batch = urls.slice(i, i + BATCH_SIZE);
+            await Promise.all(
+                batch.map(async (originalUrl) => {
+                    let dataUrl = await this.fetchImageAsDataUrl(originalUrl);
+                    // Single automatic retry for transient network failures
+                    if (!dataUrl) {
+                        dataUrl = await this.fetchImageAsDataUrl(originalUrl);
+                    }
+                    map.set(originalUrl, dataUrl);
+                }),
+            );
+        }
 
         return map;
     }
 
     private normalizeImageUrl(url: string): string | null {
         if (url.startsWith('data:image/')) return url;
-        if (url.startsWith('https://') || url.startsWith('http://')) return url;
-        if (url.startsWith('//')) return `https:${url}`;
-        if (url.startsWith('/')) {
+        
+        let normalized = url;
+        if (url.startsWith('//')) {
+            normalized = `https:${url}`;
+        } else if (url.startsWith('/')) {
             const apiBase = process.env.NEXT_PUBLIC_API_URL;
             if (apiBase && apiBase.startsWith('http')) {
-                return `${apiBase}${url}`;
+                normalized = `${apiBase}${url}`;
+            } else {
+                return null;
             }
         }
-        return null;
+
+        if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+            return null;
+        }
+
+        // Speed Optimization: Request pre-resized webp copies from our CDN
+        // avoiding downloading 5MB+ originals directly into memory
+        const cdnBase = process.env.S3_CDN_BASE_URL || 'https://cdn.slabhub.gg';
+        if (normalized.startsWith(cdnBase) && !normalized.includes('/cdn-cgi/image/')) {
+            const pathInfo = normalized.substring(cdnBase.length);
+            return `${cdnBase}/cdn-cgi/image/width=640,quality=80,format=webp${pathInfo}`;
+        }
+
+        return normalized;
     }
 
     private async fetchImageAsDataUrl(imageUrl: string): Promise<string | null> {
