@@ -54,7 +54,7 @@ const calculateChartData = (history: PortfolioHistoryEntry[], items: InventoryIt
                         const soldPrice = item.soldPrice || 0;
                         const gradingCost = (item as any).gradingCost || 0;
                         // Use product name of sealed, or generic name, or title from PriceCharting.
-                        const name = item.refPriceChartingProduct?.title 
+                        const name = (item as any).refPriceChartingProduct?.title 
                             || item.productName 
                             || (item as any).cardProfile?.name 
                             || "Unknown Item";
