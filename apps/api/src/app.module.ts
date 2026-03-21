@@ -26,6 +26,7 @@ import { z } from 'zod';
 import { SentryInterceptor } from './common/interceptors/sentry.interceptor';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { PostingModule } from './modules/posting/posting.module';
 
 @Module({
     imports: [
@@ -104,6 +105,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
         InviteModule,
         WorkflowModule,
         AnalyticsModule,
+        PostingModule,
     ],
     providers: [
         {
