@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { isWithinInterval, startOfDay, endOfDay, parseISO, addSeconds, subDays } from "date-fns";
 import {
     Card,
     CardContent,
@@ -20,10 +21,59 @@ import { TrendingUp, TrendingDown, DollarSign, BarChart3 } from "lucide-react";
 
 import { InventoryItem, PortfolioHistoryEntry } from "@/lib/types";
 
-const calculateChartData = (history: PortfolioHistoryEntry[], days: number) => {
+const calculateChartData = (history: PortfolioHistoryEntry[], items: InventoryItem[], days: number) => {
     if (!history || history.length === 0) return [];
     const slice = history.slice(-days - 1);
-    return slice;
+
+    // Pre-filter sold items for faster lookups
+    const soldItems = items.filter(i => i.stage === "SOLD" && i.soldDate);
+
+    // Backend history array always ends on exactly "today" at 23:59:59.999
+    // `slice[i]` corresponds to `slice.length - 1 - i` days ago.
+    return slice.map((entry, i) => {
+        const prev = slice[i - 1];
+        const delta = prev ? entry.soldCount - prev.soldCount : 0;
+
+        let intervalItems: { name: string; pnl: number }[] = [];
+        if (prev && delta > 0) {
+            try {
+                const daysAgoEnd = slice.length - 1 - i;
+                const daysAgoStart = slice.length - 1 - (i - 1);
+
+                // Use the exact same date math as the backend to avoid mismatches
+                const start = addSeconds(endOfDay(subDays(new Date(), daysAgoStart)), 1);
+                const end = endOfDay(subDays(new Date(), daysAgoEnd));
+                
+                intervalItems = soldItems
+                    .filter(item => {
+                        const sDate = new Date(item.soldDate!);
+                        return isWithinInterval(sDate, { start, end });
+                    })
+                    .map(item => {
+                        const acqPrice = item.acquisitionPrice || 0;
+                        const soldPrice = item.soldPrice || 0;
+                        const gradingCost = (item as any).gradingCost || 0;
+                        // Use product name of sealed, or generic name, or title from PriceCharting.
+                        const name = item.refPriceChartingProduct?.title 
+                            || item.productName 
+                            || (item as any).cardProfile?.name 
+                            || "Unknown Item";
+                        return {
+                            name,
+                            pnl: soldPrice - acqPrice - gradingCost,
+                        };
+                    });
+            } catch (err) {
+                console.error("Date comparison failed:", err);
+            }
+        }
+
+        return {
+            ...entry,
+            intervalSoldCount: delta > 0 ? delta : 0,
+            intervalItems,
+        };
+    });
 };
 
 const chartConfig = {
@@ -31,13 +81,13 @@ const chartConfig = {
         label: "Market Value",
         color: "var(--chart-1)",
     },
-    cost: {
-        label: "Acquisition Cost",
-        color: "var(--chart-2)",
+    realizedPnl: {
+        label: "Realized P&L",
+        color: "#22c55e",
     },
-    count: {
-        label: "Item Count",
-        color: "var(--chart-1)",
+    unrealizedPnl: {
+        label: "Unrealized P&L",
+        color: "#22c55e",
     },
 } satisfies ChartConfig;
 
@@ -98,15 +148,9 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
     const [timeRange, setTimeRange] = React.useState<"7d" | "30d" | "3m">("3m");
 
     const data = React.useMemo(() => {
-        switch (timeRange) {
-            case "7d":
-                return calculateChartData(history, 7);
-            case "30d":
-                return calculateChartData(history, 30);
-            case "3m":
-                return calculateChartData(history, 90);
-        }
-    }, [history, timeRange]);
+        const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90;
+        return calculateChartData(history, items, days);
+    }, [history, items, timeRange]);
 
     // Get the latest data point for summary cards
     const latest = data.length > 0 ? data[data.length - 1] : null;
@@ -122,32 +166,7 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
                         Historical portfolio value & profit tracking
                     </CardDescription>
                 </div>
-                <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
-                    <Button
-                        variant={timeRange === "3m" ? "secondary" : "ghost"}
-                        size="sm"
-                        className="h-8 text-xs px-3"
-                        onClick={() => setTimeRange("3m")}
-                    >
-                        Last 3 months
-                    </Button>
-                    <Button
-                        variant={timeRange === "30d" ? "secondary" : "ghost"}
-                        size="sm"
-                        className="h-8 text-xs px-3"
-                        onClick={() => setTimeRange("30d")}
-                    >
-                        Last 30 days
-                    </Button>
-                    <Button
-                        variant={timeRange === "7d" ? "secondary" : "ghost"}
-                        size="sm"
-                        className="h-8 text-xs px-3"
-                        onClick={() => setTimeRange("7d")}
-                    >
-                        Last 7 days
-                    </Button>
-                </div>
+
             </CardHeader>
 
             {/* PnL Summary Cards */}
@@ -156,7 +175,7 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
                     <PnlSummaryCard
                         label="Active Portfolio"
                         value={formatCurrency(latest.value)}
-                        subtext={`${latest.count} items · Cost ${formatCurrency(latest.cost)}`}
+                        subtext={`${latest.count} items · Realized P&L ${formatPnl(latest.realizedPnl)}`}
                         icon={<BarChart3 className="h-3.5 w-3.5" />}
                         neutral
                     />
@@ -210,27 +229,27 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
                                     stopOpacity={0.01}
                                 />
                             </linearGradient>
-                            <linearGradient id="fillCost" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="fillRealizedPnl" x1="0" y1="0" x2="0" y2="1">
                                 <stop
                                     offset="5%"
-                                    stopColor="var(--color-cost)"
+                                    stopColor="#22c55e"
                                     stopOpacity={0.2}
                                 />
                                 <stop
                                     offset="95%"
-                                    stopColor="var(--color-cost)"
+                                    stopColor="#22c55e"
                                     stopOpacity={0.01}
                                 />
                             </linearGradient>
-                            <linearGradient id="fillCount" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="fillUnrealizedPnl" x1="0" y1="0" x2="0" y2="1">
                                 <stop
                                     offset="5%"
-                                    stopColor="var(--color-count)"
+                                    stopColor="#22c55e"
                                     stopOpacity={0.1}
                                 />
                                 <stop
                                     offset="95%"
-                                    stopColor="var(--color-count)"
+                                    stopColor="#22c55e"
                                     stopOpacity={0.01}
                                 />
                             </linearGradient>
@@ -252,61 +271,79 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
                             className="text-muted-foreground"
                             tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                         />
-                        <YAxis
-                            yAxisId="right"
-                            orientation="right"
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={12}
-                            className="text-muted-foreground"
-                            tickFormatter={(value) => `${value}`}
-                        />
                         <ChartTooltip
                             cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }}
                             content={
                                 <ChartTooltipContent
                                     indicator="dot"
-                                    className="w-[220px]"
+                                    className="w-[280px]"
                                     formatter={(value, name, item) => {
                                         const payload = item?.payload;
                                         if (name === "value") {
-                                            const pnlValue = payload?.unrealizedPnl ?? 0;
-                                            const pnlColor = pnlValue >= 0 ? "text-green-600" : "text-red-500";
                                             return (
-                                                <div className="flex flex-col gap-0.5 w-full">
-                                                    <div className="flex justify-between">
-                                                        <span className="text-muted-foreground">Market Value</span>
-                                                        <span className="font-mono font-medium">{Number(value).toLocaleString()}</span>
+                                                <div className="flex justify-between items-center w-full gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-0.5 w-3 rounded-full bg-[var(--color-value)]" />
+                                                        <span className="text-muted-foreground whitespace-nowrap">Market Value</span>
                                                     </div>
-                                                    <div className="flex justify-between">
-                                                        <span className={`text-xs ${pnlColor}`}>Unrealized P&L</span>
-                                                        <span className={`text-xs font-mono ${pnlColor}`}>{formatPnl(pnlValue)}</span>
-                                                    </div>
-                                                </div>
-                                            );
-                                        }
-                                        if (name === "cost") {
-                                            return (
-                                                <div className="flex justify-between w-full">
-                                                    <span className="text-muted-foreground">Cost Basis</span>
                                                     <span className="font-mono font-medium">{Number(value).toLocaleString()}</span>
                                                 </div>
                                             );
                                         }
-                                        if (name === "count") {
-                                            const soldCount = payload?.soldCount ?? 0;
+                                        if (name === "realizedPnl") {
+                                            const pnlValue = Number(value);
+                                            const pnlColor = pnlValue >= 0 ? "text-green-600" : "text-red-500";
                                             return (
                                                 <div className="flex flex-col gap-0.5 w-full">
-                                                    <div className="flex justify-between">
-                                                        <span className="text-muted-foreground">Item Count</span>
-                                                        <span className="font-mono font-medium">{Number(value)}</span>
+                                                    <div className="flex justify-between items-center w-full gap-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="h-0.5 w-3 rounded-full bg-[#22c55e]" />
+                                                            <span className="text-muted-foreground whitespace-nowrap">Realized P&L</span>
+                                                        </div>
+                                                        <span className={`font-mono font-medium ${pnlColor}`}>{formatPnl(pnlValue)}</span>
                                                     </div>
-                                                    {soldCount > 0 && (
-                                                        <div className="flex justify-between">
-                                                            <span className="text-xs text-muted-foreground">Sold</span>
-                                                            <span className="text-xs font-mono">{soldCount}</span>
+                                                    {payload?.intervalSoldCount > 0 && (
+                                                        <div className="flex flex-col gap-1 w-full pl-2 mt-1 border-l ml-1.5 border-green-200 dark:border-green-900 overflow-hidden">
+                                                            <div className="flex flex-col gap-1">
+                                                                {payload.intervalItems && payload.intervalItems.length > 0 ? (
+                                                                    <>
+                                                                        {(payload.intervalItems as any[])?.slice(0, 10).map((item, i) => (
+                                                                            <div key={i} className="flex justify-between items-center gap-2 w-full">
+                                                                                <span className="text-[10px] text-muted-foreground truncate max-w-[180px]">
+                                                                                    • {item.name}
+                                                                                </span>
+                                                                                <span className={`text-[9px] font-mono font-medium ${item.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500"} shrink-0`}>
+                                                                                    {formatPnl(item.pnl)}
+                                                                                </span>
+                                                                            </div>
+                                                                        ))}
+                                                                        {(payload.intervalItems as any[])?.length > 10 && (
+                                                                            <span className="text-[9px] text-muted-foreground italic pl-2">
+                                                                                + {(payload.intervalItems as any[]).length - 10} more sold
+                                                                            </span>
+                                                                        )}
+                                                                    </>
+                                                                ) : (
+                                                                    <span className="text-[10px] text-green-600 dark:text-green-400 font-bold uppercase tracking-wider">
+                                                                        Sold {payload.intervalSoldCount} item{payload.intervalSoldCount > 1 ? "s" : ""}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     )}
+                                                </div>
+                                            );
+                                        }
+                                        if (name === "unrealizedPnl") {
+                                            const pnlValue = Number(value);
+                                            const pnlColor = pnlValue >= 0 ? "text-green-600" : "text-red-500";
+                                            return (
+                                                <div className="flex justify-between items-center w-full gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-0 w-3 border-t-2 border-dashed border-[#22c55e]" />
+                                                        <span className="text-muted-foreground whitespace-nowrap">Unrealized P&L</span>
+                                                    </div>
+                                                    <span className={`font-mono font-medium ${pnlColor}`}>{formatPnl(pnlValue)}</span>
                                                 </div>
                                             );
                                         }
@@ -314,16 +351,6 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
                                     }}
                                 />
                             }
-                        />
-                        <Area
-                            yAxisId="left"
-                            dataKey="cost"
-                            type="monotone"
-                            fill="url(#fillCost)"
-                            stroke="var(--color-cost)"
-                            strokeWidth={2}
-                            dot={false}
-                            activeDot={{ r: 4, strokeWidth: 0 }}
                         />
                         <Area
                             yAxisId="left"
@@ -336,14 +363,41 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
                             activeDot={{ r: 6, strokeWidth: 0 }}
                         />
                         <Area
-                            yAxisId="right"
-                            dataKey="count"
+                            yAxisId="left"
+                            dataKey="unrealizedPnl"
                             type="monotone"
-                            fill="url(#fillCount)"
-                            stroke="var(--color-count)"
+                            fill="url(#fillUnrealizedPnl)"
+                            stroke="#22c55e"
                             strokeWidth={2}
                             strokeDasharray="5 5"
                             dot={false}
+                            activeDot={{ r: 4, strokeWidth: 0 }}
+                        />
+                        <Area
+                            yAxisId="left"
+                            dataKey="realizedPnl"
+                            type="monotone"
+                            fill="url(#fillRealizedPnl)"
+                            stroke="#22c55e"
+                            strokeWidth={2}
+                            dot={(props: any) => {
+                                const { cx, cy, payload, index } = props;
+                                if (payload.intervalSoldCount > 0) {
+                                  return (
+                                    <circle
+                                      key={`dot-${index}`}
+                                      cx={cx}
+                                      cy={cy}
+                                      r={6}
+                                      fill="#22c55e"
+                                      stroke="white"
+                                      strokeWidth={2}
+                                      className="drop-shadow-sm"
+                                    />
+                                  );
+                                }
+                                return null as any;
+                            }}
                             activeDot={{ r: 4, strokeWidth: 0 }}
                         />
                     </AreaChart>
