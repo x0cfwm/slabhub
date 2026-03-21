@@ -5,10 +5,6 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
     Plus,
-    Package,
-    TrendingUp,
-    ShoppingCart,
-    History,
     ArrowUpRight,
     Monitor,
     MonitorOff
@@ -16,13 +12,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { listInventory, getMe, getMarketProducts, getMarketValueHistory, getMarketSyncStatus } from "@/lib/api";
-import { InventoryItem, MarketProduct, SellerProfile, PortfolioHistoryEntry } from "@/lib/types";
+import { listInventory, getMe, getMarketValueHistory } from "@/lib/api";
+import { InventoryItem, SellerProfile, PortfolioHistoryEntry } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { MarketValueChart } from "@/components/dashboard/MarketValueChart";
 import { AnalyticsDashboard } from "@/components/dashboard/AnalyticsDashboard";
-import { formatRelativeTime } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function DashboardPageContent() {
@@ -37,26 +32,20 @@ function DashboardPageContent() {
     };
 
     const [items, setItems] = useState<InventoryItem[]>([]);
-    const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
     const [history, setHistory] = useState<PortfolioHistoryEntry[]>([]);
     const [profile, setProfile] = useState<SellerProfile | null>(null);
-    const [syncStatus, setSyncStatus] = useState<{ lastSyncAt: string } | null>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchData = async () => {
         try {
-            const [inv, market, prof, hist, sync] = await Promise.all([
+            const [inv, prof, hist] = await Promise.all([
                 listInventory(),
-                getMarketProducts({ page: 1, limit: 100 }), // Fetch some market products for pricing
                 getMe(),
-                getMarketValueHistory(90),
-                getMarketSyncStatus()
+                getMarketValueHistory(90)
             ]);
             setItems(inv);
-            setMarketProducts(market.items);
             setProfile(prof?.profile || null);
             setHistory(hist);
-            setSyncStatus(sync);
         } catch (err) {
             toast.error("Failed to fetch dashboard data");
         } finally {
@@ -73,84 +62,31 @@ function DashboardPageContent() {
         now.setHours(23, 59, 59, 999);
 
         // Only include items that are not archived and were acquired as of now to match chart logic
-        const activeItems = items.filter(item => {
+        const allItems = items.filter(item => {
             if (item.stage === "ARCHIVED") return false;
 
             const acqDate = item.acquisitionDate ? new Date(item.acquisitionDate) : new Date(item.createdAt);
             return acqDate <= now;
         });
 
+        // Split into active (in portfolio) and sold
+        const activeItems = allItems.filter(i => i.stage !== "SOLD");
+        const soldItems = allItems.filter(i => i.stage === "SOLD");
+
         const totalItems = activeItems.reduce((acc, i) => acc + (i.quantity || 1), 0);
-        const forSaleItems = activeItems.filter(i => i.stage === "LISTED").reduce((acc, i) => acc + (i.quantity || 1), 0);
-
-        const marketValue = activeItems.reduce((acc, item) => {
-            const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
-            const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
-
-            let unitPrice = item.marketPrice ?? 0;
-
-            if (!unitPrice) {
-                const vid = (item as any).cardVariantId || (item as any).cardProfileId;
-                const refId = item.refPriceChartingProductId;
-
-                // Try to find price from market products (fallback)
-                const marketProduct = marketProducts.find(p => p.id === refId || p.id === vid);
-
-                if (marketProduct) {
-                    if (isSealed) {
-                        unitPrice = marketProduct.sealedPrice ?? 0;
-                    } else if (itType === "SINGLE_CARD_GRADED") {
-                        // Attempt to match grade
-                        const gradeStr = String((item as any).gradeValue || (item as any).grade || "").toLowerCase();
-                        const numericGrade = gradeStr.match(/\d+(\.\d+)?/)?.[0];
-
-                        if (numericGrade === '10') unitPrice = marketProduct.grade10Price ?? marketProduct.rawPrice ?? 0;
-                        else if (numericGrade === '9.5') unitPrice = marketProduct.grade95Price ?? marketProduct.rawPrice ?? 0;
-                        else if (numericGrade === '9') unitPrice = marketProduct.grade9Price ?? marketProduct.rawPrice ?? 0;
-                        else if (numericGrade === '8') unitPrice = marketProduct.grade8Price ?? marketProduct.rawPrice ?? 0;
-                        else if (numericGrade === '7') unitPrice = marketProduct.grade7Price ?? marketProduct.rawPrice ?? 0;
-                        else unitPrice = marketProduct.rawPrice ?? 0;
-                    } else {
-                        unitPrice = marketProduct.rawPrice ?? 0;
-                    }
-                } else if (item.marketPriceSnapshot) {
-                    unitPrice = Number(item.marketPriceSnapshot);
-                } else {
-                    unitPrice = Number(item.acquisitionPrice) || 0;
-                }
-            }
-
-            return acc + (unitPrice * (item.quantity || 1));
-        }, 0);
-
-        const stages = activeItems.reduce((acc, item) => {
+        const stages = allItems.reduce((acc, item) => {
             acc[item.stage] = (acc[item.stage] || 0) + (item.quantity || 1);
             return acc;
         }, {} as Record<string, number>);
 
-        return { totalItems, forSaleItems, marketValue, stages };
-    }, [items, marketProducts]);
+        return { totalItems, stages };
+    }, [items]);
 
-    const lastUpdated = useMemo(() => {
-        if (syncStatus?.lastSyncAt) return formatRelativeTime(syncStatus.lastSyncAt);
-        if (marketProducts.length === 0) return null;
-        return formatRelativeTime(marketProducts[0].lastUpdated);
-    }, [syncStatus, marketProducts]);
 
-    const lastUpdatedFull = useMemo(() => {
-        if (syncStatus?.lastSyncAt) return new Date(syncStatus.lastSyncAt).toLocaleString();
-        if (marketProducts.length === 0) return null;
-        return new Date(marketProducts[0].lastUpdated).toLocaleString();
-    }, [syncStatus, marketProducts]);
 
     if (loading) {
         return (
             <div className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    {[...Array(4)].map((_, i) => (
-                        <Skeleton key={i} className="h-32 w-full rounded-xl" />
-                    ))}
-                </div>
                 <Skeleton className="h-[400px] w-full rounded-xl" />
             </div>
         );
@@ -189,50 +125,7 @@ function DashboardPageContent() {
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6 border-none p-0 outline-none">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Items</CardTitle>
-                                <Package className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{stats.totalItems}</div>
-                                <p className="text-xs text-muted-foreground">Across all stages</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">For Sale</CardTitle>
-                                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-green-600">{stats.forSaleItems}</div>
-                                <p className="text-xs text-muted-foreground">Visible on public page</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Est. Market Value</CardTitle>
-                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">${Math.round(stats.marketValue).toLocaleString()}</div>
-                                <p className="text-xs text-muted-foreground">Based on market data</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Price Refreshed</CardTitle>
-                                <History className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold" title={lastUpdatedFull || ""}>
-                                    {lastUpdated || "N/A"}
-                                </div>
-                                <p className="text-xs text-muted-foreground">Last valuation update</p>
-                            </CardContent>
-                        </Card>
-                    </div>
+
 
                     <MarketValueChart items={items} history={history} />
 
@@ -310,11 +203,6 @@ export default function DashboardPage() {
     return (
         <Suspense fallback={
             <div className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    {[...Array(4)].map((_, i) => (
-                        <Skeleton key={i} className="h-32 w-full rounded-xl" />
-                    ))}
-                </div>
                 <Skeleton className="h-[400px] w-full rounded-xl" />
             </div>
         }>
