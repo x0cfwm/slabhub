@@ -6,9 +6,6 @@ import { isWithinInterval, startOfDay, endOfDay, parseISO, addSeconds, subDays }
 import {
     Card,
     CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
 } from "@/components/ui/card";
 import {
     ChartConfig,
@@ -159,16 +156,6 @@ export function MarketValueChart({ items, history }: MarketValueChartProps) {
 
     return (
         <Card className="w-full">
-            <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
-                <div className="grid flex-1 gap-1 text-center sm:text-left">
-                    <CardTitle>Portfolio Performance</CardTitle>
-                    <CardDescription>
-                        Historical portfolio value & profit tracking
-                    </CardDescription>
-                </div>
-
-            </CardHeader>
-
             {/* PnL Summary Cards */}
             {latest && (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-4 sm:px-6 pt-4">
