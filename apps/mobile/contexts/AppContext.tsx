@@ -156,7 +156,7 @@ interface AppContextValue {
   getSoldItems: () => InventoryItem[];
   refreshInventory: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  statuses: any[]; // Using any for now to avoid circular dependency or import issues if not careful
+  statuses: any[];
   refreshStatuses: () => Promise<void>;
 }
 

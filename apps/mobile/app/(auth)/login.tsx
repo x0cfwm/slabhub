@@ -1,169 +1,312 @@
 import * as React from 'react';
 import { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/colors';
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 const c = Colors.dark;
 
 export default function LoginScreen() {
-    const [email, setEmail] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const { signIn } = useAuth();
-    const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [focused, setFocused] = useState(false);
+  const { signIn } = useAuth();
+  const router = useRouter();
 
-    const handleSendCode = async () => {
-        if (!email || !email.includes('@')) {
-            setError('Please enter a valid email address');
-            return;
-        }
+  const handleSendCode = async () => {
+    if (!email || !email.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
 
-        setLoading(true);
-        setError(null);
-        try {
-            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            const { ok } = await signIn(email);
-            if (ok) {
-                router.push({
-                    pathname: "/(auth)/otp" as any,
-                    params: { email }
-                });
-            } else {
-                setError('Failed to send code. Please try again.');
-            }
-        } catch (e: any) {
-            setError(e.message || 'An error occurred. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
+    setLoading(true);
+    setError(null);
+    try {
+      if (Platform.OS !== 'web') {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+      const { ok } = await signIn(email);
+      if (ok) {
+        router.push({
+          pathname: '/(auth)/otp' as any,
+          params: { email },
+        });
+      } else {
+        setError('Failed to send code. Please try again.');
+      }
+    } catch (e: any) {
+      setError(e.message || 'An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
-        <LinearGradient colors={[c.background, '#1a1a1a']} style={styles.container}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.content}
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.content}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Logo & Branding */}
+          <View style={styles.brandArea}>
+            <View style={styles.logoContainer}>
+              <MaterialCommunityIcons name="cards-playing-outline" size={44} color={c.accent} />
+              <View style={styles.logoRing} />
+            </View>
+
+            <Text style={styles.title}>Sign In to{'\n'}SlabHub</Text>
+            <Text style={styles.subtitle}>
+              Enter your email and we'll send you a verification code
+            </Text>
+          </View>
+
+          {/* Form */}
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email Address</Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  focused && styles.inputWrapperFocused,
+                  error ? styles.inputWrapperError : null,
+                ]}
+              >
+                <Ionicons
+                  name="mail-outline"
+                  size={20}
+                  color={focused ? c.accent : c.textTertiary}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="email@example.com"
+                  placeholderTextColor={c.textTertiary}
+                  value={email}
+                  onChangeText={(t) => {
+                    setEmail(t);
+                    if (error) setError(null);
+                  }}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  autoComplete="email"
+                  onFocus={() => setFocused(true)}
+                  onBlur={() => setFocused(false)}
+                  returnKeyType="go"
+                  onSubmitEditing={handleSendCode}
+                />
+              </View>
+            </View>
+
+            {error && (
+              <View style={styles.errorRow}>
+                <Ionicons name="alert-circle" size={16} color={c.error} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.button,
+                loading && styles.buttonDisabled,
+                { opacity: pressed && !loading ? 0.85 : 1 },
+              ]}
+              onPress={handleSendCode}
+              disabled={loading}
             >
-                <ScrollView contentContainerStyle={styles.scrollContent}>
-                    <View style={styles.header}>
-                        <Text style={styles.title}>Welcome to SlabHub</Text>
-                        <Text style={styles.subtitle}>Sign in with your email to continue</Text>
-                    </View>
+              {loading ? (
+                <ActivityIndicator color={c.accentText} />
+              ) : (
+                <>
+                  <Text style={styles.buttonText}>Send Verification Code</Text>
+                  <Ionicons name="arrow-forward" size={18} color={c.accentText} />
+                </>
+              )}
+            </Pressable>
+          </View>
 
-                    <View style={styles.form}>
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Email Address</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="email@example.com"
-                                placeholderTextColor="#666"
-                                value={email}
-                                onChangeText={setEmail}
-                                autoCapitalize="none"
-                                keyboardType="email-address"
-                                autoComplete="email"
-                            />
-                        </View>
-
-                        {error && <Text style={styles.errorText}>{error}</Text>}
-
-                        <TouchableOpacity
-                            style={[styles.button, loading && styles.buttonDisabled]}
-                            onPress={handleSendCode}
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <Text style={styles.buttonText}>Send Verification Code</Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
-                </ScrollView>
-            </KeyboardAvoidingView>
-        </LinearGradient>
-    );
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Ionicons name="shield-checkmark-outline" size={16} color={c.textTertiary} />
+            <Text style={styles.footerText}>
+              We'll send a one-time code to verify your identity
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    content: {
-        flex: 1,
-    },
-    scrollContent: {
-        flexGrow: 1,
-        justifyContent: 'center',
-        padding: 24,
-    },
-    header: {
-        marginBottom: 48,
-        alignItems: 'center',
-    },
-    title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    subtitle: {
-        fontSize: 16,
-        color: '#999',
-        textAlign: 'center',
-    },
-    form: {
-        gap: 24,
-    },
-    inputContainer: {
-        gap: 8,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#ccc',
-        marginLeft: 4,
-    },
-    input: {
-        backgroundColor: '#222',
-        borderRadius: 12,
-        padding: 16,
-        color: '#fff',
-        fontSize: 16,
-        borderWidth: 1,
-        borderColor: '#333',
-        letterSpacing: 0,
-    },
-    button: {
-        backgroundColor: c.tint,
-        borderRadius: 12,
-        padding: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: 56,
-        shadowColor: c.tint,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    buttonDisabled: {
-        opacity: 0.6,
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    errorText: {
-        color: '#ff4444',
-        fontSize: 14,
-        textAlign: 'center',
-    },
+  container: {
+    flex: 1,
+    backgroundColor: c.background,
+  },
+  content: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+
+  // Brand
+  brandArea: {
+    alignItems: 'center',
+    marginBottom: 40,
+    gap: 16,
+  },
+  logoContainer: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: c.accentDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  logoRing: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: c.accent + '20',
+  },
+  badgeContainer: {
+    backgroundColor: c.accentDim,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: c.accent + '25',
+  },
+  badgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: c.accent,
+    letterSpacing: 0.3,
+  },
+  title: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: c.text,
+    textAlign: 'center',
+    lineHeight: 42,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: c.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+    maxWidth: 300,
+  },
+
+  // Form
+  form: {
+    gap: 20,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.textSecondary,
+    marginLeft: 4,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: c.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: c.border,
+    paddingHorizontal: 16,
+  },
+  inputWrapperFocused: {
+    borderColor: c.accent + '60',
+    backgroundColor: c.surfaceElevated,
+  },
+  inputWrapperError: {
+    borderColor: c.error + '60',
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    color: c.text,
+    fontSize: 16,
+    paddingVertical: 16,
+  },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 4,
+  },
+  errorText: {
+    color: c.error,
+    fontSize: 14,
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.accent,
+    paddingVertical: 16,
+    borderRadius: 14,
+    gap: 8,
+    shadowColor: c.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: c.accentText,
+  },
+
+  // Footer
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 32,
+  },
+  footerText: {
+    fontSize: 13,
+    color: c.textTertiary,
+  },
 });
