@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 
@@ -30,6 +31,7 @@ function InventoryContent() {
     const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
     const [kanbanScale, setKanbanScale] = useState<"compact" | "normal" | "large">("normal");
     const [statuses, setStatuses] = useState<WorkflowStatus[]>([]);
+    const [stageFilter, setStageFilter] = useState<string>("ALL");
     const lastProcessedItemIdRef = useRef<string | null>(null);
 
     const searchParams = useSearchParams();
@@ -140,9 +142,11 @@ function InventoryContent() {
                     );
                 })();
 
-                return matchesSearch;
+                const matchesStage = viewMode !== "list" || stageFilter === "ALL" || item.statusId === stageFilter;
+
+                return matchesSearch && matchesStage;
             });
-    }, [items, marketProducts, search]);
+    }, [items, marketProducts, search, stageFilter, viewMode]);
 
     if (loading) {
         return <InventorySkeleton />;
@@ -165,6 +169,23 @@ function InventoryContent() {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
+
+                    {viewMode === "list" && statuses.length > 0 && (
+                        <Select value={stageFilter} onValueChange={setStageFilter}>
+                            <SelectTrigger className="w-[160px] shrink-0">
+                                <SelectValue placeholder="All Stages" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">All Stages</SelectItem>
+                                {statuses
+                                    .filter(s => s.isEnabled)
+                                    .sort((a, b) => a.position - b.position)
+                                    .map(s => (
+                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    ))}
+                            </SelectContent>
+                        </Select>
+                    )}
 
 
 
