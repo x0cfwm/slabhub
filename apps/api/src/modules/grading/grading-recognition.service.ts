@@ -157,13 +157,14 @@ export class GradingRecognitionService {
                     {
                         inlineData: {
                             data: base64Data,
-                            mimeType: 'image/jpeg', // We converted to jpeg if resized, otherwise assume jpeg/png is fine
+                            mimeType: processingBuffer === buffer ? mimeType : 'image/jpeg',
                         },
+
                     },
                 ]);
 
                 const responseText = result.response.text();
-                this.logger.debug(`Gemini response: ${responseText}`);
+                this.logger.log(`[DEBUG] Gemini response: ${responseText}`);
 
                 const parsed = JSON.parse(responseText) as GradingRecognitionResult;
 

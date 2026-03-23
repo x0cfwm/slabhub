@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { createInventoryItem, getMarketProducts, uploadFile, deleteFile, listStatuses } from "@/lib/api";
+import { createInventoryItem, getMarketProducts, uploadFile, deleteFile, listStatuses, recognizeImage } from "@/lib/api";
 import {
     CardProfile,
     InventoryItem,
@@ -35,7 +35,7 @@ import { toast } from "sonner";
 import { Search, ChevronRight, ChevronLeft, Check, Package as PackageIcon, FileText, BadgeCheck, Box, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Loader2, Camera, Sparkles } from "lucide-react";
 
 type InventoryCategory = "SINGLE_CARD_RAW" | "SINGLE_CARD_GRADED" | "SEALED_PRODUCT";
 
@@ -49,6 +49,9 @@ export default function AddItemPage() {
     const [isManualEntry, setIsManualEntry] = useState(false);
     const [uploadingPhotos, setUploadingPhotos] = useState<Record<string, boolean>>({});
     const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+    const [isRecognizing, setIsRecognizing] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const recognitionCancelledRef = useRef(false);
 
     const [statuses, setStatuses] = useState<WorkflowStatus[]>([]);
 
@@ -119,6 +122,73 @@ export default function AddItemPage() {
         const timer = setTimeout(fetchCards, 300);
         return () => clearTimeout(timer);
     }, [search, category]);
+
+    const handleImageRecognize = async (file: File) => {
+        recognitionCancelledRef.current = false;
+        setIsRecognizing(true);
+        try {
+            // First upload the file to get a URL for preview/storage
+            const { url } = await uploadFile(file);
+            setUploadedPhotos([url]);
+            
+            // Then recognize
+            const result = await recognizeImage(file);
+            
+            if (result.success && result.data && !recognitionCancelledRef.current) {
+                const d = result.data;
+                const newFormData = { ...formData };
+                
+                if (d.cardName) {
+                    setSearch(d.cardName);
+                }
+                
+                if (d.grader) {
+                    setCategory("SINGLE_CARD_GRADED");
+                    newFormData.type = "SINGLE_CARD_GRADED";
+                    
+                    let grader = d.grader.toUpperCase();
+                    if (grader === "BECKETT") grader = "BGS";
+                    
+                    if (["PSA", "BGS"].includes(grader)) {
+                        newFormData.gradeProvider = grader as GradingCompany;
+                    } else {
+                        newFormData.gradeProvider = "OTHER";
+                    }
+                    
+                    if (d.gradeValue) {
+                        newFormData.grade = d.gradeValue.toString();
+                        newFormData.gradeValue = parseFloat(d.gradeValue.toString().replace(/[^\d.]/g, ''));
+                    }
+                    if (d.certNumber) newFormData.certNumber = d.certNumber;
+                } else {
+                    setCategory("SINGLE_CARD_RAW");
+                    newFormData.type = "SINGLE_CARD_RAW";
+                }
+                
+                if (d.language) newFormData.language = d.language as Language;
+                if (d.refPriceChartingProductId) {
+                    newFormData.refPriceChartingProductId = d.refPriceChartingProductId;
+                    newFormData.baseCardId = d.refPriceChartingProductId;
+                    newFormData.cardVariantId = d.refPriceChartingProductId;
+                }
+                
+                setFormData(newFormData);
+                setStep(2);
+                toast.success("Card recognized successfully!");
+            } else if (!recognitionCancelledRef.current) {
+                console.warn("Recognition returned success: false", result);
+                toast.error(`Recognize returned false: ${result.error || 'Unknown error'}`);
+            }
+
+        } catch (err: any) {
+            if (!recognitionCancelledRef.current) {
+                console.error("Recognition failed:", err);
+                toast.error("Recognition failed. Please fill manually.");
+            }
+        } finally {
+            setIsRecognizing(false);
+        }
+    };
 
     const handleSave = async () => {
         const today = new Date().toISOString().split("T")[0];
@@ -206,44 +276,129 @@ export default function AddItemPage() {
                 </div>
             </div>
 
+            {isRecognizing && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                    <div className="text-center space-y-4 p-8 bg-card border border-primary/20 rounded-3xl shadow-2xl animate-in zoom-in-95">
+                        <div className="relative mx-auto w-20 h-20">
+                            <Loader2 className="w-20 h-20 animate-spin text-primary opacity-20" />
+                            <Sparkles className="absolute inset-0 m-auto w-10 h-10 text-primary animate-pulse" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold">Recognizing Card...</h3>
+                            <p className="text-sm text-muted-foreground">Using AI to extract details and market prices</p>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                                recognitionCancelledRef.current = true;
+                                setIsRecognizing(false);
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {step === 1 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <TypeCard
-                        title="Raw Card"
-                        description="Fungible single cards by condition."
-                        icon={<FileText className="h-8 w-8 text-blue-500" />}
-                        selected={category === "SINGLE_CARD_RAW"}
-                        onClick={() => {
-                            setCategory("SINGLE_CARD_RAW");
-                            setFormData({ ...formData, quantity: 1, type: "SINGLE_CARD_RAW" });
-                            setIsManualEntry(false);
-                            setStep(2);
+                <div className="space-y-8">
+                    <div
+                        className={cn(
+                            "border-2 border-dashed rounded-2xl px-5 py-4 cursor-pointer transition-all flex items-center gap-4",
+                            isDragging
+                                ? "border-primary bg-primary/10 shadow-xl ring-2 ring-primary/20"
+                                : "border-primary/30 hover:border-primary/60 hover:bg-primary/5 bg-gradient-to-br from-primary/5 to-transparent"
+                        )}
+                        onClick={() => document.getElementById('recognition-upload')?.click()}
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            setIsDragging(true);
                         }}
-                    />
-                    <TypeCard
-                        title="Graded Slab"
-                        description="Non-fungible authenticated assets with Cert #."
-                        icon={<BadgeCheck className="h-8 w-8 text-purple-500" />}
-                        selected={category === "SINGLE_CARD_GRADED"}
-                        onClick={() => {
-                            setCategory("SINGLE_CARD_GRADED");
-                            setFormData({ ...formData, quantity: 1, type: "SINGLE_CARD_GRADED" });
-                            setIsManualEntry(false);
-                            setStep(2);
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            setIsDragging(false);
+                            const file = e.dataTransfer.files?.[0];
+                            if (file && file.type.startsWith('image/')) {
+                                handleImageRecognize(file);
+                            } else if (file) {
+                                toast.error("Please upload an image file.");
+                            }
                         }}
-                    />
-                    <TypeCard
-                        title="Sealed Product"
-                        description="Boosters, Boxes, and Collection items."
-                        icon={<Box className="h-8 w-8 text-amber-500" />}
-                        selected={category === "SEALED_PRODUCT"}
-                        onClick={() => {
-                            setCategory("SEALED_PRODUCT");
-                            setFormData({ ...formData, quantity: 1, type: "SEALED_PRODUCT" });
-                            setIsManualEntry(false);
-                            setStep(2);
-                        }}
-                    />
+                    >
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <Camera className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm">Start with a Photo</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                                Drag & drop or click — AI will identify the card, grader &amp; market value
+                            </p>
+                        </div>
+                        <Input
+                            id="recognition-upload"
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageRecognize(file);
+                            }}
+                        />
+                        <Button size="sm" className="rounded-full px-5 shrink-0" onClick={(e) => { e.stopPropagation(); document.getElementById('recognition-upload')?.click(); }}>
+                            <Camera className="mr-2 h-3.5 w-3.5" /> Upload &amp; Recognize
+                        </Button>
+                    </div>
+
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">Or proceed manually</span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <TypeCard
+                            title="Raw Card"
+                            description="Fungible single cards by condition."
+                            icon={<FileText className="h-8 w-8 text-blue-500" />}
+                            selected={category === "SINGLE_CARD_RAW"}
+                            onClick={() => {
+                                setCategory("SINGLE_CARD_RAW");
+                                setFormData({ ...formData, quantity: 1, type: "SINGLE_CARD_RAW" });
+                                setIsManualEntry(false);
+                                setStep(2);
+                            }}
+                        />
+                        <TypeCard
+                            title="Graded Slab"
+                            description="Non-fungible authenticated assets with Cert #."
+                            icon={<BadgeCheck className="h-8 w-8 text-purple-500" />}
+                            selected={category === "SINGLE_CARD_GRADED"}
+                            onClick={() => {
+                                setCategory("SINGLE_CARD_GRADED");
+                                setFormData({ ...formData, quantity: 1, type: "SINGLE_CARD_GRADED" });
+                                setIsManualEntry(false);
+                                setStep(2);
+                            }}
+                        />
+                        <TypeCard
+                            title="Sealed Product"
+                            description="Boosters, Boxes, and Collection items."
+                            icon={<Box className="h-8 w-8 text-amber-500" />}
+                            selected={category === "SEALED_PRODUCT"}
+                            onClick={() => {
+                                setCategory("SEALED_PRODUCT");
+                                setFormData({ ...formData, quantity: 1, type: "SEALED_PRODUCT" });
+                                setIsManualEntry(false);
+                                setStep(2);
+                            }}
+                        />
+                    </div>
                 </div>
             )}
 

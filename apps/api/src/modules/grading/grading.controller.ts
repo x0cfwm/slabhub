@@ -33,8 +33,10 @@ export class GradingController {
         let mimeType: string;
 
         if (file) {
+            console.log(`[DEBUG recognize] Received file: origName=${file.originalname}, mimetype=${file.mimetype}, size=${file.size}, bufferLen=${file.buffer?.length}`);
             buffer = file.buffer;
             mimeType = file.mimetype;
+
         } else if (mediaId) {
             const media = await this.prisma.media.findUnique({ where: { id: mediaId } });
             if (!media) {

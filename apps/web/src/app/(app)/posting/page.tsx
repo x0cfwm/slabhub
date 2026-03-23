@@ -47,9 +47,20 @@ import {
     Copy,
     Download,
     Loader2,
+    RefreshCw,
     Sparkles,
-    Wand2
+    Trash2,
+    Wand2,
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 const PLATFORM_PRESETS: Record<PostingPlatform, {
     textOptions: PostingTextOptions;
@@ -117,6 +128,7 @@ export default function PostingPage() {
     const [textOptions, setTextOptions] = useState<PostingTextOptions>({ ...PLATFORM_PRESETS.INSTAGRAM.textOptions });
     const [visualOptions, setVisualOptions] = useState<PostingVisualOptions>({ ...PLATFORM_PRESETS.INSTAGRAM.visualOptions });
     const [generated, setGenerated] = useState<GeneratedPosting | null>(null);
+    const [editableCaption, setEditableCaption] = useState("");
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isZoomOpen, setIsZoomOpen] = useState(false);
     const [api, setApi] = useState<CarouselApi>();
@@ -163,6 +175,73 @@ export default function PostingPage() {
         const ids = new Set(selectedItemIds);
         return items.filter((item) => ids.has(item.id));
     }, [items, selectionMode, selectedItemIds, selectedStatusIds]);
+
+    const liveCaption = useMemo(() => {
+        if (selectedItems.length === 0) return "";
+        
+        const lang = textOptions.language ?? "EN";
+        const tone = textOptions.tone ?? "CONCISE";
+        const itemCount = selectedItems.length;
+
+        let opener = "";
+        if (lang === "RU") {
+            if (tone === "HYPE") opener = `Свежий дроп: ${itemCount} позиций уже готовы 💎`;
+            else if (tone === "CONCISE") opener = `В наличии ${itemCount} позиций 📦`;
+            else opener = `Подготовили подборку из ${itemCount} позиций для продажи ✨`;
+        } else {
+            if (tone === "HYPE") opener = `Fresh drop: ${itemCount} items just landed 💎`;
+            else if (tone === "CONCISE") opener = `${itemCount} items are available now 📦`;
+            else opener = `Curated sale update with ${itemCount} items ✨`;
+        }
+
+        const lines = selectedItems.slice(0, 48).map((item: any, index) => {
+            const chunks: string[] = [getItemTitle(item)];
+            
+            const subtitle = getItemSubtitle(item);
+            if (subtitle) chunks.push(`(${subtitle})`);
+
+            const itemGrade = item.gradeValue || item.grade;
+            if (textOptions.includeGrade && itemGrade) {
+                chunks.push(`Grade ${itemGrade}`);
+            }
+
+            if (textOptions.includeCondition && item.condition) {
+                chunks.push(`Cond ${item.condition}`);
+            }
+
+            const price = item.listingPrice ?? item.marketPriceSnapshot ?? item.marketPrice ?? null;
+            if (textOptions.includePrice && price !== null) {
+                chunks.push(`$${price.toLocaleString("en-US", { maximumFractionDigits: 0 })}`);
+            }
+
+            const emojiNumber = String(index + 1)
+                .split("")
+                .map((digit) => `${digit}\ufe0f\u20e3`)
+                .join("");
+
+            return `${emojiNumber} ${chunks.join(" | ")}`;
+        });
+
+        const cta = textOptions.includeCta
+            ? (lang === "RU" ? "\nНапишите в ЛС для покупки или резерва 📩" : "\nDM to reserve or buy 📩")
+            : "";
+
+        const hashtags = textOptions.includeHashtags
+            ? (textOptions.platform === "INSTAGRAM" 
+                ? "\n\n#slabhub #tcg #pokemoncards #onepiececardgame #cardsforsale" 
+                : "\n\n#slabhub #tcg #cardsforsale")
+            : "";
+
+        return [opener, ...lines].join("\n") + cta + hashtags;
+    }, [selectedItems, textOptions]);
+
+    useEffect(() => {
+        if (generated?.caption) {
+            setEditableCaption(generated.caption);
+        } else {
+            setEditableCaption(liveCaption);
+        }
+    }, [generated?.caption, liveCaption]);
 
     useEffect(() => {
         const load = async () => {
@@ -402,14 +481,78 @@ export default function PostingPage() {
                             )}
 
                             <div className="rounded-lg border bg-muted/40 px-3 py-2 text-sm">
-                                Selected items: <span className="font-semibold">{selectedItems.length}</span>
+                                Selected: <span className="font-semibold">{selectedItems.length} items</span>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Button onClick={() => handleGenerate("BOTH")} disabled={isGenerating} size="lg" className="w-full">
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                        Generate Post
+                    <Card>
+                        <CardHeader className="pb-3 border-b bg-muted/20">
+                            <CardTitle className="text-sm font-semibold">Content Strategy</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4 pt-4">
+                            <div className="space-y-3">
+                                <Label className="text-xs text-muted-foreground uppercase font-semibold">Target Platform</Label>
+                                <Tabs value={platform} onValueChange={(val) => applyPlatformPreset(val as PostingPlatform)}>
+                                    <TabsList className="grid w-full grid-cols-2">
+                                        <TabsTrigger value="INSTAGRAM">Instagram</TabsTrigger>
+                                        <TabsTrigger value="FACEBOOK">Facebook</TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground uppercase font-semibold">Tone</Label>
+                                    <Select value={textOptions.tone} onValueChange={(val) => setTextOptions(p => ({ ...p, tone: val as any }))}>
+                                        <SelectTrigger className="h-9">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="HYPE">Hype 🔥</SelectItem>
+                                            <SelectItem value="CONCISE">Concise 📦</SelectItem>
+                                            <SelectItem value="PROFESSIONAL">Professional 💼</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground uppercase font-semibold">Language</Label>
+                                    <Select value={textOptions.language} onValueChange={(val) => setTextOptions(p => ({ ...p, language: val as any }))}>
+                                        <SelectTrigger className="h-9">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="EN">English 🇺🇸</SelectItem>
+                                            <SelectItem value="RU">Russian 🇷🇺</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 pt-2">
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="include-price" className="text-sm cursor-pointer">Include Prices</Label>
+                                    <Switch id="include-price" checked={textOptions.includePrice} onCheckedChange={(val) => setTextOptions(p => ({ ...p, includePrice: val }))} />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="include-grade" className="text-sm cursor-pointer">Include Grades</Label>
+                                    <Switch id="include-grade" checked={textOptions.includeGrade} onCheckedChange={(val) => setTextOptions(p => ({ ...p, includeGrade: val }))} />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="include-cond" className="text-sm cursor-pointer">Include Condition</Label>
+                                    <Switch id="include-cond" checked={textOptions.includeCondition} onCheckedChange={(val) => setTextOptions(p => ({ ...p, includeCondition: val }))} />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="include-cta" className="text-sm cursor-pointer">Include CTA</Label>
+                                    <Switch id="include-cta" checked={textOptions.includeCta} onCheckedChange={(val) => setTextOptions(p => ({ ...p, includeCta: val }))} />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Button onClick={() => handleGenerate("BOTH")} disabled={isGenerating || selectedItems.length === 0} size="lg" className="w-full shadow-lg h-12">
+                        {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
+                        Generate Feed Bundle
                     </Button>
                 </div>
 
@@ -507,31 +650,48 @@ export default function PostingPage() {
 
                 {/* Column 3: Preview Text */}
                 <div className="space-y-6">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                            <CardTitle className="text-sm font-semibold">Caption Preview</CardTitle>
-                            {generated?.caption && (
-                                <Button variant="ghost" size="icon" onClick={copyCaption} title="Copy to clipboard">
+                    <Card className="h-full flex flex-col">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b bg-muted/20">
+                            <div className="flex flex-col">
+                                <CardTitle className="text-sm font-semibold">Caption Preview</CardTitle>
+                                <span className="text-[10px] text-muted-foreground uppercase font-semibold mt-0.5 tracking-wider">
+                                    {generated ? "Generated" : "Live Preview"}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                {generated && (
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setGenerated(null)} title="Back to live preview">
+                                        <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                )}
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyCaption} title="Copy to clipboard">
                                     <Copy className="h-4 w-4 text-muted-foreground" />
                                 </Button>
-                            )}
+                            </div>
                         </CardHeader>
-                        <CardContent className="p-3 pt-0">
-                            {generated?.caption ? (
-                                <div className="space-y-4">
+                        <CardContent className="p-3 flex-1 flex flex-col pt-3">
+                            {editableCaption ? (
+                                <div className="space-y-4 flex-1 flex flex-col">
                                     <Textarea
-                                        value={generated.caption}
-                                        readOnly
-                                        className="font-mono text-xs leading-relaxed min-h-[460px] bg-muted/40"
+                                        value={editableCaption}
+                                        onChange={(e) => setEditableCaption(e.target.value)}
+                                        className="font-mono text-xs leading-relaxed min-h-[460px] flex-1 bg-muted/40 focus-visible:ring-1"
+                                        placeholder="No caption content..."
                                     />
-                                    <Button variant="secondary" className="w-full" onClick={copyCaption}>
-                                        <Copy className="mr-2 h-4 w-4" />
-                                        Copy
-                                    </Button>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Button variant="secondary" onClick={copyCaption}>
+                                            <Copy className="mr-2 h-4 w-4" />
+                                            Copy
+                                        </Button>
+                                        <Button variant="outline" onClick={() => handleGenerate("TEXT_ONLY")} disabled={isGenerating || selectedItems.length === 0}>
+                                            {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                                            Refine
+                                        </Button>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="h-[400px] flex flex-col items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground text-center p-6 bg-muted/20">
-                                    <p>Caption preview will appear here after generation.</p>
+                                    <p>Caption preview will appear here as you select items.</p>
                                 </div>
                             )}
                         </CardContent>
