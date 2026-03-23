@@ -16,6 +16,7 @@ export async function createSeller(prisma: PrismaClient, userId: string, handle 
       userId,
       handle,
       shopName: 'Test Seller',
+      isActive: true,
       location: 'Moscow',
       paymentsAccepted: ['Cash'],
       fulfillmentOptions: ['shipping'],

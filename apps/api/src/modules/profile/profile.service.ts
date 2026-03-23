@@ -95,6 +95,7 @@ export class ProfileService {
                     handle: dto.handle,
                     shopName: dto.shopName,
                     userId,
+                    isActive: false,
                     location: dto.location || '',
                     shippingEnabled: dto.shippingEnabled ?? false,
                     avatarId: dto.avatarId,

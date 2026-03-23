@@ -69,6 +69,50 @@ describe('ProfileService', () => {
     await expect(service.updateProfile('u1', { location: 'x' } as any)).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('updateProfile creates new profiles with isActive=false', async () => {
+    prisma.sellerProfile.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    prisma.sellerProfile.create.mockResolvedValue({
+      id: 's-new',
+      user: { id: 'u1', email: 'new@test.com' },
+      handle: 'new-handle',
+      shopName: 'New Shop',
+      isActive: false,
+      location: '',
+      paymentsAccepted: [],
+      meetupsEnabled: false,
+      shippingEnabled: false,
+      fulfillmentOptions: [],
+      socials: {},
+      wishlistText: '',
+      referenceLinks: [],
+      upcomingEvents: [],
+      avatarId: null,
+      avatarMedia: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const out = await service.updateProfile('u1', {
+      handle: 'new-handle',
+      shopName: 'New Shop',
+      isActive: true,
+    } as any);
+
+    expect(prisma.sellerProfile.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'u1',
+          handle: 'new-handle',
+          shopName: 'New Shop',
+          isActive: false,
+        }),
+      }),
+    );
+    expect(out.profile.isActive).toBe(false);
+  });
+
   it('deleteAccount anonymizes user', async () => {
     prisma.session.deleteMany.mockResolvedValue({ count: 1 });
     prisma.user.findMany.mockResolvedValue([{ email: 'removed-2@slabhub.gg' }]);
