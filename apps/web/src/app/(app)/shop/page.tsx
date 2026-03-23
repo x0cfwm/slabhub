@@ -84,7 +84,7 @@ export default function ShopSettingsPage() {
         defaultValues: {
             shopName: "",
             handle: "",
-            isActive: true,
+            isActive: false,
             location: "",
             meetupsEnabled: false,
             shippingEnabled: false,
@@ -128,7 +128,7 @@ export default function ShopSettingsPage() {
             reset({
                 shopName: user.profile.shopName || "",
                 handle: user.profile.handle || "",
-                isActive: user.profile.isActive ?? true,
+                isActive: user.profile.isActive ?? false,
                 location: user.profile.location || "",
                 paymentsAccepted: user.profile.paymentsAccepted || [],
                 meetupsEnabled: user.profile.meetupsEnabled ?? false,
