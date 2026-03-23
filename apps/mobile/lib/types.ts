@@ -158,6 +158,13 @@ export interface PortfolioHistoryEntry {
     date: string;
     value: number;
     cost: number;
+    count?: number;
+    soldRevenue?: number;
+    soldCost?: number;
+    soldCount?: number;
+    realizedPnl?: number;
+    unrealizedPnl?: number;
+    totalPnl?: number;
 }
 
 export interface GradingRecognitionResult {

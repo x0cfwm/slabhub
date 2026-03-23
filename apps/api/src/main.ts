@@ -57,6 +57,7 @@ async function bootstrap() {
         .addTag('Inventory')
         .addTag('Authentication')
         .addTag('Profile')
+        .addTag('Posting')
         .build();
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api/docs', app, document, {

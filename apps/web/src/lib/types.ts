@@ -261,7 +261,92 @@ export interface InviteAcceptance {
 
 export interface PortfolioHistoryEntry {
     date: string;
-    value: number;
-    cost: number;
-    count: number;
+    value: number;          // Active portfolio market value
+    cost: number;           // Active portfolio cost basis
+    count: number;          // Active item count
+    soldRevenue: number;    // Cumulative revenue from sold items
+    soldCost: number;       // Cumulative cost basis of sold items
+    soldCount: number;      // Cumulative count of sold items
+    realizedPnl: number;    // soldRevenue - soldCost
+    unrealizedPnl: number;  // value - cost
+    totalPnl: number;       // realizedPnl + unrealizedPnl
+}
+
+export type PostingSelectionMode = "BY_STATUS" | "MANUAL";
+export type PostingPlatform = "FACEBOOK" | "INSTAGRAM";
+export type PostingTone = "HYPE" | "PROFESSIONAL" | "CONCISE";
+export type PostingLanguage = "EN" | "RU";
+export type PostingTemplate = "GRID" | "COLLAGE";
+export type PostingRatio = "1:1" | "4:5" | "9:16";
+export type PostingBackground = "DARK" | "LIGHT" | "SUNSET";
+export type PostingGenerationTarget = "BOTH" | "TEXT_ONLY" | "IMAGE_ONLY";
+
+export interface PostingTextOptions {
+    platform: PostingPlatform;
+    tone: PostingTone;
+    language?: PostingLanguage;
+    includePrice?: boolean;
+    includeCondition?: boolean;
+    includeGrade?: boolean;
+    includeHashtags?: boolean;
+    includeCta?: boolean;
+}
+
+export interface PostingVisualOptions {
+    template: PostingTemplate;
+    ratio: PostingRatio;
+    showPriceBadge?: boolean;
+    showPerformanceTag?: boolean;
+    showWatermark?: boolean;
+    backgroundStyle?: PostingBackground;
+}
+
+export interface PostingGenerateRequest {
+    selectionMode: PostingSelectionMode;
+    statusIds?: string[];
+    itemIds?: string[];
+    textOptions: PostingTextOptions;
+    visualOptions: PostingVisualOptions;
+    generationTarget?: PostingGenerationTarget;
+    previousPostId?: string;
+}
+
+export interface PostingSelectedItem {
+    id: string;
+    title: string;
+    subtitle: string;
+    grade: string | null;
+    condition: string | null;
+    price: number | null;
+    imageUrl: string | null;
+    statusName: string | null;
+}
+
+export interface GeneratedPosting {
+    id: string;
+    createdAt: string;
+    generationTarget: PostingGenerationTarget;
+    itemCount: number;
+    caption: string;
+    imageDataUrl: string[];
+    items: PostingSelectedItem[];
+    textOptions: PostingTextOptions;
+    visualOptions: PostingVisualOptions;
+}
+
+export interface PostingHistoryEntry {
+    id: string;
+    createdAt: string;
+    selectionMode: PostingSelectionMode;
+    platform: PostingPlatform;
+    generationTarget: PostingGenerationTarget;
+    itemCount: number;
+    caption: string;
+    imageDataUrl: string[];
+    itemIds: string[];
+    statusIds: string[];
+    options: {
+        textOptions: PostingTextOptions;
+        visualOptions: PostingVisualOptions;
+    };
 }

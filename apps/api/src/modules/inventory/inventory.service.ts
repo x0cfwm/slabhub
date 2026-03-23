@@ -507,12 +507,30 @@ export class InventoryService {
             let totalMarketValue = 0;
             let totalCost = 0;
             let totalCount = 0;
+            let totalSoldRevenue = 0;
+            let totalSoldCost = 0;
+            let totalSoldCount = 0;
 
             itemsWithAcqDate.forEach(item => {
                 if (item.acqDate > currentDate) return; // Not acquired yet
 
                 const qty = item.quantity || 1;
-                totalCost += (Number(item.acquisitionPrice) || 0) * qty;
+                const acqCost = (Number(item.acquisitionPrice) || 0) * qty;
+
+                // Check if item was sold by this date
+                const isSoldItem = item.stage === InventoryStage.SOLD && item.soldDate;
+                const isSoldByThisDate = isSoldItem && new Date(item.soldDate!) <= currentDate;
+
+                if (isSoldByThisDate) {
+                    // After sold date: count as realized
+                    totalSoldRevenue += (Number(item.soldPrice) || 0) * qty;
+                    totalSoldCost += acqCost;
+                    totalSoldCount += qty;
+                    return; // Don't include in active portfolio
+                }
+
+                // Active item (not yet sold or not sold at all)
+                totalCost += acqCost;
                 totalCount += qty;
 
                 let itemPrice = 0;
@@ -550,11 +568,20 @@ export class InventoryService {
                 totalMarketValue += itemPrice * qty;
             });
 
+            const realizedPnl = totalSoldRevenue - totalSoldCost;
+            const unrealizedPnl = totalMarketValue - totalCost;
+
             history.push({
                 date: currentDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
                 value: Math.round(totalMarketValue),
                 cost: Math.round(totalCost),
-                count: totalCount
+                count: totalCount,
+                soldRevenue: Math.round(totalSoldRevenue),
+                soldCost: Math.round(totalSoldCost),
+                soldCount: totalSoldCount,
+                realizedPnl: Math.round(realizedPnl),
+                unrealizedPnl: Math.round(unrealizedPnl),
+                totalPnl: Math.round(realizedPnl + unrealizedPnl),
             });
         }
 

@@ -5,7 +5,7 @@
 
 ---
 
-## 1. PROJECT STRUCTURE
+## 1. PROJECT STRUCTURE 
 
 SlabHub is a **pnpm workspace monorepo** for managing TCG (Trading Card Game) inventory, card catalogs, pricing, and vendor storefronts. The codebase is organized by architectural layer.
 

@@ -8,8 +8,8 @@ import {
     Package,
     Tag,
     Settings,
-    ExternalLink,
     Send,
+    Sparkles,
     Store
 } from "lucide-react";
 
@@ -31,6 +31,7 @@ const NAV_ITEMS = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Inventory", href: "/inventory", icon: Package },
     { label: "Pricing", href: "/pricing", icon: Tag },
+    { label: "Posting", href: "/posting", icon: Sparkles },
     { label: "Shop", href: "/shop", icon: Store },
     { label: "Settings", href: "/settings", icon: Settings },
 ];

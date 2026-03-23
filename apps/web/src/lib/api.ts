@@ -1,5 +1,17 @@
 import { Grader } from "../../../api/src/modules/grading/types/grading.types";
-import { MarketPriceHistory, MarketProduct, MarketProductsResponse, MarketSet, InventoryItem, SellerProfile, PortfolioHistoryEntry, WorkflowStatus } from "./types";
+import {
+    GeneratedPosting,
+    InventoryItem,
+    MarketPriceHistory,
+    MarketProduct,
+    MarketProductsResponse,
+    MarketSet,
+    PortfolioHistoryEntry,
+    PostingGenerateRequest,
+    PostingHistoryEntry,
+    SellerProfile,
+    WorkflowStatus
+} from "./types";
 
 export interface GradingLookupResult {
     grader: string;
@@ -447,6 +459,36 @@ export async function reorderStatuses(items: { id: string; position: number }[])
         credentials: 'include',
     });
     if (!response.ok) throw new Error('Failed to reorder statuses');
+}
+
+// Posting
+export async function generatePosting(payload: PostingGenerateRequest): Promise<GeneratedPosting> {
+    const url = getFullUrl('/v1/posting/generate');
+    const response = await fetch(url.toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'include',
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to generate posting content');
+    }
+
+    return response.json();
+}
+
+export async function listPostingHistory(limit = 10): Promise<PostingHistoryEntry[]> {
+    const url = getFullUrl('/v1/posting/history');
+    url.searchParams.set('limit', String(limit));
+    const response = await fetch(url.toString(), { credentials: 'include' });
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch posting history');
+    }
+
+    return response.json();
 }
 
 // Analytics
