@@ -300,9 +300,11 @@ export async function uploadFile(file: File): Promise<{ url: string }> {
 }
 
 export async function recognizeImage(file: File): Promise<GradingRecognitionResult> {
+    console.log("recognizeImage file size:", file.size, "type:", file.type, file.name);
     const url = getFullUrl('/v1/grading/recognize');
     const formData = new FormData();
     formData.append('file', file);
+
 
     const response = await fetch(url.toString(), {
         method: 'POST',

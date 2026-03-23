@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createInventoryItem, getMarketProducts, uploadFile, deleteFile, listStatuses, recognizeImage } from "@/lib/api";
 import {
@@ -51,6 +51,7 @@ export default function AddItemPage() {
     const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
     const [isRecognizing, setIsRecognizing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const recognitionCancelledRef = useRef(false);
 
     const [statuses, setStatuses] = useState<WorkflowStatus[]>([]);
 
@@ -123,6 +124,7 @@ export default function AddItemPage() {
     }, [search, category]);
 
     const handleImageRecognize = async (file: File) => {
+        recognitionCancelledRef.current = false;
         setIsRecognizing(true);
         try {
             // First upload the file to get a URL for preview/storage
@@ -132,7 +134,7 @@ export default function AddItemPage() {
             // Then recognize
             const result = await recognizeImage(file);
             
-            if (result.success && result.data) {
+            if (result.success && result.data && !recognitionCancelledRef.current) {
                 const d = result.data;
                 const newFormData = { ...formData };
                 
@@ -173,12 +175,16 @@ export default function AddItemPage() {
                 setFormData(newFormData);
                 setStep(2);
                 toast.success("Card recognized successfully!");
-            } else {
-                toast.error("Could not recognize card details automatically.");
+            } else if (!recognitionCancelledRef.current) {
+                console.warn("Recognition returned success: false", result);
+                toast.error(`Recognize returned false: ${result.error || 'Unknown error'}`);
             }
+
         } catch (err: any) {
-            console.error("Recognition failed:", err);
-            toast.error("Recognition failed. Please fill manually.");
+            if (!recognitionCancelledRef.current) {
+                console.error("Recognition failed:", err);
+                toast.error("Recognition failed. Please fill manually.");
+            }
         } finally {
             setIsRecognizing(false);
         }
@@ -281,63 +287,70 @@ export default function AddItemPage() {
                             <h3 className="text-xl font-bold">Recognizing Card...</h3>
                             <p className="text-sm text-muted-foreground">Using AI to extract details and market prices</p>
                         </div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                                recognitionCancelledRef.current = true;
+                                setIsRecognizing(false);
+                            }}
+                        >
+                            Cancel
+                        </Button>
                     </div>
                 </div>
             )}
 
             {step === 1 && (
                 <div className="space-y-8">
-                    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-                        <CardContent className="pt-6">
-                            <div 
-                                className={cn(
-                                    "border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all flex flex-col items-center gap-4",
-                                    isDragging 
-                                        ? "border-primary bg-primary/10 scale-[1.02] shadow-xl ring-2 ring-primary/20" 
-                                        : "border-primary/30 hover:border-primary/60 hover:bg-primary/5"
-                                )}
-                                onClick={() => document.getElementById('recognition-upload')?.click()}
-                                onDragOver={(e) => {
-                                    e.preventDefault();
-                                    setIsDragging(true);
-                                }}
-                                onDragLeave={() => setIsDragging(false)}
-                                onDrop={(e) => {
-                                    e.preventDefault();
-                                    setIsDragging(false);
-                                    const file = e.dataTransfer.files?.[0];
-                                    if (file && file.type.startsWith('image/')) {
-                                        handleImageRecognize(file);
-                                    } else if (file) {
-                                        toast.error("Please upload an image file.");
-                                    }
-                                }}
-                            >
-                                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <Camera className="h-8 w-8 text-primary" />
-                                </div>
-                                <div className="space-y-1">
-                                    <h3 className="font-bold text-lg">Start with a Photo</h3>
-                                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                                        Upload a clear photo of your card or slab. Our AI will automatically identify the card, grader, and current market value.
-                                    </p>
-                                </div>
-                                <Input 
-                                    id="recognition-upload" 
-                                    type="file" 
-                                    className="hidden" 
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleImageRecognize(file);
-                                    }}
-                                />
-                                <Button size="lg" className="rounded-full px-8">
-                                    <Camera className="mr-2 h-4 w-4" /> Upload & Recognize
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <div
+                        className={cn(
+                            "border-2 border-dashed rounded-2xl px-5 py-4 cursor-pointer transition-all flex items-center gap-4",
+                            isDragging
+                                ? "border-primary bg-primary/10 shadow-xl ring-2 ring-primary/20"
+                                : "border-primary/30 hover:border-primary/60 hover:bg-primary/5 bg-gradient-to-br from-primary/5 to-transparent"
+                        )}
+                        onClick={() => document.getElementById('recognition-upload')?.click()}
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            setIsDragging(true);
+                        }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            setIsDragging(false);
+                            const file = e.dataTransfer.files?.[0];
+                            if (file && file.type.startsWith('image/')) {
+                                handleImageRecognize(file);
+                            } else if (file) {
+                                toast.error("Please upload an image file.");
+                            }
+                        }}
+                    >
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <Camera className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm">Start with a Photo</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                                Drag & drop or click — AI will identify the card, grader &amp; market value
+                            </p>
+                        </div>
+                        <Input
+                            id="recognition-upload"
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageRecognize(file);
+                            }}
+                        />
+                        <Button size="sm" className="rounded-full px-5 shrink-0" onClick={(e) => { e.stopPropagation(); document.getElementById('recognition-upload')?.click(); }}>
+                            <Camera className="mr-2 h-3.5 w-3.5" /> Upload &amp; Recognize
+                        </Button>
+                    </div>
 
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">
