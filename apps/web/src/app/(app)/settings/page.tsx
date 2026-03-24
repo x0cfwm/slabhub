@@ -48,7 +48,7 @@ export default function SettingsPage() {
                 <Card className="border-border bg-muted/30 shadow-sm">
                     <CardHeader>
                         <CardTitle className="text-muted-foreground uppercase text-[10px] tracking-[0.2em] font-bold">Facebook Profile</CardTitle>
-                        <CardDescription>Verify your profile so buyers trust your shop.</CardDescription>
+                        <CardDescription>Connect your Facebook account to display a clickable "Verified" badge on your public shop page. This builds buyer trust and lets them easily visit your Facebook profile.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {(user as any)?.facebookVerifiedAt ? (
