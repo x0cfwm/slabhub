@@ -10,7 +10,8 @@ import {
     PostingGenerateRequest,
     PostingHistoryEntry,
     SellerProfile,
-    WorkflowStatus
+    WorkflowStatus,
+    GradingRecognitionResult
 } from "./types";
 
 export interface GradingLookupResult {
@@ -293,6 +294,27 @@ export async function uploadFile(file: File): Promise<{ url: string }> {
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to upload file');
+    }
+
+    return response.json();
+}
+
+export async function recognizeImage(file: File): Promise<GradingRecognitionResult> {
+    console.log("recognizeImage file size:", file.size, "type:", file.type, file.name);
+    const url = getFullUrl('/v1/grading/recognize');
+    const formData = new FormData();
+    formData.append('file', file);
+
+
+    const response = await fetch(url.toString(), {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to recognize image');
     }
 
     return response.json();

@@ -221,7 +221,7 @@ export class PostingService {
         };
 
         const opener = this.getCaptionOpener(normalizedOptions.language, normalizedOptions.tone, items.length);
-        const lines = items.map((item) => {
+        const lines = items.map((item, index) => {
             const chunks: string[] = [item.title];
 
             if (item.subtitle) {
@@ -240,13 +240,18 @@ export class PostingService {
                 chunks.push(`$${item.price.toLocaleString('en-US', { maximumFractionDigits: 2 })}`);
             }
 
-            return `• ${chunks.join(' | ')}`;
+            const emojiNumber = String(index + 1)
+                .split('')
+                .map((digit) => `${digit}\ufe0f\u20e3`)
+                .join('');
+
+            return `${emojiNumber} ${chunks.join(' | ')}`;
         });
 
         const cta = normalizedOptions.includeCta
             ? (normalizedOptions.language === PostingLanguage.RU
-                ? '\nНапишите в ЛС для покупки или резерва.'
-                : '\nDM to reserve or buy.')
+                ? '\nНапишите в ЛС для покупки или резерва 📩'
+                : '\nDM to reserve or buy 📩')
             : '';
 
         const hashtags = normalizedOptions.includeHashtags
@@ -260,14 +265,14 @@ export class PostingService {
 
     private getCaptionOpener(language: PostingLanguage, tone: PostingTone, itemCount: number): string {
         if (language === PostingLanguage.RU) {
-            if (tone === PostingTone.HYPE) return `Свежий дроп: ${itemCount} позиций уже готовы.`;
-            if (tone === PostingTone.CONCISE) return `В наличии ${itemCount} позиций.`;
-            return `Подготовили подборку из ${itemCount} позиций для продажи.`;
+            if (tone === PostingTone.HYPE) return `Свежий дроп: ${itemCount} позиций уже готовы 💎`;
+            if (tone === PostingTone.CONCISE) return `В наличии ${itemCount} позиций 📦`;
+            return `Подготовили подборку из ${itemCount} позиций для продажи ✨`;
         }
 
-        if (tone === PostingTone.HYPE) return `Fresh drop: ${itemCount} items just landed.`;
-        if (tone === PostingTone.CONCISE) return `${itemCount} items are available now.`;
-        return `Curated sale update with ${itemCount} items.`;
+        if (tone === PostingTone.HYPE) return `Fresh drop: ${itemCount} items just landed 💎`;
+        if (tone === PostingTone.CONCISE) return `${itemCount} items are available now 📦`;
+        return `Curated sale update with ${itemCount} items ✨`;
     }
 
     private async buildImageDataUrl(options: PostingVisualOptionsDto, items: SelectedItem[]): Promise<string> {
