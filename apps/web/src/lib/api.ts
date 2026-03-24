@@ -8,7 +8,6 @@ import {
     MarketSet,
     PortfolioHistoryEntry,
     PostingGenerateRequest,
-    PostingHistoryEntry,
     SellerProfile,
     WorkflowStatus,
     GradingRecognitionResult
@@ -501,17 +500,6 @@ export async function generatePosting(payload: PostingGenerateRequest): Promise<
     return response.json();
 }
 
-export async function listPostingHistory(limit = 10): Promise<PostingHistoryEntry[]> {
-    const url = getFullUrl('/v1/posting/history');
-    url.searchParams.set('limit', String(limit));
-    const response = await fetch(url.toString(), { credentials: 'include' });
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch posting history');
-    }
-
-    return response.json();
-}
 
 // Analytics
 export async function trackEvent(data: { type: string; handle: string; itemId?: string; channel?: string; referrer?: string }) {

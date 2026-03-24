@@ -8,7 +8,6 @@ import {
     PostingBackground,
     PostingGenerationTarget,
     PostingLanguage,
-    PostingHistoryQueryDto,
     PostingSelectionMode,
     PostingTextOptionsDto,
     PostingTone,
@@ -47,55 +46,23 @@ export class PostingService {
         const generationTarget = dto.generationTarget ?? PostingGenerationTarget.BOTH;
         const selectedItems = await this.resolveSelectedItems(userId, dto);
 
-        const previous = dto.previousPostId
-            ? await this.prisma.generatedPost.findFirst({ where: { id: dto.previousPostId, userId } })
-            : null;
-
-        if (dto.previousPostId && !previous) {
-            throw new NotFoundException('Previous generated post not found');
-        }
-
         const chunkedItems: SelectedItem[][] = [];
         for (let i = 0; i < selectedItems.length; i += 12) {
             chunkedItems.push(selectedItems.slice(i, i + 12));
         }
 
-        const caption = generationTarget === PostingGenerationTarget.IMAGE_ONLY
-            ? (previous?.caption ?? this.buildCaption(dto.textOptions, selectedItems))
-            : this.buildCaption(dto.textOptions, selectedItems);
+        const caption = this.buildCaption(dto.textOptions, selectedItems);
 
         const imageDataUrls: string[] = [];
         if (generationTarget !== PostingGenerationTarget.TEXT_ONLY) {
             const imagePromises = chunkedItems.map((chunk) => this.buildImageDataUrl(dto.visualOptions, chunk));
             const generatedImages = await Promise.all(imagePromises);
             imageDataUrls.push(...generatedImages);
-        } else if (previous?.imageDataUrl) {
-            imageDataUrls.push(...(previous.imageDataUrl as string[]));
         }
 
-        const optionsPayload = {
-            textOptions: dto.textOptions,
-            visualOptions: dto.visualOptions,
-        } as unknown as Prisma.InputJsonValue;
-
-        const created = await this.prisma.generatedPost.create({
-            data: {
-                userId,
-                selectionMode: dto.selectionMode,
-                statusIds: dto.statusIds ?? [],
-                itemIds: selectedItems.map((item) => item.id),
-                platform: dto.textOptions.platform,
-                generationTarget,
-                caption,
-                imageDataUrl: imageDataUrls,
-                options: optionsPayload,
-                generatedItemCount: selectedItems.length,
-            },
-        });
-
         return {
-            id: created.id,
-            createdAt: created.createdAt,
+            id: `temp-${Date.now()}`,
+            createdAt: new Date(),
             generationTarget,
             itemCount: selectedItems.length,
             caption,
@@ -103,51 +70,6 @@ export class PostingService {
             items: selectedItems,
             textOptions: dto.textOptions,
             visualOptions: dto.visualOptions,
-        };
-    }
-
-    async listHistory(userId: string, query: PostingHistoryQueryDto) {
-        const limit = query.limit ?? 10;
-        const entries = await this.prisma.generatedPost.findMany({
-            where: { userId },
-            orderBy: { createdAt: 'desc' },
-            take: limit,
-        });
-
-        return entries.map((entry: any) => ({
-            id: entry.id,
-            createdAt: entry.createdAt,
-            selectionMode: entry.selectionMode,
-            platform: entry.platform,
-            generationTarget: entry.generationTarget,
-            itemCount: entry.generatedItemCount,
-            caption: entry.caption,
-            imageDataUrl: entry.imageDataUrl,
-            itemIds: entry.itemIds,
-            statusIds: entry.statusIds,
-            options: entry.options,
-        }));
-
-    }
-
-    async getHistoryEntry(userId: string, id: string) {
-        const entry = await this.prisma.generatedPost.findFirst({ where: { userId, id } });
-        if (!entry) {
-            throw new NotFoundException('Generated post not found');
-        }
-
-        return {
-            id: entry.id,
-            createdAt: entry.createdAt,
-            selectionMode: entry.selectionMode,
-            platform: entry.platform,
-            generationTarget: entry.generationTarget,
-            itemCount: entry.generatedItemCount,
-            caption: entry.caption,
-            imageDataUrl: entry.imageDataUrl,
-            itemIds: entry.itemIds,
-            statusIds: entry.statusIds,
-            options: entry.options,
         };
     }
 
@@ -240,18 +162,13 @@ export class PostingService {
                 chunks.push(`$${item.price.toLocaleString('en-US', { maximumFractionDigits: 2 })}`);
             }
 
-            const emojiNumber = String(index + 1)
-                .split('')
-                .map((digit) => `${digit}\ufe0f\u20e3`)
-                .join('');
-
-            return `${emojiNumber} ${chunks.join(' | ')}`;
+            return `${this.getEmojiNumber(index + 1)} ${chunks.join(' | ')}`;
         });
 
         const cta = normalizedOptions.includeCta
             ? (normalizedOptions.language === PostingLanguage.RU
-                ? '\nНапишите в ЛС для покупки или резерва 📩'
-                : '\nDM to reserve or buy 📩')
+                ? '\nНапишите в ЛС для покупки или резерва.'
+                : '\nDM to reserve or buy.')
             : '';
 
         const hashtags = normalizedOptions.includeHashtags
@@ -265,14 +182,14 @@ export class PostingService {
 
     private getCaptionOpener(language: PostingLanguage, tone: PostingTone, itemCount: number): string {
         if (language === PostingLanguage.RU) {
-            if (tone === PostingTone.HYPE) return `Свежий дроп: ${itemCount} позиций уже готовы 💎`;
-            if (tone === PostingTone.CONCISE) return `В наличии ${itemCount} позиций 📦`;
-            return `Подготовили подборку из ${itemCount} позиций для продажи ✨`;
+            if (tone === PostingTone.HYPE) return `Свежий дроп: ${itemCount} позиций уже готовы.`;
+            if (tone === PostingTone.CONCISE) return `В наличии ${itemCount} позиций.`;
+            return `Подготовили подборку из ${itemCount} позиций для продажи.`;
         }
 
-        if (tone === PostingTone.HYPE) return `Fresh drop: ${itemCount} items just landed 💎`;
-        if (tone === PostingTone.CONCISE) return `${itemCount} items are available now 📦`;
-        return `Curated sale update with ${itemCount} items ✨`;
+        if (tone === PostingTone.HYPE) return `Fresh drop: ${itemCount} items just landed.`;
+        if (tone === PostingTone.CONCISE) return `${itemCount} items are available now.`;
+        return `Curated sale update with ${itemCount} items.`;
     }
 
     private async buildImageDataUrl(options: PostingVisualOptionsDto, items: SelectedItem[]): Promise<string> {
@@ -560,5 +477,11 @@ export class PostingService {
             .replaceAll('>', '&gt;')
             .replaceAll('"', '&quot;')
             .replaceAll("'", '&apos;');
+    }
+
+    private getEmojiNumber(n: number): string {
+        const emojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣'];
+        if (n === 10) return '🔟';
+        return n.toString().split('').map(digit => emojis[parseInt(digit)]).join('');
     }
 }

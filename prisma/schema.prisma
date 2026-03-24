@@ -9,21 +9,20 @@ datasource db {
 
 /// User account
 model User {
-  id                 String          @id @default(cuid())
-  email              String          @unique
+  id                 String             @id @default(cuid())
+  email              String             @unique
   emailVerifiedAt    DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
   facebookVerifiedAt DateTime?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  inventoryHistory   InventoryHistory[]
   inventoryItems     InventoryItem[]
-  sellerProfile      SellerProfile?
-  sessions           Session[]
-  oauthIdentities    OAuthIdentity[]
   invites            Invite[]
   acceptedInvites    InviteAcceptance[]
+  oauthIdentities    OAuthIdentity[]
+  sellerProfile      SellerProfile?
+  sessions           Session[]
   workflowStatuses   WorkflowStatus[]
-  inventoryHistory   InventoryHistory[]
-  generatedPosts     GeneratedPost[]
 }
 
 /// OTP codes for email verification
@@ -60,28 +59,28 @@ model Session {
 
 /// Seller profile - one per user for MVP
 model SellerProfile {
-  id               String          @id @default(cuid())
-  handle           String          @unique
-  shopName         String
-  isActive         Boolean         @default(false)
-  location         String          @default("")
-  paymentsAccepted String[]
-  meetupsEnabled   Boolean         @default(false)
-  shippingEnabled  Boolean         @default(false)
-  fulfillmentOptions String[]      @default([])
-  socials          Json            @default("{}")
-  wishlistText     String          @default("")
-  referenceLinks   Json            @default("[]")
-  upcomingEvents   Json            @default("[]")
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  userId           String?         @unique
-  avatarId         String?
-  discordWebhookUrl String?
-  inventoryItems   InventoryItem[]
-  user             User?           @relation(fields: [userId], references: [id])
-  avatarMedia      Media?          @relation("AvatarMedia", fields: [avatarId], references: [id])
-  shopEvents       ShopEvent[]
+  id                 String          @id @default(cuid())
+  handle             String          @unique
+  shopName           String
+  isActive           Boolean         @default(true)
+  paymentsAccepted   String[]
+  meetupsEnabled     Boolean         @default(false)
+  shippingEnabled    Boolean         @default(false)
+  socials            Json            @default("{}")
+  wishlistText       String          @default("")
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  userId             String?         @unique
+  avatarId           String?
+  referenceLinks     Json            @default("[]")
+  upcomingEvents     Json            @default("[]")
+  fulfillmentOptions String[]        @default([])
+  location           String          @default("")
+  discordWebhookUrl  String?
+  inventoryItems     InventoryItem[]
+  avatarMedia        Media?          @relation("AvatarMedia", fields: [avatarId], references: [id])
+  user               User?           @relation(fields: [userId], references: [id])
+  shopEvents         ShopEvent[]
 
   @@index([handle])
   @@index([userId])
@@ -160,40 +159,38 @@ model InventoryItem {
   quantity                  Int                      @default(1)
   stage                     InventoryStage           @default(ACQUIRED)
   listingPrice              Decimal?                 @db.Decimal(10, 2)
-  soldPrice                 Decimal?                 @db.Decimal(10, 2)
-  soldDate                  DateTime?
   acquisitionPrice          Decimal?                 @db.Decimal(10, 2)
   acquisitionDate           DateTime?
   acquisitionSource         String?
   storageLocation           String?
   notes                     String?
   marketPriceSnapshot       Decimal?                 @db.Decimal(10, 2)
-  marketPriceLastSaleDate   DateTime?
-  photos                    Json                     @default("[]") // Still used for backward compatibility or multiple media IDs
+  photos                    Json                     @default("[]")
   createdAt                 DateTime                 @default(now())
   updatedAt                 DateTime                 @updatedAt
   certificationNumber       String?
-  cardNumber                String?
-  setCode                   String?
   gradingMeta               Json?
   refPriceChartingProductId String?
   userId                    String
   sellingDescription        String?
   sortOrder                 Int                      @default(0)
+  backMediaId               String?
+  frontMediaId              String?
+  marketPriceLastSaleDate   DateTime?
+  cardNumber                String?
+  setCode                   String?
   statusId                  String?
-  status                    WorkflowStatus?          @relation(fields: [statusId], references: [id])
+  soldDate                  DateTime?
+  soldPrice                 Decimal?                 @db.Decimal(10, 2)
+  history                   InventoryHistory[]
+  backMedia                 Media?                   @relation("BackMedia", fields: [backMediaId], references: [id])
   cardVariant               CardVariant?             @relation(fields: [cardVariantId], references: [id])
+  frontMedia                Media?                   @relation("FrontMedia", fields: [frontMediaId], references: [id])
   refPriceChartingProduct   RefPriceChartingProduct? @relation(fields: [refPriceChartingProductId], references: [id])
   seller                    SellerProfile?           @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  status                    WorkflowStatus?          @relation(fields: [statusId], references: [id])
   user                      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  history                   InventoryHistory[]
   shopEvents                ShopEvent[]
-
-  // Media references
-  frontMediaId String?
-  backMediaId  String?
-  frontMedia   Media?  @relation("FrontMedia", fields: [frontMediaId], references: [id])
-  backMedia    Media?  @relation("BackMedia", fields: [backMediaId], references: [id])
 
   @@index([sellerId])
   @@index([userId])
@@ -206,44 +203,24 @@ model InventoryItem {
 }
 
 model WorkflowStatus {
-  id        String   @id @default(cuid())
-  name      String
-  color     String?
-  position  Int
-  isEnabled Boolean  @default(true)
-  systemId       String?
-  showOnKanban   Boolean  @default(true)
-  userId         String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  items InventoryItem[]
+  id           String          @id @default(cuid())
+  name         String
+  color        String?
+  position     Int
+  isEnabled    Boolean         @default(true)
+  systemId     String?
+  userId       String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  showOnKanban Boolean         @default(true)
+  items        InventoryItem[]
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([position])
   @@index([userId, systemId])
 }
 
-model GeneratedPost {
-  id                String   @id @default(cuid())
-  userId            String
-  selectionMode     String
-  statusIds         String[] @default([])
-  itemIds           String[] @default([])
-  platform          String
-  generationTarget  String   @default("BOTH")
-  caption           String
-  imageDataUrl      String[] @default([])
-  options           Json     @default("{}")
-  generatedItemCount Int     @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, createdAt])
-}
 
 model RefGame {
   id              String    @id @default(cuid())
@@ -290,8 +267,6 @@ model RefPriceChartingProduct {
   setId           String?
   productType     String?
   title           String?
-  rawPrice        Decimal?             @db.Decimal(10, 2)
-  sealedPrice     Decimal?             @db.Decimal(10, 2)
   grade10Price    Decimal?             @db.Decimal(10, 2)
   grade7Price     Decimal?             @db.Decimal(10, 2)
   grade8Price     Decimal?             @db.Decimal(10, 2)
@@ -299,6 +274,8 @@ model RefPriceChartingProduct {
   grade9Price     Decimal?             @db.Decimal(10, 2)
   priceSource     String?
   priceUpdatedAt  DateTime?
+  rawPrice        Decimal?             @db.Decimal(10, 2)
+  sealedPrice     Decimal?             @db.Decimal(10, 2)
   lastParsedAt    DateTime?
   inventoryItems  InventoryItem[]
   sales           PriceChartingSales[]
@@ -330,10 +307,10 @@ model PriceChartingSales {
 model RefPriceChartingSet {
   id        String                    @id @default(cuid())
   name      String                    @unique
-  code      String?
   slug      String?                   @unique
   createdAt DateTime                  @default(now())
   updatedAt DateTime                  @updatedAt
+  code      String?
   products  RefPriceChartingProduct[]
 }
 
@@ -391,6 +368,122 @@ model RefSyncProgress {
   lastError      String?
   lastSyncAt     DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model Media {
+  id                   String          @id @default(cuid())
+  hash                 String          @unique
+  ext                  String?
+  mimeType             String
+  sizeBytes            Int
+  bucket               String
+  key                  String          @unique
+  etag                 String?
+  width                Int?
+  height               Int?
+  sourceUrl            String?
+  ownerUserId          String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  backInventoryItems   InventoryItem[] @relation("BackMedia")
+  frontInventoryItems  InventoryItem[] @relation("FrontMedia")
+  avatarSellerProfiles SellerProfile[] @relation("AvatarMedia")
+
+  @@index([ownerUserId])
+  @@index([createdAt])
+}
+
+model WaitlistParticipant {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+/// External OAuth identities (Facebook, etc.)
+model OAuthIdentity {
+  id             String   @id @default(cuid())
+  provider       String
+  providerUserId String
+  userId         String
+  email          String?
+  profileUrl     String?
+  profileData    Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+}
+
+model Invite {
+  id            String             @id @default(cuid())
+  inviterUserId String
+  tokenHash     String             @unique
+  createdAt     DateTime           @default(now())
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  maxUses       Int                @default(1)
+  usedCount     Int                @default(0)
+  inviter       User               @relation(fields: [inviterUserId], references: [id], onDelete: Cascade)
+  acceptedUsers InviteAcceptance[]
+
+  @@index([inviterUserId])
+  @@index([expiresAt])
+}
+
+model InviteAcceptance {
+  id                 String   @id @default(cuid())
+  inviteId           String
+  invitedUserId      String
+  acceptedAt         DateTime @default(now())
+  invitedEmailMasked String?
+  invite             Invite   @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+  invitedUser        User     @relation(fields: [invitedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([inviteId, invitedUserId])
+  @@index([invitedUserId])
+}
+
+model InventoryHistory {
+  id           String          @id @default(cuid())
+  itemId       String
+  userId       String
+  type         String
+  fromStage    InventoryStage?
+  toStage      InventoryStage?
+  fromStatusId String?
+  toStatusId   String?
+  notes        String?
+  createdAt    DateTime        @default(now())
+  item         InventoryItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([userId])
+}
+
+model ShopEvent {
+  id              String         @id @default(cuid())
+  sellerProfileId String
+  type            ShopEventType
+  itemId          String?
+  referrer        String?
+  channel         String?
+  ipHash          String?
+  userAgent       String?
+  createdAt       DateTime       @default(now())
+  countryCode     String?
+  ip              String?
+  item            InventoryItem? @relation(fields: [itemId], references: [id])
+  sellerProfile   SellerProfile  @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
+
+  @@index([sellerProfileId])
+  @@index([createdAt])
+  @@index([type])
 }
 
 enum InventoryStage {
@@ -461,131 +554,9 @@ enum Language {
   EN
 }
 
-model Media {
-  id          String   @id @default(cuid())
-  hash        String   @unique // sha256 hex of content
-  ext         String? // "jpg", "png", "webp" (derived)
-  mimeType    String
-  sizeBytes   Int
-  bucket      String
-  key         String   @unique // object key in bucket
-  etag        String? // returned by S3/Spaces
-  width       Int? // optional (images)
-  height      Int? // optional (images)
-  sourceUrl   String? // if ingested from remote (pricecharting)
-  ownerUserId String? // optional link to user
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  frontInventoryItems InventoryItem[] @relation("FrontMedia")
-  backInventoryItems  InventoryItem[] @relation("BackMedia")
-  avatarSellerProfiles SellerProfile[] @relation("AvatarMedia")
-
-  @@index([ownerUserId])
-  @@index([createdAt])
-}
-
-model WaitlistParticipant {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-
-  @@index([email])
-}
-
-/// External OAuth identities (Facebook, etc.)
-model OAuthIdentity {
-  id             String @id @default(cuid())
-  provider       String // e.g., "facebook"
-  providerUserId String // Provider-specific user id (e.g., Facebook user id)
-  userId         String
-  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  email       String? // email returned by provider (normalized)
-  profileUrl  String? // Social profile link to show publicly
-  profileData Json // any useful fields returned from provider
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([provider, providerUserId])
-  @@index([userId])
-}
-
-model Invite {
-  id            String   @id @default(cuid())
-  inviterUserId String
-  inviter       User     @relation(fields: [inviterUserId], references: [id], onDelete: Cascade)
-
-  tokenHash     String   @unique
-  createdAt     DateTime @default(now())
-  expiresAt     DateTime
-  revokedAt     DateTime?
-  maxUses       Int      @default(1)
-  usedCount     Int      @default(0)
-
-  acceptedUsers InviteAcceptance[]
-
-  @@index([inviterUserId])
-  @@index([expiresAt])
-}
-
-model InviteAcceptance {
-  id         String   @id @default(cuid())
-  inviteId   String
-  invite     Invite   @relation(fields: [inviteId], references: [id], onDelete: Cascade)
-
-  invitedUserId String
-  invitedUser   User     @relation(fields: [invitedUserId], references: [id], onDelete: Cascade)
-
-  acceptedAt DateTime @default(now())
-  invitedEmailMasked String?
-
-  @@unique([inviteId, invitedUserId])
-  @@index([invitedUserId])
-}
-
-model InventoryHistory {
-  id           String          @id @default(cuid())
-  itemId       String
-  item         InventoryItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  userId       String
-  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type         String // "STATUS_CHANGE"
-  fromStage    InventoryStage?
-  toStage      InventoryStage?
-  fromStatusId String?
-  toStatusId   String?
-  notes        String?
-  createdAt    DateTime        @default(now())
-
-  @@index([itemId])
-  @@index([userId])
-}
-
 enum ShopEventType {
   VIEW_SHOP
   VIEW_ITEM
   INQUIRY_START
   INQUIRY_COMPLETE
-}
-
-model ShopEvent {
-  id              String         @id @default(cuid())
-  sellerProfileId String
-  sellerProfile   SellerProfile  @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
-  type            ShopEventType
-  itemId          String?
-  item            InventoryItem? @relation(fields: [itemId], references: [id])
-  referrer        String?
-  channel         String?        // For custom tracking like ?ref=discord
-  ipHash          String?        // To identify unique visitors without PII
-  ip              String?        // Original IP for debugging (PII)
-  userAgent       String?
-  countryCode     String?        // Country code from GeoIP (e.g. US, GB)
-  createdAt       DateTime       @default(now())
-
-  @@index([sellerProfileId])
-  @@index([createdAt])
-  @@index([type])
 }

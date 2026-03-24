@@ -168,22 +168,4 @@ export class GeneratePostDto {
     @IsOptional()
     @IsEnum(PostingGenerationTarget)
     generationTarget?: PostingGenerationTarget;
-
-    @ApiPropertyOptional({
-        description: 'Used for TEXT_ONLY/IMAGE_ONLY regeneration to reuse prior image/caption',
-        example: 'cuid-post-id',
-    })
-    @IsOptional()
-    @IsString()
-    previousPostId?: string;
-}
-
-export class PostingHistoryQueryDto {
-    @ApiPropertyOptional({ default: 10, minimum: 1, maximum: 50 })
-    @IsOptional()
-    @Type(() => Number)
-    @IsInt()
-    @Min(1)
-    @Max(50)
-    limit?: number;
 }

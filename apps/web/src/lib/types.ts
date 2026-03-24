@@ -308,7 +308,6 @@ export interface PostingGenerateRequest {
     textOptions: PostingTextOptions;
     visualOptions: PostingVisualOptions;
     generationTarget?: PostingGenerationTarget;
-    previousPostId?: string;
 }
 
 export interface PostingSelectedItem {
@@ -334,22 +333,6 @@ export interface GeneratedPosting {
     visualOptions: PostingVisualOptions;
 }
 
-export interface PostingHistoryEntry {
-    id: string;
-    createdAt: string;
-    selectionMode: PostingSelectionMode;
-    platform: PostingPlatform;
-    generationTarget: PostingGenerationTarget;
-    itemCount: number;
-    caption: string;
-    imageDataUrl: string[];
-    itemIds: string[];
-    statusIds: string[];
-    options: {
-        textOptions: PostingTextOptions;
-        visualOptions: PostingVisualOptions;
-    };
-}
 
 export interface GradingRecognitionResult {
     success: boolean;

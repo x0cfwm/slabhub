@@ -75,7 +75,6 @@ Mobile (Expo)  ──┤──→  NestJS API :3001  ──→  PostgreSQL 16
 - `InventoryItem` — Central entity: type (RAW/GRADED/SEALED), 8 lifecycle stages (ACQUIRED → SOLD → ARCHIVED), links to `CardVariant`/grading data/pricing
 - `CardProfile` + `CardVariant` — Global card catalog synced from JustTCG
 - `PricingSnapshot` — Market prices from PriceCharting crawler
-- `GeneratedPost` — Social media post history with image URLs
 - `Media` — SHA256-deduplicated S3 objects
 
 ### Environment Variables
