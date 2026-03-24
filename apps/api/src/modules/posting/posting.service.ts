@@ -98,16 +98,29 @@ export class PostingService {
             throw new BadRequestException('No inventory items found for the current selection');
         }
 
-        return selected.slice(0, 48).map((item) => ({
-            id: item.id,
-            title: item.productName || item.cardProfile?.name || 'Untitled item',
-            subtitle: this.buildSubtitle(item),
-            grade: (item.gradeValue || item.grade || null) as string | null,
-            condition: (item.condition || null) as string | null,
-            price: this.resolvePrice(item),
-            imageUrl: this.resolveImageUrl(item),
-            statusName: item.status?.name ?? null,
-        }));
+        return selected.slice(0, 48).map((item) => {
+            const provider = item.gradeProvider || item.gradingCompany || null;
+            const rawGrade = (item.gradeValue || item.grade || null) as string | null;
+            const fullGrade = provider && rawGrade ? `${provider} ${rawGrade}` : rawGrade;
+
+            let title = item.productName || item.cardProfile?.name || 'Untitled item';
+            // Clean up: removes set names and card numbers from titles (e.g. "Name OP01-001 Set Name")
+            const cardNumMatch = title.search(/\s[A-Z0-9]+-\d{3,}/i);
+            if (cardNumMatch !== -1) {
+                title = title.substring(0, cardNumMatch).trim();
+            }
+
+            return {
+                id: item.id,
+                title,
+                subtitle: this.buildSubtitle(item),
+                grade: fullGrade,
+                condition: (item.condition || null) as string | null,
+                price: this.resolvePrice(item),
+                imageUrl: this.resolveImageUrl(item),
+                statusName: item.status?.name ?? null,
+            };
+        });
     }
 
     private buildSubtitle(item: any): string {
@@ -146,16 +159,8 @@ export class PostingService {
         const lines = items.map((item, index) => {
             const chunks: string[] = [item.title];
 
-            if (item.subtitle) {
-                chunks.push(`(${item.subtitle})`);
-            }
-
             if (normalizedOptions.includeGrade && item.grade) {
-                chunks.push(`Grade ${item.grade}`);
-            }
-
-            if (normalizedOptions.includeCondition && item.condition) {
-                chunks.push(`Cond ${item.condition}`);
+                chunks.push(item.grade);
             }
 
             if (normalizedOptions.includePrice && item.price !== null) {
@@ -173,7 +178,7 @@ export class PostingService {
 
         const hashtags = normalizedOptions.includeHashtags
             ? (normalizedOptions.platform === 'INSTAGRAM'
-                ? '\n\n#slabhub #tcg #pokemoncards #onepiececardgame #cardsforsale'
+                ? '\n\n#slabhub #tcg #onepiececardgame #cardsforsale'
                 : '\n\n#slabhub #tcg #cardsforsale')
             : '';
 
