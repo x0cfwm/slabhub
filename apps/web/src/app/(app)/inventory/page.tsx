@@ -188,20 +188,6 @@ function InventoryContent() {
                     )}
 
 
-
-                    <Tabs value={viewMode} onValueChange={handleViewChange} className="hidden sm:block">
-                        <TabsList className="grid w-[160px] grid-cols-2">
-                            <TabsTrigger value="kanban" className="flex items-center gap-2">
-                                <LayoutGrid className="h-3.5 w-3.5" />
-                                <span className="text-xs">Kanban</span>
-                            </TabsTrigger>
-                            <TabsTrigger value="list" className="flex items-center gap-2">
-                                <List className="h-3.5 w-3.5" />
-                                <span className="text-xs">List</span>
-                            </TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-
                     {viewMode === "kanban" && (
                         <div className="hidden lg:block">
                             <Tabs value={kanbanScale} onValueChange={handleScaleChange}>
@@ -219,6 +205,21 @@ function InventoryContent() {
                             </Tabs>
                         </div>
                     )}
+
+
+
+                    <Tabs value={viewMode} onValueChange={handleViewChange} className="hidden sm:block">
+                        <TabsList className="grid w-[160px] grid-cols-2">
+                            <TabsTrigger value="kanban" className="flex items-center gap-2">
+                                <LayoutGrid className="h-3.5 w-3.5" />
+                                <span className="text-xs">Kanban</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="list" className="flex items-center gap-2">
+                                <List className="h-3.5 w-3.5" />
+                                <span className="text-xs">List</span>
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
 
                     <Button asChild className="shrink-0">
                         <Link href="/inventory/add">
