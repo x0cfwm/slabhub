@@ -48,6 +48,13 @@ if (( BUILD_NUMBER > LAST_BUILD_NUMBER )); then
   echo "$BUILD_NUMBER" > "$BUILD_NUMBER_COUNTER_FILE"
 fi
 
+echo "==> Syncing build number $BUILD_NUMBER to app.json..."
+cd "$SCRIPT_DIR"
+node -e "const fs=require('fs'); const a=JSON.parse(fs.readFileSync('app.json','utf8')); if(!a.expo.ios) a.expo.ios={}; a.expo.ios.buildNumber='$BUILD_NUMBER'; fs.writeFileSync('app.json',JSON.stringify(a,null,2));"
+
+echo "==> Running Expo prebuild..."
+npx expo prebuild --platform ios --no-install
+
 if [[ ! -d "$IOS_DIR" ]]; then
   echo "Error: iOS directory not found: $IOS_DIR" >&2
   exit 1
