@@ -30,7 +30,7 @@ export class GradingRecognitionService {
         // Prioritize "lite" and "latest" models for speed. 
         // gemini-2.0-flash-lite and gemini-flash-lite-latest are typically much faster.
         const modelNames = [
-            'gemini-3.1-flash-lite',
+            'gemini-2.5-flash-lite',
         ];
 
         let lastError: Error | null = null;
