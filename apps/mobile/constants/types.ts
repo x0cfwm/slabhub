@@ -52,6 +52,7 @@ export interface InventoryItem {
   soldChannel?: SaleChannel;
   soldDate?: string;
   notes: string;
+  sellingDescription?: string;
   refPriceChartingProductId?: string;
   productType?: ProductType;
   integrity?: SealedIntegrity;
@@ -59,6 +60,7 @@ export interface InventoryItem {
   edition?: string;
   createdAt: string;
   updatedAt: string;
+  statusId?: string;
 }
 
 export interface UserProfile {

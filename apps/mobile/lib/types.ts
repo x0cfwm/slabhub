@@ -48,6 +48,7 @@ export interface InventoryBase {
     setName?: string;
     cardProfile?: any;
     createdAt: string;
+    statusId?: string;
 }
 
 export interface SingleCardRaw extends InventoryBase {

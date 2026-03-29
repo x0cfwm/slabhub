@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
+import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
 import Colors from '@/constants/colors';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
@@ -28,6 +29,8 @@ import {
   CONDITION_LABELS,
   TYPE_LABELS,
 } from '@/constants/types';
+import { ListedPromptDialog } from '@/components/inventory/ListedPromptDialog';
+import { SoldPromptDialog } from '@/components/inventory/SoldPromptDialog';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const c = Colors.dark;
@@ -49,10 +52,13 @@ type TabItem = {
 
 export default function InventoryScreen() {
   const insets = useSafeAreaInsets();
-  const { inventory, deleteItem, moveItem, refreshInventory, statuses } = useApp();
+  const { inventory, deleteItem, moveItem, updateItem, refreshInventory, statuses } = useApp();
   const [activeStage, setActiveStage] = useState<ItemStage | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [listedPromptVisible, setListedPromptVisible] = useState(false);
+  const [soldPromptVisible, setSoldPromptVisible] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
   // Map ItemStage (lowercase) to backend systemIds
@@ -147,13 +153,24 @@ export default function InventoryScreen() {
         [
           ...enabledNextStages.map((stage) => ({
             text: STAGE_LABELS[stage],
-            onPress: () => moveItem(item.id, stage),
+            onPress: () => {
+              if (stage === 'listed') {
+                setSelectedItem(item);
+                setListedPromptVisible(true);
+              } else if (stage === 'sold') {
+                setSelectedItem(item);
+                setSoldPromptVisible(true);
+              } else {
+                moveItem(item.id, stage);
+                if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              }
+            },
           })),
           { text: 'Cancel', style: 'cancel' as const },
         ]
       );
     }
-  }, [moveItem]);
+  }, [moveItem, statuses]);
 
   const renderInventoryItem = useCallback(({ item }: { item: InventoryItem }) => (
     <InventoryCard
@@ -291,6 +308,39 @@ export default function InventoryScreen() {
         })}
         onScrollToIndexFailed={(info) => {
           pagerRef.current?.scrollToIndex({ index: info.index, animated: true });
+        }}
+      />
+      <ListedPromptDialog
+        isOpen={listedPromptVisible}
+        onClose={() => setListedPromptVisible(false)}
+        item={selectedItem}
+        itemName={selectedItem?.name}
+        onConfirm={async (data) => {
+          if (selectedItem) {
+            await moveItem(selectedItem.id, 'listed');
+            await updateItem(selectedItem.id, {
+              listedPrice: data.listingPrice,
+              sellingDescription: data.sellingDescription,
+            });
+            if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
+        }}
+      />
+
+      <SoldPromptDialog
+        isOpen={soldPromptVisible}
+        onClose={() => setSoldPromptVisible(false)}
+        itemName={selectedItem?.name}
+        listingPrice={selectedItem?.listedPrice}
+        onConfirm={async (data) => {
+          if (selectedItem) {
+            await moveItem(selectedItem.id, 'sold');
+            await updateItem(selectedItem.id, {
+              soldPrice: data.soldPrice,
+              soldDate: data.soldDate,
+            });
+            if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
         }}
       />
     </View>

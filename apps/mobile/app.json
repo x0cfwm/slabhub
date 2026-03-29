@@ -18,15 +18,14 @@
       "bundleIdentifier": "gg.slabhub.crm",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "buildNumber": "3"
     },
     "android": {
       "package": "com.myapp",
       "adaptiveIcon": {
         "backgroundColor": "#0A0A0C",
-        "foregroundImage": "./assets/images/slabhub_android_foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/slabhub_android_foreground.png"
       }
     },
     "web": {

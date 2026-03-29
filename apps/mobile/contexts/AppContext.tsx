@@ -73,8 +73,10 @@ const mapApiToUiItem = (item: ApiInventoryItem): InventoryItem => {
     acquisitionPrice: Number(item.acquisitionPrice) || 0,
     marketPrice: Number(item.marketPrice) || 0,
     listedPrice: item.listingPrice ? Number(item.listingPrice) : undefined,
-    soldPrice: item.stage === 'SOLD' && item.listingPrice ? Number(item.listingPrice) : undefined,
+    soldPrice: (item as any).soldPrice ? Number((item as any).soldPrice) : (item.stage === 'SOLD' && item.listingPrice ? Number(item.listingPrice) : undefined),
+    soldDate: (item as any).soldDate,
     notes: item.notes || '',
+    sellingDescription: (item as any).sellingDescription,
     productType: (item as any).productType as ProductType,
     integrity: (item as any).integrity as SealedIntegrity,
     language: (item as any).language,
@@ -82,6 +84,7 @@ const mapApiToUiItem = (item: ApiInventoryItem): InventoryItem => {
     refPriceChartingProductId: item.refPriceChartingProductId,
     createdAt: item.createdAt,
     updatedAt: item.createdAt, // Fallback
+    statusId: item.statusId,
   };
 };
 
@@ -135,9 +138,13 @@ const mapUiToApiDto = (item: any) => {
     quantity: item.quantity || 1,
     acquisitionPrice: item.acquisitionPrice,
     listingPrice: item.stage === 'sold' ? item.soldPrice : item.listedPrice,
+    soldPrice: item.stage === 'sold' ? item.soldPrice : undefined,
+    soldDate: item.stage === 'sold' ? item.soldDate : undefined,
+    sellingDescription: item.sellingDescription,
     notes: item.notes,
     photos: item.imageUri ? [item.imageUri] : [],
     refPriceChartingProductId: item.refPriceChartingProductId,
+    statusId: item.statusId,
   };
 };
 
@@ -305,8 +312,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const moveItem = useCallback(async (id: string, stage: ItemStage) => {
-    await updateItem(id, { stage });
-  }, [updateItem]);
+    const STAGE_TO_SYSTEM_MAP_SINGLE: Record<ItemStage, string> = {
+      acquired: 'ACQUIRED',
+      in_transit: 'IN_TRANSIT',
+      grading: 'BEING_GRADED',
+      in_stock: 'IN_STOCK',
+      listed: 'LISTED',
+      sold: 'SOLD',
+    };
+    const systemId = STAGE_TO_SYSTEM_MAP_SINGLE[stage];
+    const status = statuses.find(s => s.systemId === systemId);
+    await updateItem(id, { stage, statusId: status?.id } as any);
+  }, [updateItem, statuses]);
 
   const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
     try {

@@ -30,6 +30,8 @@ import {
 } from '@/constants/types';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
 import ShareCard, { ShareCardHandle } from '@/components/ShareCard';
+import { ListedPromptDialog } from '@/components/inventory/ListedPromptDialog';
+import { SoldPromptDialog } from '@/components/inventory/SoldPromptDialog';
 
 const c = Colors.dark;
 
@@ -45,8 +47,10 @@ const STAGE_COLORS: Record<ItemStage, string> = {
 export default function ItemDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { inventory, deleteItem, moveItem } = useApp();
+  const { inventory, deleteItem, moveItem, updateItem } = useApp();
   const [modalVisible, setModalVisible] = React.useState(false);
+  const [listedPromptVisible, setListedPromptVisible] = React.useState(false);
+  const [soldPromptVisible, setSoldPromptVisible] = React.useState(false);
   const shareRef = React.useRef<ShareCardHandle>(null);
   const [isSharing, setIsSharing] = React.useState(false);
 
@@ -121,8 +125,14 @@ export default function ItemDetailScreen() {
         ...nextStages.map((stage) => ({
           text: STAGE_LABELS[stage],
           onPress: () => {
-            moveItem(item.id, stage);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            if (stage === 'listed') {
+              setListedPromptVisible(true);
+            } else if (stage === 'sold') {
+              setSoldPromptVisible(true);
+            } else {
+              moveItem(item.id, stage);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            }
           },
         })),
         { text: 'Cancel', style: 'cancel' as const },
@@ -196,11 +206,13 @@ export default function ItemDetailScreen() {
               ${(Number(item.marketPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </Text>
           </Pressable>
-          {item.listedPrice !== undefined && item.listedPrice > 0 ? (
+          {(item.stage === 'listed' || item.stage === 'sold') ? (
             <View style={styles.priceCard}>
               <Text style={styles.priceLabel}>Listed Price</Text>
               <Text style={styles.priceListed}>
-                ${(Number(item.listedPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                {item.listedPrice !== undefined && item.listedPrice > 0 
+                  ? `$${(Number(item.listedPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+                  : '—'}
               </Text>
             </View>
           ) : (
@@ -213,11 +225,21 @@ export default function ItemDetailScreen() {
           )}
         </View>
 
-        {item.stage === 'sold' && item.soldPrice !== undefined && (
+        {item.stage === 'sold' && (
           <View style={styles.soldSection}>
             <View style={styles.soldRow}>
               <Text style={styles.soldLabel}>Sold For</Text>
-              <Text style={styles.soldValue}>${(Number(item.soldPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
+              <Text style={styles.soldValue}>
+                {item.soldPrice !== undefined 
+                  ? `$${(Number(item.soldPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+                  : '—'}
+              </Text>
+            </View>
+            <View style={styles.soldRow}>
+              <Text style={styles.soldLabel}>Sold Date</Text>
+              <Text style={styles.soldDateText}>
+                {item.soldDate ? new Date(item.soldDate).toLocaleDateString() : '—'}
+              </Text>
             </View>
             {item.soldChannel && CHANNEL_LABELS[item.soldChannel] && (
               <View style={styles.soldRow}>
@@ -244,6 +266,13 @@ export default function ItemDetailScreen() {
           )}
           <DetailRow label="Added" value={item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'} />
         </View>
+
+        {(item.sellingDescription || item.stage === 'listed') ? (
+          <View style={styles.notesSection}>
+            <Text style={styles.notesSectionTitle}>Public Description</Text>
+            <Text style={styles.notesText}>{item.sellingDescription || 'No description provided'}</Text>
+          </View>
+        ) : null}
 
         {item.notes ? (
           <View style={styles.notesSection}>
@@ -272,6 +301,36 @@ export default function ItemDetailScreen() {
           onClose={() => setModalVisible(false)}
         />
       </Modal>
+
+      <ListedPromptDialog
+        isOpen={listedPromptVisible}
+        onClose={() => setListedPromptVisible(false)}
+        item={item}
+        itemName={item?.name}
+        onConfirm={async (data) => {
+          await moveItem(item.id, 'listed');
+          await updateItem(item.id, {
+            listedPrice: data.listingPrice,
+            sellingDescription: data.sellingDescription,
+          });
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+      />
+
+      <SoldPromptDialog
+        isOpen={soldPromptVisible}
+        onClose={() => setSoldPromptVisible(false)}
+        itemName={item?.name}
+        listingPrice={item?.listedPrice}
+        onConfirm={async (data) => {
+          await moveItem(item.id, 'sold');
+          await updateItem(item.id, {
+            soldPrice: data.soldPrice,
+            soldDate: data.soldDate,
+          });
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+      />
 
       <ShareCard ref={shareRef} item={item} />
     </View>
@@ -427,6 +486,11 @@ const styles = StyleSheet.create({
     color: c.text,
   },
   soldChannelText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: c.text,
+  },
+  soldDateText: {
     fontSize: 15,
     fontWeight: '600' as const,
     color: c.text,
