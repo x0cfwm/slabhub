@@ -85,6 +85,12 @@ function RootLayoutNav() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="posting"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

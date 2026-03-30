@@ -1,11 +1,13 @@
 import * as SecureStore from "expo-secure-store";
 import { apiRequest, getApiUrl } from "./query-client";
 import {
+    GeneratedPosting,
     InventoryItem,
     MarketProduct,
     MarketProductsResponse,
     MarketSet,
     MarketPriceHistory,
+    PostingGenerateRequest,
     SellerProfile,
     PortfolioHistoryEntry,
     GradingRecognitionResult,
@@ -170,5 +172,10 @@ export async function recognizeImage(originalUri: string): Promise<GradingRecogn
 
 export async function listStatuses(includeDisabled = false): Promise<WorkflowStatus[]> {
     const response = await apiRequest("GET", `/workflow/statuses${includeDisabled ? "?includeDisabled=true" : ""}`);
+    return response.json();
+}
+
+export async function generatePosting(payload: PostingGenerateRequest): Promise<GeneratedPosting> {
+    const response = await apiRequest("POST", "/posting/generate", payload);
     return response.json();
 }
