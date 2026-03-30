@@ -178,6 +178,14 @@ export function shouldBlockPostingScreen(args: {
   return isRefreshing && inventoryCount === 0 && statusCount === 0;
 }
 
+export function shouldShowPostingRefreshNotice(args: {
+  isRefreshing: boolean;
+  delayElapsed: boolean;
+}): boolean {
+  const { isRefreshing, delayElapsed } = args;
+  return isRefreshing && delayElapsed;
+}
+
 export function decodeSvgDataUrl(dataUrl: string): string {
   if (!dataUrl.startsWith('data:image/svg+xml')) {
     return dataUrl;

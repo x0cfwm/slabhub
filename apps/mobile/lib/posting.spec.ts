@@ -7,7 +7,13 @@ import {
   getSelectedPostingItems,
   getPostingAspectRatio,
   shouldBlockPostingScreen,
+  shouldShowPostingRefreshNotice,
 } from './posting';
+import {
+  clearPostingReviewSession,
+  getPostingReviewSession,
+  setPostingReviewSession,
+} from './posting-review-session';
 import type { WorkflowStatus } from './types';
 import type { InventoryItem } from '../constants/types';
 
@@ -123,6 +129,37 @@ function run() {
   assert.equal(shouldBlockPostingScreen({ isRefreshing: true, inventoryCount: 0, statusCount: 0 }), true);
   assert.equal(shouldBlockPostingScreen({ isRefreshing: true, inventoryCount: 2, statusCount: 0 }), false);
   assert.equal(shouldBlockPostingScreen({ isRefreshing: false, inventoryCount: 0, statusCount: 0 }), false);
+  assert.equal(shouldShowPostingRefreshNotice({ isRefreshing: true, delayElapsed: false }), false);
+  assert.equal(shouldShowPostingRefreshNotice({ isRefreshing: true, delayElapsed: true }), true);
+  assert.equal(shouldShowPostingRefreshNotice({ isRefreshing: false, delayElapsed: true }), false);
+
+  const sampleGenerated = {
+    id: 'generated-1',
+    createdAt: '2026-03-30T00:00:00.000Z',
+    generationTarget: 'BOTH' as const,
+    itemCount: 1,
+    caption: 'Sample caption',
+    imageDataUrl: ['data:image/svg+xml,%3Csvg%20/%3E'],
+    items: [{
+      id: 'i1',
+      title: 'Monkey D. Luffy',
+      subtitle: 'OP01 • 001 • Listed',
+      grade: 'BGS 10',
+      condition: 'NM',
+      price: 37,
+      imageUrl: 'https://cdn.test/luffy.jpg',
+      statusName: 'Listed',
+    }],
+    textOptions: POSTING_PLATFORM_PRESETS.INSTAGRAM.textOptions,
+    visualOptions: POSTING_PLATFORM_PRESETS.INSTAGRAM.visualOptions,
+  };
+
+  clearPostingReviewSession();
+  assert.equal(getPostingReviewSession(), null);
+  setPostingReviewSession(sampleGenerated);
+  assert.deepEqual(getPostingReviewSession(), sampleGenerated);
+  clearPostingReviewSession();
+  assert.equal(getPostingReviewSession(), null);
 
   console.log('posting.spec.ts: ok');
 }
