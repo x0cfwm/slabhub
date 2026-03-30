@@ -169,6 +169,29 @@ export function getPostingAspectRatio(ratio: PostingRatio): number {
   return 4 / 5;
 }
 
+export function getPostingBackgroundGradient(backgroundStyle: PostingBackground): {
+  top: string;
+  bottom: string;
+} {
+  if (backgroundStyle === 'LIGHT') {
+    return { top: '#e2e8f0', bottom: '#94a3b8' };
+  }
+
+  if (backgroundStyle === 'SUNSET') {
+    return { top: '#7c3aed', bottom: '#f97316' };
+  }
+
+  return { top: '#0b1120', bottom: '#1f2937' };
+}
+
+export function shouldUseDirectInstagramStoryShare(args: {
+  platform: PostingPlatform;
+  appId?: string;
+}): boolean {
+  const { platform, appId } = args;
+  return platform === 'INSTAGRAM' && Boolean(appId);
+}
+
 export function shouldBlockPostingScreen(args: {
   isRefreshing: boolean;
   inventoryCount: number;

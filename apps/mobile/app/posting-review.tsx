@@ -1,12 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,14 +20,21 @@ import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { SvgXml } from 'react-native-svg';
 import Colors from '@/constants/colors';
-import { decodeSvgDataUrl, getPostingAspectRatio } from '@/lib/posting';
+import {
+  decodeSvgDataUrl,
+  getPostingAspectRatio,
+  getPostingBackgroundGradient,
+  shouldUseDirectInstagramStoryShare,
+} from '@/lib/posting';
 import { getPostingReviewSession } from '@/lib/posting-review-session';
 
 const c = Colors.dark;
+const INSTAGRAM_STORY_APP_ID = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
 
 export default function PostingReviewScreen() {
   const insets = useSafeAreaInsets();
-  const previewRef = useRef<ViewShot>(null);
+  const { width: screenWidth } = useWindowDimensions();
+  const previewRefs = useRef<Record<number, ViewShot | null>>({});
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const generated = getPostingReviewSession();
 
@@ -37,29 +48,40 @@ export default function PostingReviewScreen() {
     return null;
   }
 
-  const currentImage = generated.imageDataUrl[currentImageIndex];
-  const currentSvgXml = currentImage ? decodeSvgDataUrl(currentImage) : null;
   const previewAspectRatio = getPostingAspectRatio(generated.visualOptions.ratio);
+  const backgroundGradient = getPostingBackgroundGradient(
+    generated.visualOptions.backgroundStyle ?? 'DARK',
+  );
+  const shouldShareDirectToStory = shouldUseDirectInstagramStoryShare({
+    platform: generated.textOptions.platform,
+    appId: INSTAGRAM_STORY_APP_ID,
+  });
+  const previewWidth = Math.max(screenWidth - 72, 240);
 
   const capturePreview = async () => {
-    if (!previewRef.current?.capture) {
+    const activePreviewRef = previewRefs.current[currentImageIndex];
+    if (!activePreviewRef?.capture) {
       throw new Error('Preview is not ready yet.');
     }
 
-    return previewRef.current.capture();
+    return activePreviewRef.capture();
+  };
+
+  const handlePreviewMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / previewWidth);
+    setCurrentImageIndex(Math.max(0, Math.min(generated.imageDataUrl.length - 1, nextIndex)));
   };
 
   const handleShareImage = async () => {
-    if (!currentSvgXml) return;
+    if (!generated.imageDataUrl[currentImageIndex]) return;
+
+    if (Platform.OS === 'web') {
+      Alert.alert('Unavailable on web', 'Image sharing is only available in the native mobile app.');
+      return;
+    }
 
     try {
       const imageUri = await capturePreview();
-
-      if (Platform.OS === 'web') {
-        Alert.alert('Unavailable on web', 'Image sharing is only available in the native mobile app.');
-        return;
-      }
-
       const isAvailable = await Sharing.isAvailableAsync();
       if (!isAvailable) {
         Alert.alert('Sharing unavailable', 'This device does not support the native share sheet.');
@@ -76,10 +98,60 @@ export default function PostingReviewScreen() {
     }
   };
 
+  const handleShareToInstagramStory = async () => {
+    if (!generated.imageDataUrl[currentImageIndex] || !INSTAGRAM_STORY_APP_ID) return;
+
+    if (Platform.OS === 'web') {
+      Alert.alert('Unavailable on web', 'Instagram Story sharing is only available in the native mobile app.');
+      return;
+    }
+
+    try {
+      const imageUri = await capturePreview();
+      const { default: Share, Social } = await import('react-native-share');
+
+      await Share.shareSingle({
+        social: Social.InstagramStories,
+        appId: INSTAGRAM_STORY_APP_ID,
+        stickerImage: imageUri,
+        backgroundTopColor: backgroundGradient.top,
+        backgroundBottomColor: backgroundGradient.bottom,
+      });
+    } catch (error: any) {
+      Alert.alert('Instagram share failed', error?.message || 'Failed to open Instagram Story sharing.');
+    }
+  };
+
   const handleCopyCaption = async () => {
     if (!generated.caption) return;
     await Clipboard.setStringAsync(generated.caption);
     Alert.alert('Caption copied', 'The generated caption is now in your clipboard.');
+  };
+
+  const renderPreviewItem = ({ item, index }: { item: string; index: number }) => {
+    const previewSvgXml = decodeSvgDataUrl(item);
+
+    return (
+      <View style={[styles.previewSlide, { width: previewWidth }]}>
+        <ViewShot
+          ref={(instance) => {
+            previewRefs.current[index] = instance;
+          }}
+          style={styles.previewCaptureArea}
+          options={{ format: 'png', result: 'tmpfile' }}
+        >
+          <View style={[styles.previewFrame, { aspectRatio: previewAspectRatio }]}>
+            {previewSvgXml ? (
+              <SvgXml xml={previewSvgXml} width="100%" height="100%" />
+            ) : (
+              <View style={styles.emptyPreview}>
+                <Text style={styles.emptyPreviewText}>Preview unavailable</Text>
+              </View>
+            )}
+          </View>
+        </ViewShot>
+      </View>
+    );
   };
 
   return (
@@ -121,52 +193,34 @@ export default function PostingReviewScreen() {
             )}
           </View>
 
-          <ViewShot
-            ref={previewRef}
-            style={styles.previewCaptureArea}
-            options={{ format: 'png', result: 'tmpfile' }}
-          >
-            <View style={[styles.previewFrame, { aspectRatio: previewAspectRatio }]}>
-              {currentSvgXml ? (
-                <SvgXml xml={currentSvgXml} width="100%" height="100%" />
-              ) : (
-                <View style={styles.emptyPreview}>
-                  <Text style={styles.emptyPreviewText}>Preview unavailable</Text>
-                </View>
-              )}
-            </View>
-          </ViewShot>
+          <FlatList
+            data={generated.imageDataUrl}
+            keyExtractor={(_, index) => `posting-preview-${index}`}
+            renderItem={renderPreviewItem}
+            horizontal
+            pagingEnabled
+            bounces={false}
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handlePreviewMomentumEnd}
+            scrollEnabled={generated.imageDataUrl.length > 1}
+            getItemLayout={(_, index) => ({
+              length: previewWidth,
+              offset: previewWidth * index,
+              index,
+            })}
+          />
 
           {generated.imageDataUrl.length > 1 && (
-            <View style={styles.previewControls}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.previewNavBtn,
-                  currentImageIndex === 0 && styles.previewNavBtnDisabled,
-                  { opacity: pressed ? 0.8 : 1 },
-                ]}
-                onPress={() => setCurrentImageIndex((value) => Math.max(0, value - 1))}
-                disabled={currentImageIndex === 0}
-              >
-                <Ionicons name="chevron-back" size={18} color={c.text} />
-                <Text style={styles.previewNavText}>Prev</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.previewNavBtn,
-                  currentImageIndex === generated.imageDataUrl.length - 1 && styles.previewNavBtnDisabled,
-                  { opacity: pressed ? 0.8 : 1 },
-                ]}
-                onPress={() =>
-                  setCurrentImageIndex((value) =>
-                    Math.min(generated.imageDataUrl.length - 1, value + 1),
-                  )
-                }
-                disabled={currentImageIndex === generated.imageDataUrl.length - 1}
-              >
-                <Text style={styles.previewNavText}>Next</Text>
-                <Ionicons name="chevron-forward" size={18} color={c.text} />
-              </Pressable>
+            <View style={styles.previewDots}>
+              {generated.imageDataUrl.map((_, index) => (
+                <View
+                  key={`preview-dot-${index}`}
+                  style={[
+                    styles.previewDot,
+                    index === currentImageIndex && styles.previewDotActive,
+                  ]}
+                />
+              ))}
             </View>
           )}
         </View>
@@ -184,37 +238,26 @@ export default function PostingReviewScreen() {
           <Text style={styles.captionText}>{generated.caption}</Text>
         </View>
 
-        <View style={styles.previewCard}>
-          <Text style={styles.sectionTitle}>Included Items</Text>
-          <View style={styles.includedList}>
-            {generated.items.map((item) => (
-              <View key={item.id} style={styles.includedRow}>
-                <View style={styles.includedBullet} />
-                <View style={styles.includedCopy}>
-                  <Text style={styles.includedTitle}>{item.title}</Text>
-                  <Text style={styles.includedSubtitle}>{item.subtitle}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom || 16 }]}>
-        <View style={styles.footerActions}>
+        <View style={styles.footerContent}>
+          {shouldShareDirectToStory && (
+            <Pressable
+              style={({ pressed }) => [styles.instagramActionBtn, { opacity: pressed ? 0.92 : 1 }]}
+              onPress={handleShareToInstagramStory}
+            >
+              <Ionicons name="logo-instagram" size={18} color={c.accentText} />
+              <Text style={styles.primaryActionText}>Instagram Story</Text>
+            </Pressable>
+          )}
+
           <Pressable
             style={({ pressed }) => [styles.secondaryActionBtn, { opacity: pressed ? 0.9 : 1 }]}
-            onPress={handleCopyCaption}
-          >
-            <Ionicons name="copy-outline" size={18} color={c.text} />
-            <Text style={styles.secondaryActionText}>Copy Caption</Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.primaryActionBtn, { opacity: pressed ? 0.9 : 1 }]}
             onPress={handleShareImage}
           >
-            <Ionicons name="share-social-outline" size={18} color={c.accentText} />
-            <Text style={styles.primaryActionText}>Share / Save</Text>
+            <Ionicons name="share-outline" size={18} color={c.text} />
+            <Text style={styles.secondaryActionText}>Share / Save</Text>
           </Pressable>
         </View>
       </View>
@@ -316,6 +359,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: 'transparent',
   },
+  previewSlide: {
+    alignSelf: 'center',
+  },
   previewFrame: {
     width: '100%',
     backgroundColor: '#0b1120',
@@ -332,62 +378,27 @@ const styles = StyleSheet.create({
     color: c.textSecondary,
     fontSize: 14,
   },
-  previewControls: {
+  previewDots: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  previewNavBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: c.surfaceHighlight,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: c.borderLight,
-    paddingVertical: 10,
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 4,
   },
-  previewNavBtnDisabled: {
-    opacity: 0.45,
+  previewDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: c.borderLight,
   },
-  previewNavText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.text,
+  previewDotActive: {
+    width: 24,
+    backgroundColor: c.accent,
   },
   captionText: {
     fontSize: 14,
     lineHeight: 22,
     color: c.text,
-  },
-  includedList: {
-    gap: 12,
-  },
-  includedRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  includedBullet: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: c.accent,
-    marginTop: 8,
-  },
-  includedCopy: {
-    flex: 1,
-    gap: 3,
-  },
-  includedTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.text,
-  },
-  includedSubtitle: {
-    fontSize: 12,
-    color: c.textSecondary,
   },
   footer: {
     position: 'absolute',
@@ -400,11 +411,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
   },
-  footerActions: {
-    flexDirection: 'row',
+  footerContent: {
     gap: 12,
   },
-  primaryActionBtn: {
+  instagramActionBtn: {
     backgroundColor: c.accent,
     borderRadius: 16,
     minHeight: 54,
@@ -412,7 +422,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
-    flex: 1,
   },
   primaryActionText: {
     fontSize: 15,
@@ -420,7 +429,6 @@ const styles = StyleSheet.create({
     color: c.accentText,
   },
   secondaryActionBtn: {
-    flex: 1,
     minHeight: 54,
     borderRadius: 16,
     backgroundColor: c.surface,

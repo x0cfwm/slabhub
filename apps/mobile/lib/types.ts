@@ -245,17 +245,6 @@ export interface PostingGenerateRequest {
     generationTarget?: PostingGenerationTarget;
 }
 
-export interface PostingSelectedItem {
-    id: string;
-    title: string;
-    subtitle: string;
-    grade: string | null;
-    condition: string | null;
-    price: number | null;
-    imageUrl: string | null;
-    statusName: string | null;
-}
-
 export interface GeneratedPosting {
     id: string;
     createdAt: string;
@@ -263,7 +252,6 @@ export interface GeneratedPosting {
     itemCount: number;
     caption: string;
     imageDataUrl: string[];
-    items: PostingSelectedItem[];
     textOptions: PostingTextOptions;
     visualOptions: PostingVisualOptions;
 }

@@ -74,7 +74,6 @@ export class PostingService {
             itemCount: selectedItems.length,
             caption,
             imageDataUrl: imageDataUrls,
-            items: selectedItems,
             textOptions: dto.textOptions,
             visualOptions: dto.visualOptions,
         };

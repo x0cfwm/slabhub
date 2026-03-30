@@ -6,6 +6,8 @@ import {
   getDefaultPostingStatusIds,
   getSelectedPostingItems,
   getPostingAspectRatio,
+  getPostingBackgroundGradient,
+  shouldUseDirectInstagramStoryShare,
   shouldBlockPostingScreen,
   shouldShowPostingRefreshNotice,
 } from './posting';
@@ -126,6 +128,37 @@ function run() {
   assert.equal(getPostingAspectRatio('4:5'), 4 / 5);
   assert.equal(getPostingAspectRatio('1:1'), 1);
   assert.equal(getPostingAspectRatio('9:16'), 9 / 16);
+  assert.deepEqual(getPostingBackgroundGradient('SUNSET'), { top: '#7c3aed', bottom: '#f97316' });
+  assert.deepEqual(getPostingBackgroundGradient('LIGHT'), { top: '#e2e8f0', bottom: '#94a3b8' });
+  assert.deepEqual(getPostingBackgroundGradient('DARK'), { top: '#0b1120', bottom: '#1f2937' });
+  assert.equal(
+    shouldUseDirectInstagramStoryShare({
+      platform: 'INSTAGRAM',
+      appId: '123',
+    }),
+    true,
+  );
+  assert.equal(
+    shouldUseDirectInstagramStoryShare({
+      platform: 'INSTAGRAM',
+      appId: '123',
+    }),
+    true,
+  );
+  assert.equal(
+    shouldUseDirectInstagramStoryShare({
+      platform: 'FACEBOOK',
+      appId: '123',
+    }),
+    false,
+  );
+  assert.equal(
+    shouldUseDirectInstagramStoryShare({
+      platform: 'INSTAGRAM',
+      appId: '',
+    }),
+    false,
+  );
   assert.equal(shouldBlockPostingScreen({ isRefreshing: true, inventoryCount: 0, statusCount: 0 }), true);
   assert.equal(shouldBlockPostingScreen({ isRefreshing: true, inventoryCount: 2, statusCount: 0 }), false);
   assert.equal(shouldBlockPostingScreen({ isRefreshing: false, inventoryCount: 0, statusCount: 0 }), false);
@@ -140,16 +173,6 @@ function run() {
     itemCount: 1,
     caption: 'Sample caption',
     imageDataUrl: ['data:image/svg+xml,%3Csvg%20/%3E'],
-    items: [{
-      id: 'i1',
-      title: 'Monkey D. Luffy',
-      subtitle: 'OP01 • 001 • Listed',
-      grade: 'BGS 10',
-      condition: 'NM',
-      price: 37,
-      imageUrl: 'https://cdn.test/luffy.jpg',
-      statusName: 'Listed',
-    }],
     textOptions: POSTING_PLATFORM_PRESETS.INSTAGRAM.textOptions,
     visualOptions: POSTING_PLATFORM_PRESETS.INSTAGRAM.visualOptions,
   };

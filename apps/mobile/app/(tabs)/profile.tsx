@@ -8,11 +8,13 @@ import {
   TextInput,
   Platform,
   Alert,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
+import Constants from 'expo-constants';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/colors';
@@ -29,6 +31,12 @@ const c = Colors.dark;
 
 const ALL_PAYMENTS: PaymentMethod[] = ['paypal_gs', 'venmo', 'zelle', 'cashapp', 'cash', 'crypto', 'other'];
 const ALL_FULFILLMENTS: FulfillmentOption[] = ['shipping', 'meetups_local', 'meetups_travel'];
+const EMBEDDED_APP_CONFIG = require('../../app.json') as {
+  expo?: {
+    ios?: { buildNumber?: string };
+    android?: { versionCode?: number };
+  };
+};
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -39,6 +47,32 @@ export default function ProfileScreen() {
   const [newTradeshow, setNewTradeshow] = useState({ name: '', date: '', link: '' });
   const [newReference, setNewReference] = useState({ name: '', link: '' });
   const [statuses, setStatuses] = useState<WorkflowStatus[]>([]);
+  const appVersion =
+    Constants.nativeAppVersion ??
+    Constants.expoConfig?.version ??
+    'unknown';
+  const buildNumber =
+    Constants.nativeBuildVersion ??
+    Constants.expoConfig?.ios?.buildNumber ??
+    EMBEDDED_APP_CONFIG.expo?.ios?.buildNumber ??
+    Constants.expoConfig?.android?.versionCode?.toString() ??
+    EMBEDDED_APP_CONFIG.expo?.android?.versionCode?.toString() ??
+    'unknown';
+  const handleOpenWebVersion = async () => {
+    const url = 'https://slabhub.gg';
+
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) {
+        Alert.alert('Unable to open link', 'This device cannot open the web version right now.');
+        return;
+      }
+
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Unable to open link', 'Failed to open the web version.');
+    }
+  };
 
   React.useEffect(() => {
     fetchStatuses();
@@ -431,6 +465,14 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        <Pressable
+          style={({ pressed }) => [styles.webVersionBtn, { opacity: pressed ? 0.7 : 1 }]}
+          onPress={handleOpenWebVersion}
+        >
+          <Ionicons name="globe-outline" size={18} color={c.accent} />
+          <Text style={styles.webVersionText}>Open SlabHub.gg</Text>
+        </Pressable>
+
         {!editing && (
           <Pressable
             style={({ pressed }) => [styles.logoutBtn, { opacity: pressed ? 0.7 : 1 }]}
@@ -455,6 +497,12 @@ export default function ProfileScreen() {
             <Text style={styles.logoutText}>Logout</Text>
           </Pressable>
         )}
+
+        <View style={styles.versionFooter}>
+          <Text style={styles.versionText}>Version {appVersion}</Text>
+          <Text style={styles.versionDivider}>•</Text>
+          <Text style={styles.versionText}>Build {buildNumber}</Text>
+        </View>
       </ScrollView>
     </View>
   );
@@ -673,6 +721,34 @@ const styles = StyleSheet.create({
     borderColor: c.borderLight,
     marginTop: 8,
   },
+  webVersionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: c.surface,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+  },
+  versionFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  versionText: {
+    fontSize: 12,
+    color: c.textTertiary,
+    fontWeight: '500' as const,
+  },
+  versionDivider: {
+    fontSize: 12,
+    color: c.textTertiary,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -737,6 +813,11 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: c.error,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  webVersionText: {
+    color: c.accent,
     fontSize: 16,
     fontWeight: '600',
   },

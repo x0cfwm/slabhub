@@ -225,6 +225,18 @@ export default function PostingScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 120 }]}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.infoCard}>
+          <View style={styles.infoIconWrap}>
+            <Ionicons name="sparkles" size={22} color={c.accent} />
+          </View>
+          <View style={styles.infoCopy}>
+            <Text style={styles.infoTitle}>Fast posting for Facebook and Instagram</Text>
+            <Text style={styles.infoText}>
+              Generate a ready-to-share caption and visual bundle from your inventory in just a few taps.
+            </Text>
+          </View>
+        </View>
+
         {showInlineRefreshNotice ? (
           <View style={styles.inlineRefreshNotice}>
             <ActivityIndicator size="small" color={c.accent} />
@@ -336,32 +348,6 @@ export default function PostingScreen() {
           )}
         </View>
 
-        <View style={styles.composeCard}>
-          <Text style={styles.sectionTitle}>Preset</Text>
-          <View style={styles.presetList}>
-            {(Object.keys(POSTING_PLATFORM_PRESETS) as PostingPlatform[]).map((presetKey) => {
-              const preset = POSTING_PLATFORM_PRESETS[presetKey];
-              const isActive = platform === presetKey;
-
-              return (
-                <Pressable
-                  key={presetKey}
-                  style={[styles.presetCard, isActive && styles.presetCardActive]}
-                  onPress={() => handleApplyPlatform(presetKey)}
-                >
-                  <View style={styles.presetHeader}>
-                    <Text style={[styles.presetTitle, isActive && styles.presetTitleActive]}>
-                      {preset.label}
-                    </Text>
-                    {isActive && <Ionicons name="checkmark-circle" size={18} color={c.accent} />}
-                  </View>
-                  <Text style={styles.presetDescription}>{preset.description}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
         <View style={styles.summaryRow}>
           <View style={styles.summaryMetric}>
             <Text style={styles.summaryMetricLabel}>Selected</Text>
@@ -370,22 +356,23 @@ export default function PostingScreen() {
             </Text>
           </View>
           <View style={styles.summaryMetric}>
-            <Text style={styles.summaryMetricLabel}>Preset</Text>
-            <Text style={styles.summaryMetricValue}>{currentPreset.label}</Text>
+            <Text style={styles.summaryMetricLabel}>Format</Text>
+            <Text style={styles.summaryMetricValue}>{visualOptions.ratio}</Text>
           </View>
         </View>
 
         <Pressable
-          style={({ pressed }) => [styles.advancedBtn, { opacity: pressed ? 0.85 : 1 }]}
+          style={({ pressed }) => [styles.presetSummaryCard, { opacity: pressed ? 0.9 : 1 }]}
           onPress={() => setOptionsVisible(true)}
         >
-          <View>
-            <Text style={styles.advancedTitle}>More options</Text>
-            <Text style={styles.advancedSubtitle}>
-              Tone, ratio, background, and caption toggles.
-            </Text>
+          <View style={styles.presetSummaryCopy}>
+            <Text style={styles.presetSummaryLabel}>Preset</Text>
+            <Text style={styles.presetSummaryValue}>{currentPreset.label}</Text>
           </View>
-          <Ionicons name="options-outline" size={20} color={c.accent} />
+          <View style={styles.presetSummaryAction}>
+            <Text style={styles.presetSummaryActionText}>More Options</Text>
+            <Ionicons name="options-outline" size={16} color={c.accent} />
+          </View>
         </Pressable>
       </ScrollView>
 
@@ -428,6 +415,26 @@ export default function PostingScreen() {
           </View>
 
           <ScrollView contentContainerStyle={[styles.modalContent, { paddingBottom: insets.bottom + 24 }]}>
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>Preset</Text>
+              <View style={styles.optionChipRow}>
+                {(Object.keys(POSTING_PLATFORM_PRESETS) as PostingPlatform[]).map((presetKey) => {
+                  const isActive = platform === presetKey;
+                  return (
+                    <Pressable
+                      key={presetKey}
+                      style={[styles.optionChip, isActive && styles.optionChipActive]}
+                      onPress={() => handleApplyPlatform(presetKey)}
+                    >
+                      <Text style={[styles.optionChipText, isActive && styles.optionChipTextActive]}>
+                        {POSTING_PLATFORM_PRESETS[presetKey].label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
             <View style={styles.modalSection}>
               <Text style={styles.modalSectionTitle}>Tone</Text>
               <View style={styles.optionChipRow}>
@@ -627,6 +634,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 14,
   },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: c.surface,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+    padding: 18,
+  },
+  infoIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: c.surfaceHighlight,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: c.text,
+  },
+  infoText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: c.textSecondary,
+  },
   inlineRefreshNotice: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -779,38 +820,49 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: c.textSecondary,
   },
-  presetList: {
-    gap: 10,
-  },
-  presetCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: c.borderLight,
-    backgroundColor: c.surfaceHighlight,
-    padding: 14,
-    gap: 6,
-  },
-  presetCardActive: {
-    borderColor: c.accent,
-    backgroundColor: c.accentDim,
-  },
-  presetHeader: {
+  presetSummaryCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: c.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    gap: 12,
   },
-  presetTitle: {
+  presetSummaryCopy: {
+    gap: 4,
+    flex: 1,
+  },
+  presetSummaryLabel: {
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    color: c.textTertiary,
+    fontWeight: '700',
+  },
+  presetSummaryValue: {
     fontSize: 16,
     fontWeight: '700',
     color: c.text,
   },
-  presetTitleActive: {
-    color: c.accent,
+  presetSummaryAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: c.surfaceHighlight,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
   },
-  presetDescription: {
+  presetSummaryActionText: {
     fontSize: 13,
-    lineHeight: 18,
-    color: c.textSecondary,
+    fontWeight: '600',
+    color: c.accent,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -836,26 +888,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: c.text,
     fontWeight: '700',
-  },
-  advancedBtn: {
-    backgroundColor: c.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: c.borderLight,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  advancedTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: c.text,
-  },
-  advancedSubtitle: {
-    fontSize: 13,
-    color: c.textSecondary,
-    marginTop: 2,
   },
   footer: {
     position: 'absolute',

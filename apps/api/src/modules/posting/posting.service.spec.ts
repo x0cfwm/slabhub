@@ -75,6 +75,7 @@ describe('PostingService', () => {
         expect(result.itemCount).toBe(1);
         expect(result.caption).toContain('1️⃣ Pikachu Promo');
         expect(result.imageDataUrl[0]).toContain('data:image/svg+xml');
+        expect(result).not.toHaveProperty('items');
     });
 
     it('throws when no status or item selection is provided', async () => {
