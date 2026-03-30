@@ -45,12 +45,38 @@ import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
 const TOKEN_KEY = "slabhub_session_token";
+const REQUEST_TIMEOUT_MS = 15000;
 
 async function getStoredToken(): Promise<string | null> {
   if (Platform.OS === 'web') {
     return localStorage.getItem(TOKEN_KEY);
   }
   return await SecureStore.getItemAsync(TOKEN_KEY);
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const requestInit = {
+      ...init,
+      signal: controller.signal,
+    } as any;
+
+    if (requestInit.body == null) {
+      delete requestInit.body;
+    }
+
+    return await fetch(url, requestInit);
+  } catch (error: any) {
+    if (error?.name === "AbortError") {
+      throw new Error(`Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export async function apiRequest(
@@ -65,7 +91,7 @@ export async function apiRequest(
 
   const token = await getStoredToken();
 
-  const res = await fetch(url.toString(), {
+  const res = await fetchWithTimeout(url.toString(), {
     method,
     headers: {
       ...(data ? { "Content-Type": "application/json" } : {}),
@@ -92,7 +118,7 @@ export const getQueryFn: <T>(options: {
 
       const token = await getStoredToken();
 
-      const res = await fetch(url.toString(), {
+      const res = await fetchWithTimeout(url.toString(), {
         headers: {
           ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },

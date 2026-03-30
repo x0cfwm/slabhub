@@ -15,7 +15,6 @@ BUILD_NUMBER=2 bash /Users/nikita/Work/slabhub/apps/mobile/scripts/testflight_bu
 Note: `BUILD_NUMBER` must always be higher than the previous TestFlight upload for the same app version.
 If `BUILD_NUMBER` is not set, the script auto-increments local counter file:
 `/Users/nikita/Work/slabhub/apps/mobile/.testflight_build_number`
-(with `git rev-list --count HEAD` as minimum baseline).
 
 ## 0) Prerequisites (one-time)
 
@@ -27,8 +26,8 @@ export ASC_ISSUER_ID="ac6e6f3b-3b98-46e6-a50f-0a2306a636d6"
 export ASC_KEY_PATH="/Users/nikita/Downloads/AuthKey_JUV388FGL8.p8"
 export TEAM_ID="7ZA73WA82N"
 export EXPO_PUBLIC_DOMAIN="https://slabhub.gg/api/v1"
-# optional: defaults to git rev-list --count HEAD
-export BUILD_NUMBER="202603210040"
+
+export BUILD_NUMBER="1"
 # optional: custom counter file path
 export BUILD_NUMBER_COUNTER_FILE="/Users/nikita/Work/slabhub/apps/mobile/.testflight_build_number"
 ```

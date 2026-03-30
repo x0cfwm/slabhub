@@ -39,4 +39,3 @@ yarn-error.*
 .vercel
 
 .env
-.testflight_build_number

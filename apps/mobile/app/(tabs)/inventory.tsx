@@ -227,12 +227,20 @@ export default function InventoryScreen() {
           <Text style={styles.brand}>SlabHub</Text>
           <Text style={styles.title}>Inventory</Text>
         </View>
-        <Pressable
-          style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.8 : 1 }]}
-          onPress={() => router.push('/add-item')}
-        >
-          <Ionicons name="add" size={20} color={c.accentText} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            style={({ pressed }) => [styles.secondaryHeaderBtn, { opacity: pressed ? 0.8 : 1 }]}
+            onPress={() => router.push('/posting' as any)}
+          >
+            <Ionicons name="sparkles-outline" size={18} color={c.accent} />
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.8 : 1 }]}
+            onPress={() => router.push('/add-item')}
+          >
+            <Ionicons name="add" size={20} color={c.accentText} />
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.searchBar}>
@@ -437,6 +445,20 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: c.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  secondaryHeaderBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },

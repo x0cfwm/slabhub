@@ -95,4 +95,22 @@ describe('PostingService', () => {
             } as any),
         ).rejects.toBeInstanceOf(BadRequestException);
     });
+
+    it('uses a safe inner frame for 9:16 reel layouts', () => {
+        const service = buildService() as any;
+
+        expect(service.getLayoutFrame('9:16', 1080, 1920)).toEqual({
+            x: 54,
+            y: 180,
+            width: 972,
+            height: 1400,
+        });
+
+        expect(service.getLayoutFrame('4:5', 1080, 1350)).toEqual({
+            x: 0,
+            y: 0,
+            width: 1080,
+            height: 1350,
+        });
+    });
 });

@@ -32,6 +32,13 @@ type LayoutSlot = {
     height: number;
 };
 
+type LayoutFrame = {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+};
+
 @Injectable()
 export class PostingService {
     private readonly logger = new Logger(PostingService.name);
@@ -202,7 +209,8 @@ export class PostingService {
         const background = this.getBackground(options.backgroundStyle ?? PostingBackground.DARK);
         const count = Math.max(1, Math.min(items.length, 12));
         const embeddedImages = await this.buildEmbeddedImageMap(items.slice(0, count));
-        const slots = this.getLayoutSlots(count, width, height);
+        const frame = this.getLayoutFrame(options.ratio, width, height);
+        const slots = this.getLayoutSlots(count, frame);
         const borderColors = ['#22c55e', '#ef4444', '#a855f7', '#3b82f6', '#eab308'];
         const cards = items.slice(0, count).map((item, index) => {
             const slot = slots[index];
@@ -264,7 +272,7 @@ export class PostingService {
 
 
         const watermark = (options.showWatermark ?? true)
-            ? `<text x="${width - 24}" y="${height - 18}" font-family="Arial" font-size="14" text-anchor="end" fill="#ffffff" fill-opacity="0.65">SlabHub</text>`
+            ? `<text x="${frame.x + frame.width - 12}" y="${frame.y + frame.height + 28}" font-family="Arial" font-size="14" text-anchor="end" fill="#ffffff" fill-opacity="0.65">SlabHub</text>`
             : '';
 
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
@@ -394,46 +402,70 @@ export class PostingService {
         }
     }
 
-    private getLayoutSlots(count: number, width: number, height: number): LayoutSlot[] {
-        const padding = 32;
-        const gap = 20;
+    private getLayoutFrame(ratio: string, width: number, height: number): LayoutFrame {
+        if (ratio === '9:16') {
+            // Reels/Stories add heavy top and bottom chrome that users cannot zoom around reliably.
+            // Keep the whole collage inside an inner safe area so prices and borders stay visible.
+            return {
+                x: 54,
+                y: 180,
+                width: width - 108,
+                height: height - 520,
+            };
+        }
+
+        return {
+            x: 0,
+            y: 0,
+            width,
+            height,
+        };
+    }
+
+    private getLayoutSlots(count: number, frame: LayoutFrame): LayoutSlot[] {
+        const padding = frame.height > frame.width ? 40 : 32;
+        const gap = frame.height > frame.width ? 24 : 20;
 
         if (count === 1) {
-            return [{ x: padding, y: padding, width: width - padding * 2, height: height - padding * 2 }];
+            return [{
+                x: frame.x + padding,
+                y: frame.y + padding,
+                width: frame.width - padding * 2,
+                height: frame.height - padding * 2,
+            }];
         }
 
 
-        if (count === 2) return this.buildRowLayout(width, height, [2], padding, gap);
-        if (count === 3) return this.buildRowLayout(width, height, [1, 2], padding, gap);
-        if (count === 4) return this.buildRowLayout(width, height, [2, 2], padding, gap);
-        if (count === 5) return this.buildRowLayout(width, height, [2, 3], padding, gap);
-        if (count === 6) return this.buildRowLayout(width, height, [3, 3], padding, gap);
-        if (count === 7) return this.buildRowLayout(width, height, [3, 2, 2], padding, gap);
-        if (count === 8) return this.buildRowLayout(width, height, [3, 3, 2], padding, gap);
-        if (count === 9) return this.buildRowLayout(width, height, [3, 3, 3], padding, gap);
-        if (count === 10) return this.buildRowLayout(width, height, [4, 3, 3], padding, gap);
-        if (count === 11) return this.buildRowLayout(width, height, [4, 4, 3], padding, gap);
-        return this.buildRowLayout(width, height, [4, 4, 4], padding, gap);
+        if (count === 2) return this.buildRowLayout(frame, [2], padding, gap);
+        if (count === 3) return this.buildRowLayout(frame, [1, 2], padding, gap);
+        if (count === 4) return this.buildRowLayout(frame, [2, 2], padding, gap);
+        if (count === 5) return this.buildRowLayout(frame, [2, 3], padding, gap);
+        if (count === 6) return this.buildRowLayout(frame, [3, 3], padding, gap);
+        if (count === 7) return this.buildRowLayout(frame, [3, 2, 2], padding, gap);
+        if (count === 8) return this.buildRowLayout(frame, [3, 3, 2], padding, gap);
+        if (count === 9) return this.buildRowLayout(frame, [3, 3, 3], padding, gap);
+        if (count === 10) return this.buildRowLayout(frame, [4, 3, 3], padding, gap);
+        if (count === 11) return this.buildRowLayout(frame, [4, 4, 3], padding, gap);
+        return this.buildRowLayout(frame, [4, 4, 4], padding, gap);
     }
 
     private buildRowLayout(
-        width: number,
-        height: number,
+        frame: LayoutFrame,
         rowCounts: number[],
         padding: number,
         gap: number,
     ): LayoutSlot[] {
         const slots: LayoutSlot[] = [];
-        const usableHeight = height - padding * 2;
+        const usableHeight = frame.height - padding * 2;
         const rowHeight = (usableHeight - gap * (rowCounts.length - 1)) / rowCounts.length;
-        let currentY = padding;
+        let currentY = frame.y + padding;
 
 
         for (const rowCount of rowCounts) {
-            const usableRowWidth = width - padding * 2;
+            const usableRowWidth = frame.width - padding * 2;
             const cardWidth = (usableRowWidth - gap * (rowCount - 1)) / rowCount;
             const rowUsedWidth = cardWidth * rowCount + gap * (rowCount - 1);
-            let currentX = padding + (usableRowWidth - rowUsedWidth) / 2;
+            let currentX = frame.x + padding + (usableRowWidth - rowUsedWidth) / 2;
 
             for (let index = 0; index < rowCount; index++) {
                 slots.push({ x: currentX, y: currentY, width: cardWidth, height: rowHeight });

@@ -11,7 +11,8 @@
     "web": "expo start --web",
     "build": "expo export",
     "lint": "expo lint",
-    "lint:fix": "expo lint --fix"
+    "lint:fix": "expo lint --fix",
+    "test:posting": "pnpm exec ts-node --compiler-options '{\"module\":\"commonjs\"}' lib/posting.spec.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
