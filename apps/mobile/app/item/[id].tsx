@@ -47,7 +47,7 @@ const STAGE_COLORS: Record<ItemStage, string> = {
 export default function ItemDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { inventory, deleteItem, moveItem, updateItem } = useApp();
+  const { inventory, deleteItem, moveItem, updateItem, statuses } = useApp();
   const [modalVisible, setModalVisible] = React.useState(false);
   const [listedPromptVisible, setListedPromptVisible] = React.useState(false);
   const [soldPromptVisible, setSoldPromptVisible] = React.useState(false);
@@ -308,11 +308,13 @@ export default function ItemDetailScreen() {
         item={item}
         itemName={item?.name}
         onConfirm={async (data) => {
-          await moveItem(item.id, 'listed');
+          const status = statuses.find(s => s.systemId === 'LISTED');
           await updateItem(item.id, {
+            stage: 'listed',
+            statusId: status?.id,
             listedPrice: data.listingPrice,
             sellingDescription: data.sellingDescription,
-          });
+          } as any);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />
@@ -323,11 +325,13 @@ export default function ItemDetailScreen() {
         itemName={item?.name}
         listingPrice={item?.listedPrice}
         onConfirm={async (data) => {
-          await moveItem(item.id, 'sold');
+          const status = statuses.find(s => s.systemId === 'SOLD');
           await updateItem(item.id, {
+            stage: 'sold',
+            statusId: status?.id,
             soldPrice: data.soldPrice,
             soldDate: data.soldDate,
-          });
+          } as any);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -28,6 +28,13 @@ export function ListedPromptDialog({ isOpen, onClose, onConfirm, itemName, item 
     const [listingPrice, setListingPrice] = useState<string>(item?.listingPrice ? String(item.listingPrice) : defaultMarketPrice);
     const [sellingDescription, setSellingDescription] = useState<string>(item?.sellingDescription || "");
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setListingPrice(item?.listingPrice ? String(item.listingPrice) : (item?.marketPrice ? String(item.marketPrice) : ""));
+            setSellingDescription(item?.sellingDescription || "");
+        }
+    }, [isOpen, item]);
 
     const handleConfirm = async () => {
         const price = parseFloat(listingPrice);

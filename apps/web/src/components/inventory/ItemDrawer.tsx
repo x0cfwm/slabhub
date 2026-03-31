@@ -799,6 +799,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
             </Dialog>
 
             <SoldPromptDialog
+                key={promptItem?.id}
                 isOpen={!!promptItem}
                 itemName={promptItem?.name}
                 listingPrice={promptItem?.listingPrice}

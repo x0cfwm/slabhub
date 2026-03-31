@@ -176,13 +176,6 @@ export default function PostingReviewScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 120 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Ready to post</Text>
-          <Text style={styles.summaryText}>
-            {generated.itemCount} item{generated.itemCount === 1 ? '' : 's'} in this bundle.
-          </Text>
-        </View>
-
         <View style={styles.previewCard}>
           <View style={styles.previewHeader}>
             <Text style={styles.sectionTitle}>Visual Preview</Text>
@@ -312,24 +305,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     gap: 14,
-  },
-  summaryCard: {
-    backgroundColor: c.surface,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: c.borderLight,
-    padding: 16,
-    gap: 6,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: c.text,
-  },
-  summaryText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: c.textSecondary,
   },
   previewCard: {
     backgroundColor: c.surface,
