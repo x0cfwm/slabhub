@@ -43,7 +43,7 @@ const STAGE_COLORS: Record<string, string> = {
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
-  const { inventory, profile, isLoading: appLoading } = useApp();
+  const { inventory, statuses, isLoading: appLoading } = useApp();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
   const { data: marketData, isLoading: marketLoading } = useQuery({
@@ -57,7 +57,7 @@ export default function DashboardScreen() {
   });
 
   const loading = appLoading || marketLoading || historyLoading;
-  const marketProducts = marketData?.items || [];
+  const marketProducts = React.useMemo(() => marketData?.items ?? [], [marketData?.items]);
 
   const stats = React.useMemo(() => {
     // Basic stats
@@ -122,7 +122,7 @@ export default function DashboardScreen() {
 
     const visibleStages = STAGE_ORDER.filter(s => {
       const allowedSystemIds = STAGE_TO_SYSTEM_MAP[s] || [s.toUpperCase()];
-      const status = useApp().statuses.find(ws => allowedSystemIds.includes(ws.systemId));
+      const status = statuses.find(ws => allowedSystemIds.includes(ws.systemId));
       return status ? status.showOnKanban : true;
     });
 
@@ -162,7 +162,7 @@ export default function DashboardScreen() {
       gradedCards,
       sealedProducts
     };
-  }, [inventory, marketProducts]);
+  }, [inventory, marketProducts, statuses]);
 
   if (loading) {
     return (
@@ -179,12 +179,20 @@ export default function DashboardScreen() {
           <Text style={styles.brand}>SlabHub</Text>
           <Text style={styles.title}>Dashboard</Text>
         </View>
-        <Pressable
-          style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.8 : 1 }]}
-          onPress={() => router.push('/add-item')}
-        >
-          <Ionicons name="add" size={20} color={c.accentText} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            style={({ pressed }) => [styles.secondaryHeaderBtn, { opacity: pressed ? 0.8 : 1 }]}
+            onPress={() => router.push('/posting' as any)}
+          >
+            <Ionicons name="sparkles-outline" size={18} color={c.accent} />
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.8 : 1 }]}
+            onPress={() => router.push('/add-item')}
+          >
+            <Ionicons name="add" size={20} color={c.accentText} />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView
@@ -318,6 +326,20 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: c.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  secondaryHeaderBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
