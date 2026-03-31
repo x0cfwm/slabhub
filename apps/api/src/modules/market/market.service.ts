@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { GetMarketProductsDto } from './dto/market-products.dto';
 import { PriceChartingParser } from './parsers/pricecharting.parser';
 import { MediaService } from '../media/media.service';
-import { InventoryService } from '../inventory/inventory.service';
+import { InventoryValuationService } from '../inventory/inventory-valuation.service';
 
 @Injectable()
 export class MarketPricingService {
@@ -16,7 +16,7 @@ export class MarketPricingService {
         private readonly prisma: PrismaService,
         private readonly parser: PriceChartingParser,
         private readonly mediaService: MediaService,
-        private readonly inventoryService: InventoryService,
+        private readonly inventoryValuationService: InventoryValuationService,
     ) { }
 
     async getSyncStatus() {
@@ -238,7 +238,7 @@ export class MarketPricingService {
             });
 
             // Trigger recalulation of inventory snapshots for this product
-            this.inventoryService.recalculateMarketPriceSnapshots(productId).catch(err => {
+            this.inventoryValuationService.recalculateMarketPriceSnapshots(productId).catch(err => {
                 this.logger.error(`Failed to recalculate snapshots for ${productId}: ${err.message}`);
             });
 

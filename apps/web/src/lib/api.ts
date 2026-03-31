@@ -1,4 +1,3 @@
-import { Grader } from "../../../api/src/modules/grading/types/grading.types";
 import {
     GeneratedPosting,
     InventoryItem,
@@ -10,30 +9,9 @@ import {
     PostingGenerateRequest,
     SellerProfile,
     WorkflowStatus,
+    GradingLookupResult,
     GradingRecognitionResult
 } from "./types";
-
-export interface GradingLookupResult {
-    grader: string;
-    certNumber: string;
-    success: boolean;
-    data?: {
-        gradeLabel: string;
-        gradeValue: number | string;
-        cardName: string;
-        setName: string;
-        cardNumber?: string;
-        year?: string;
-        variant?: string;
-        population?: number;
-        images?: {
-            frontUrl?: string;
-            backUrl?: string;
-        };
-        raw?: Record<string, any>;
-    };
-    error?: string;
-}
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 

@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { MediaService } from '../media/media.service';
-import { InventoryService } from '../inventory/inventory.service';
+import { InventoryValuationService } from '../inventory/inventory-valuation.service';
 
 @Injectable()
 export class PriceChartingIngestService {
@@ -19,7 +19,7 @@ export class PriceChartingIngestService {
         private readonly client: PriceChartingClient,
         private readonly parser: PriceChartingParser,
         private readonly mediaService: MediaService,
-        private readonly inventoryService: InventoryService,
+        private readonly inventoryValuationService: InventoryValuationService,
     ) { }
 
     async crawlOnePieceCards(options: PriceChartingCrawlOptions = {}) {
@@ -397,7 +397,7 @@ export class PriceChartingIngestService {
         });
 
         // Trigger recalulation of inventory snapshots for this product
-        this.inventoryService.recalculateMarketPriceSnapshots(product.id).catch(err => {
+        this.inventoryValuationService.recalculateMarketPriceSnapshots(product.id).catch(err => {
             this.logger.error(`Failed to recalculate snapshots for ${product.id}: ${err.message}`);
         });
 

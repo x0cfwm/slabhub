@@ -6,15 +6,15 @@ describe('MarketPricingService', () => {
   let prisma: any;
   let parser: any;
   let mediaService: any;
-  let inventoryService: any;
+  let inventoryValuationService: any;
   let service: MarketPricingService;
 
   beforeEach(() => {
     prisma = createPrismaMock();
     parser = { parse: jest.fn() };
     mediaService = { ensureCdnUrl: jest.fn((u: string) => `cdn:${u}`) };
-    inventoryService = { recalculateMarketPriceSnapshots: jest.fn().mockResolvedValue([]) };
-    service = new MarketPricingService(prisma, parser, mediaService, inventoryService);
+    inventoryValuationService = { recalculateMarketPriceSnapshots: jest.fn().mockResolvedValue([]) };
+    service = new MarketPricingService(prisma, parser, mediaService, inventoryValuationService);
   });
 
   it('returns idle sync status if progress is absent', async () => {

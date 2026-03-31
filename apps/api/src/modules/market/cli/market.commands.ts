@@ -1,6 +1,6 @@
 import { Command, CommandRunner, Option } from 'nest-commander';
 import { Logger } from '@nestjs/common';
-import { InventoryService } from '../../inventory/inventory.service';
+import { InventoryValuationService } from '../../inventory/inventory-valuation.service';
 import { MarketPricingService } from '../market.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { InventoryStage } from '@prisma/client';
@@ -17,7 +17,7 @@ export class SyncInventoryPricesCommand extends CommandRunner {
     private readonly logger = new Logger(SyncInventoryPricesCommand.name);
 
     constructor(
-        private readonly inventoryService: InventoryService,
+        private readonly inventoryValuationService: InventoryValuationService,
         private readonly marketService: MarketPricingService,
         private readonly prisma: PrismaService,
     ) {
@@ -60,7 +60,7 @@ export class SyncInventoryPricesCommand extends CommandRunner {
                     try {
                         this.logger.log(`Refreshing product ${productId}...`);
                         await this.marketService.getProductPriceHistory(productId, false, true);
-                        const updates = await this.inventoryService.recalculateMarketPriceSnapshots(productId);
+                        const updates = await this.inventoryValuationService.recalculateMarketPriceSnapshots(productId);
                         for (const up of updates) {
                             const dateStr = up.lastSaleDate ? ` (Last Sale: ${up.lastSaleDate.split('T')[0]})` : '';
                             this.logger.log(`Item ${up.id}: $${up.oldPrice ?? 0} -> $${up.newPrice ?? 0}${dateStr}`);
@@ -71,7 +71,7 @@ export class SyncInventoryPricesCommand extends CommandRunner {
                 }
             } else {
                 this.logger.log('Starting bulk price sync (using existing database values)...');
-                const updates = await this.inventoryService.syncAllMarketPriceSnapshots();
+                const updates = await this.inventoryValuationService.syncAllMarketPriceSnapshots();
                 totalProducts = updates.length; // Approximate unique products processed
                 for (const up of updates) {
                     const dateStr = up.lastSaleDate ? ` (Last Sale: ${up.lastSaleDate.split('T')[0]})` : '';

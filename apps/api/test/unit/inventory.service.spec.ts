@@ -5,16 +5,23 @@ import { createPrismaMock } from '../mocks/prisma.mock';
 
 describe('InventoryService', () => {
   let prisma: any;
-  let mediaService: any;
+  let presenter: any;
+  let valuationService: any;
   let service: InventoryService;
 
   beforeEach(() => {
     prisma = createPrismaMock();
-    mediaService = {
-      getPublicUrl: jest.fn().mockReturnValue('https://cdn.test/m.jpg'),
-      ensureCdnUrl: jest.fn((u: string) => `cdn:${u}`),
+    presenter = {
+      transformItem: jest.fn((item: any) => ({ ...item, type: item.itemType })),
     };
-    service = new InventoryService(prisma, mediaService);
+    valuationService = {
+      clearCache: jest.fn(),
+      getMarketPrice: jest.fn(),
+      getMarketValueHistory: jest.fn(),
+      syncAllMarketPriceSnapshots: jest.fn(),
+      recalculateMarketPriceSnapshots: jest.fn(),
+    };
+    service = new InventoryService(prisma, presenter, valuationService);
   });
 
   it('lists and transforms items', async () => {
@@ -42,6 +49,8 @@ describe('InventoryService', () => {
 
     const out = await service.listItems('u1');
     expect(out).toHaveLength(1);
+    expect(valuationService.clearCache).toHaveBeenCalled();
+    expect(presenter.transformItem).toHaveBeenCalled();
     expect(out[0].type).toBe('SINGLE_CARD_RAW');
   });
 
@@ -82,26 +91,18 @@ describe('InventoryService', () => {
   });
 
   it('getMarketPrice handles sealed and raw card scenarios', () => {
-    expect(
-      service.getMarketPrice({
-        itemType: 'SEALED_PRODUCT',
-        refPriceChartingProduct: { id: 'p1', sealedPrice: 15, sales: [] },
-      }),
-    ).toBe(15);
+    valuationService.getMarketPrice.mockReturnValueOnce(15).mockReturnValueOnce(4);
 
-    expect(
-      service.getMarketPrice({
-        itemType: 'SINGLE_CARD_RAW',
-        refPriceChartingProduct: {
-          id: 'p2',
-          rawPrice: 4,
-          sales: [{ grade: 'Ungraded', price: 5 }, { grade: null, price: 3 }],
-        },
-      }),
-    ).toBe(4);
+    expect(service.getMarketPrice({ itemType: 'SEALED_PRODUCT' })).toBe(15);
+    expect(service.getMarketPrice({ itemType: 'SINGLE_CARD_RAW' })).toBe(4);
   });
 
   it('transformItem returns graded payload', () => {
+    presenter.transformItem.mockReturnValueOnce({
+      type: 'SINGLE_CARD_GRADED',
+      gradeProvider: 'PSA',
+    });
+
     const out = service.transformItem({
       id: 'i1',
       itemType: 'SINGLE_CARD_GRADED',

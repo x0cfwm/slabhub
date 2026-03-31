@@ -1,14 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MediaService } from '../media/media.service';
-import { InventoryService } from '../inventory/inventory.service';
+import { InventoryPresenter } from '../inventory/inventory.presenter';
 
 @Injectable()
 export class VendorService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly mediaService: MediaService,
-        private readonly inventoryService: InventoryService,
+        private readonly inventoryPresenter: InventoryPresenter,
     ) { }
 
     async getVendorPage(handle: string) {
@@ -59,9 +59,7 @@ export class VendorService {
         });
 
         // Use central transformation logic from InventoryService
-        const items = (forSaleItems as any[]).map((item) => {
-            return this.inventoryService.transformItem(item);
-        });
+        const items = (forSaleItems as any[]).map((item) => this.inventoryPresenter.transformItem(item));
 
         const facebookIdentity = seller.user?.oauthIdentities?.find((i: any) => i.provider === 'facebook');
 
