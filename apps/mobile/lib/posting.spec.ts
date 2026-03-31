@@ -3,10 +3,12 @@ import {
   POSTING_PLATFORM_PRESETS,
   buildPostingPayload,
   filterPostingItems,
+  getPostingEntrySelection,
   getDefaultPostingStatusIds,
   getSelectedPostingItems,
   getPostingAspectRatio,
   getPostingBackgroundGradient,
+  prioritizePostingItems,
   shouldUseDirectInstagramStoryShare,
   shouldBlockPostingScreen,
   shouldShowPostingRefreshNotice,
@@ -86,6 +88,45 @@ function run() {
   assert.deepEqual(
     filterPostingItems(items, 'zoro').map((item) => item.id),
     ['i2'],
+  );
+
+  assert.deepEqual(
+    prioritizePostingItems(items, ['i2', 'i1']).map((item) => item.id),
+    ['i2', 'i1'],
+  );
+
+  assert.deepEqual(
+    prioritizePostingItems(items, ['missing', 'i2']).map((item) => item.id),
+    ['i2', 'i1'],
+  );
+
+  assert.deepEqual(
+    getPostingEntrySelection({
+      mode: 'MANUAL',
+      itemId: 'i2',
+    }),
+    {
+      selectionMode: 'MANUAL',
+      selectedItemIds: ['i2'],
+    },
+  );
+
+  assert.deepEqual(
+    getPostingEntrySelection({
+      itemIds: 'i1,i2,i1',
+    }),
+    {
+      selectionMode: 'MANUAL',
+      selectedItemIds: ['i1', 'i2'],
+    },
+  );
+
+  assert.deepEqual(
+    getPostingEntrySelection({}),
+    {
+      selectionMode: 'BY_STATUS',
+      selectedItemIds: [],
+    },
   );
 
   assert.deepEqual(

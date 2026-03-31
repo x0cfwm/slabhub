@@ -123,6 +123,59 @@ export function filterPostingItems(items: InventoryItem[], query: string): Inven
   });
 }
 
+export function prioritizePostingItems(items: InventoryItem[], prioritizedItemIds: string[]): InventoryItem[] {
+  if (prioritizedItemIds.length === 0) return items;
+
+  const priorities = new Map(prioritizedItemIds.map((id, index) => [id, index]));
+
+  return [...items].sort((left, right) => {
+    const leftPriority = priorities.get(left.id);
+    const rightPriority = priorities.get(right.id);
+
+    if (leftPriority === undefined && rightPriority === undefined) return 0;
+    if (leftPriority === undefined) return 1;
+    if (rightPriority === undefined) return -1;
+
+    return leftPriority - rightPriority;
+  });
+}
+
+function normalizeRouteParam(value?: string | string[]): string[] {
+  if (!value) return [];
+
+  const rawValues = Array.isArray(value) ? value : [value];
+
+  return rawValues
+    .flatMap((entry) => entry.split(','))
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+export function getPostingEntrySelection(params: {
+  mode?: string | string[];
+  itemId?: string | string[];
+  itemIds?: string | string[];
+}): {
+  selectionMode: PostingSelectionMode;
+  selectedItemIds: string[];
+} {
+  const selectedItemIds = Array.from(
+    new Set([
+      ...normalizeRouteParam(params.itemId),
+      ...normalizeRouteParam(params.itemIds),
+    ]),
+  );
+
+  const requestedMode = normalizeRouteParam(params.mode)[0];
+  const selectionMode =
+    selectedItemIds.length > 0 || requestedMode === 'MANUAL' ? 'MANUAL' : 'BY_STATUS';
+
+  return {
+    selectionMode,
+    selectedItemIds,
+  };
+}
+
 export function getSelectedPostingItems(args: {
   items: InventoryItem[];
   selectionMode: PostingSelectionMode;

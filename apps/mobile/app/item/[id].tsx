@@ -8,7 +8,6 @@ import {
   Platform,
   Alert,
   Modal,
-  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
@@ -29,7 +28,6 @@ import {
   ItemStage,
 } from '@/constants/types';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
-import ShareCard, { ShareCardHandle } from '@/components/ShareCard';
 import { ListedPromptDialog } from '@/components/inventory/ListedPromptDialog';
 import { SoldPromptDialog } from '@/components/inventory/SoldPromptDialog';
 
@@ -51,18 +49,6 @@ export default function ItemDetailScreen() {
   const [modalVisible, setModalVisible] = React.useState(false);
   const [listedPromptVisible, setListedPromptVisible] = React.useState(false);
   const [soldPromptVisible, setSoldPromptVisible] = React.useState(false);
-  const shareRef = React.useRef<ShareCardHandle>(null);
-  const [isSharing, setIsSharing] = React.useState(false);
-
-  const handleShare = async () => {
-    if (isSharing) return;
-    try {
-      setIsSharing(true);
-      await shareRef.current?.captureAndShare();
-    } finally {
-      setIsSharing(false);
-    }
-  };
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
@@ -147,12 +133,19 @@ export default function ItemDetailScreen() {
           <Ionicons name="arrow-back" size={24} color={c.text} />
         </Pressable>
         <View style={styles.headerActions}>
-          <Pressable onPress={handleShare} hitSlop={8} disabled={isSharing}>
-            {isSharing ? (
-              <ActivityIndicator size="small" color={c.textSecondary} style={{ width: 26, height: 26 }} />
-            ) : (
-              <Ionicons name="share-outline" size={26} color={c.textSecondary} />
-            )}
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/posting',
+                params: {
+                  mode: 'MANUAL',
+                  itemId: item.id,
+                },
+              } as any)
+            }
+            hitSlop={8}
+          >
+            <Ionicons name="share-outline" size={26} color={c.textSecondary} />
           </Pressable>
           <Pressable onPress={handleMove} hitSlop={8}>
             <Ionicons name="swap-horizontal" size={26} color={c.textSecondary} />
@@ -335,8 +328,6 @@ export default function ItemDetailScreen() {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />
-
-      <ShareCard ref={shareRef} item={item} />
     </View>
   );
 }

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
@@ -29,10 +29,12 @@ import {
   POSTING_PLATFORM_PRESETS,
   buildPostingPayload,
   filterPostingItems,
+  getPostingEntrySelection,
   getDefaultPostingStatusIds,
   getEligiblePostingStatuses,
   getPostingItemSubtitle,
   getSelectedPostingItems,
+  prioritizePostingItems,
   shouldBlockPostingScreen,
   shouldShowPostingRefreshNotice,
   withPostingBackground,
@@ -46,13 +48,28 @@ const REFRESH_NOTICE_DELAY_MS = 2000;
 
 export default function PostingScreen() {
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{
+    mode?: string | string[];
+    itemId?: string | string[];
+    itemIds?: string | string[];
+  }>();
   const { inventory, statuses, refreshInventory, refreshStatuses } = useApp();
+
+  const entrySelection = useMemo(
+    () =>
+      getPostingEntrySelection({
+        mode: params.mode,
+        itemId: params.itemId,
+        itemIds: params.itemIds,
+      }),
+    [params.itemId, params.itemIds, params.mode],
+  );
 
   const [isRefreshing, setIsRefreshing] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectionMode, setSelectionMode] = useState<PostingSelectionMode>('BY_STATUS');
+  const [selectionMode, setSelectionMode] = useState<PostingSelectionMode>(entrySelection.selectionMode);
   const [selectedStatusIds, setSelectedStatusIds] = useState<string[]>([]);
-  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>(entrySelection.selectedItemIds);
   const [itemSearch, setItemSearch] = useState('');
   const [platform, setPlatform] = useState<PostingPlatform>('INSTAGRAM');
   const [textOptions, setTextOptions] = useState(POSTING_PLATFORM_PRESETS.INSTAGRAM.textOptions);
@@ -103,8 +120,12 @@ export default function PostingScreen() {
   );
 
   const visibleManualItems = useMemo(
-    () => filterPostingItems(inventory, itemSearch),
-    [inventory, itemSearch],
+    () =>
+      prioritizePostingItems(
+        filterPostingItems(inventory, itemSearch),
+        entrySelection.selectedItemIds,
+      ),
+    [entrySelection.selectedItemIds, inventory, itemSearch],
   );
 
   const selectedItems = useMemo(
@@ -117,6 +138,14 @@ export default function PostingScreen() {
       }),
     [inventory, selectionMode, selectedStatusIds, selectedItemIds],
   );
+
+  useEffect(() => {
+    setSelectionMode(entrySelection.selectionMode);
+    setSelectedItemIds(entrySelection.selectedItemIds);
+    if (entrySelection.selectionMode === 'MANUAL') {
+      setSelectedStatusIds([]);
+    }
+  }, [entrySelection]);
 
   useEffect(() => {
     if (selectionMode !== 'BY_STATUS') return;
