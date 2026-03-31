@@ -15,7 +15,14 @@ ASC_ISSUER_ID="${ASC_ISSUER_ID:-ac6e6f3b-3b98-46e6-a50f-0a2306a636d6}"
 ASC_KEY_PATH="${ASC_KEY_PATH:-/Users/nikita/Downloads/AuthKey_JUV388FGL8.p8}"
 TEAM_ID="${TEAM_ID:-7ZA73WA82N}"
 EXPO_PUBLIC_DOMAIN="${EXPO_PUBLIC_DOMAIN:-https://slabhub.gg/api/v1}"
+
+if [[ -z "${FACEBOOK_APP_ID:-}" && -f "$SCRIPT_DIR/../../.env" ]]; then
+  FACEBOOK_APP_ID="$(sed -n 's/^FACEBOOK_APP_ID=//p' "$SCRIPT_DIR/../../.env" | head -n1 | tr -d '"')"
+fi
+
+EXPO_PUBLIC_FACEBOOK_APP_ID="${EXPO_PUBLIC_FACEBOOK_APP_ID:-${FACEBOOK_APP_ID:-}}"
 export EXPO_PUBLIC_DOMAIN
+export EXPO_PUBLIC_FACEBOOK_APP_ID
 
 LAST_BUILD_NUMBER=0
 if [[ -f "$BUILD_NUMBER_COUNTER_FILE" ]]; then
@@ -69,6 +76,7 @@ mkdir -p "$BUILD_DIR"
 cd "$IOS_DIR"
 
 echo "Using EXPO_PUBLIC_DOMAIN=$EXPO_PUBLIC_DOMAIN"
+echo "Using EXPO_PUBLIC_FACEBOOK_APP_ID=${EXPO_PUBLIC_FACEBOOK_APP_ID:-<unset>}"
 echo "Using BUILD_NUMBER=$BUILD_NUMBER"
 echo "Using BUILD_NUMBER_COUNTER_FILE=$BUILD_NUMBER_COUNTER_FILE"
 echo "==> 1/4 Build unsigned archive"

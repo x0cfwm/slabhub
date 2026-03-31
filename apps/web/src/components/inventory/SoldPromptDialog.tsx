@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -26,6 +26,13 @@ export function SoldPromptDialog({ isOpen, onClose, onConfirm, itemName, listing
     const [soldPrice, setSoldPrice] = useState<string>("");
     const [soldDate, setSoldDate] = useState<string>(new Date().toISOString().split("T")[0]);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setSoldPrice("");
+            setSoldDate(new Date().toISOString().split("T")[0]);
+        }
+    }, [isOpen]);
 
     const handleConfirm = async () => {
         const price = parseFloat(soldPrice);

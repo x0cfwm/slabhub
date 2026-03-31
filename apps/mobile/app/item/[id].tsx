@@ -8,7 +8,6 @@ import {
   Platform,
   Alert,
   Modal,
-  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
@@ -29,7 +28,6 @@ import {
   ItemStage,
 } from '@/constants/types';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
-import ShareCard, { ShareCardHandle } from '@/components/ShareCard';
 import { ListedPromptDialog } from '@/components/inventory/ListedPromptDialog';
 import { SoldPromptDialog } from '@/components/inventory/SoldPromptDialog';
 
@@ -47,22 +45,10 @@ const STAGE_COLORS: Record<ItemStage, string> = {
 export default function ItemDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { inventory, deleteItem, moveItem, updateItem } = useApp();
+  const { inventory, deleteItem, moveItem, updateItem, statuses } = useApp();
   const [modalVisible, setModalVisible] = React.useState(false);
   const [listedPromptVisible, setListedPromptVisible] = React.useState(false);
   const [soldPromptVisible, setSoldPromptVisible] = React.useState(false);
-  const shareRef = React.useRef<ShareCardHandle>(null);
-  const [isSharing, setIsSharing] = React.useState(false);
-
-  const handleShare = async () => {
-    if (isSharing) return;
-    try {
-      setIsSharing(true);
-      await shareRef.current?.captureAndShare();
-    } finally {
-      setIsSharing(false);
-    }
-  };
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
@@ -147,12 +133,19 @@ export default function ItemDetailScreen() {
           <Ionicons name="arrow-back" size={24} color={c.text} />
         </Pressable>
         <View style={styles.headerActions}>
-          <Pressable onPress={handleShare} hitSlop={8} disabled={isSharing}>
-            {isSharing ? (
-              <ActivityIndicator size="small" color={c.textSecondary} style={{ width: 26, height: 26 }} />
-            ) : (
-              <Ionicons name="share-outline" size={26} color={c.textSecondary} />
-            )}
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/posting',
+                params: {
+                  mode: 'MANUAL',
+                  itemId: item.id,
+                },
+              } as any)
+            }
+            hitSlop={8}
+          >
+            <Ionicons name="share-outline" size={26} color={c.textSecondary} />
           </Pressable>
           <Pressable onPress={handleMove} hitSlop={8}>
             <Ionicons name="swap-horizontal" size={26} color={c.textSecondary} />
@@ -308,11 +301,13 @@ export default function ItemDetailScreen() {
         item={item}
         itemName={item?.name}
         onConfirm={async (data) => {
-          await moveItem(item.id, 'listed');
+          const status = statuses.find(s => s.systemId === 'LISTED');
           await updateItem(item.id, {
+            stage: 'listed',
+            statusId: status?.id,
             listedPrice: data.listingPrice,
             sellingDescription: data.sellingDescription,
-          });
+          } as any);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />
@@ -323,16 +318,16 @@ export default function ItemDetailScreen() {
         itemName={item?.name}
         listingPrice={item?.listedPrice}
         onConfirm={async (data) => {
-          await moveItem(item.id, 'sold');
+          const status = statuses.find(s => s.systemId === 'SOLD');
           await updateItem(item.id, {
+            stage: 'sold',
+            statusId: status?.id,
             soldPrice: data.soldPrice,
             soldDate: data.soldDate,
-          });
+          } as any);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />
-
-      <ShareCard ref={shareRef} item={item} />
     </View>
   );
 }

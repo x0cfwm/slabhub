@@ -228,6 +228,7 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
             </DragOverlay>
 
             <SoldPromptDialog
+                key={promptItem?.id}
                 isOpen={!!promptItem}
                 itemName={promptItem?.name}
                 listingPrice={promptItem?.listingPrice}

@@ -213,6 +213,7 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, s
             </Table>
 
             <SoldPromptDialog
+                key={promptItem?.id}
                 isOpen={!!promptItem}
                 itemName={promptItem?.name}
                 listingPrice={promptItem?.listingPrice}

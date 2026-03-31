@@ -325,11 +325,13 @@ export default function InventoryScreen() {
         itemName={selectedItem?.name}
         onConfirm={async (data) => {
           if (selectedItem) {
-            await moveItem(selectedItem.id, 'listed');
+            const status = statuses.find(s => s.systemId === 'LISTED');
             await updateItem(selectedItem.id, {
+              stage: 'listed',
+              statusId: status?.id,
               listedPrice: data.listingPrice,
               sellingDescription: data.sellingDescription,
-            });
+            } as any);
             if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
         }}
@@ -342,11 +344,13 @@ export default function InventoryScreen() {
         listingPrice={selectedItem?.listedPrice}
         onConfirm={async (data) => {
           if (selectedItem) {
-            await moveItem(selectedItem.id, 'sold');
+            const status = statuses.find(s => s.systemId === 'SOLD');
             await updateItem(selectedItem.id, {
+              stage: 'sold',
+              statusId: status?.id,
               soldPrice: data.soldPrice,
               soldDate: data.soldDate,
-            });
+            } as any);
             if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
         }}
