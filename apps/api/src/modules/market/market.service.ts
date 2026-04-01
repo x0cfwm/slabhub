@@ -164,7 +164,7 @@ export class MarketPricingService {
             const storedSales = await this.prisma.priceChartingSales.findMany({
                 where: { productId },
                 orderBy: { date: 'desc' },
-                take: 10,
+                take: 100,
             });
 
             if (storedSales.length > 0) {
@@ -245,7 +245,7 @@ export class MarketPricingService {
             // Store sales in DB for future "greedy" access
             if (sales.length > 0) {
                 // Archival Logic: Don't delete old sales, just add new unique ones
-                const existingSales = await (this.prisma.priceChartingSales as any).findMany({
+                const existingSales = await this.prisma.priceChartingSales.findMany({
                     where: { productId },
                     select: { id: true, date: true, title: true, price: true, grade: true }
                 });
@@ -279,14 +279,14 @@ export class MarketPricingService {
                 }
 
                 if (seenIds.length > 0) {
-                    await (this.prisma.priceChartingSales as any).updateMany({
+                    await this.prisma.priceChartingSales.updateMany({
                         where: { id: { in: seenIds } },
                         data: { lastSeenAt: new Date() }
                     });
                 }
 
                 if (newSales.length > 0) {
-                    await (this.prisma.priceChartingSales as any).createMany({
+                    await this.prisma.priceChartingSales.createMany({
                         data: newSales
                     });
                 }

@@ -103,117 +103,65 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                 <div className="space-y-6">
                     <div className="space-y-3">
                         <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Market Estimates</h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            <div
-                                className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Raw"
-                                    ? "bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/20"
-                                    : "bg-muted/20 border-border/50 hover:bg-muted/30"
-                                    }`}
-                                onClick={() => setSelectedGrade("Raw")}
-                            >
-                                <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "Raw" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>Raw Price</p>
-                                {(loading || refreshing) ? (
-                                    <Skeleton className="h-5 w-16" />
-                                ) : (
-                                    <p className={`text-base font-bold ${selectedGrade === "Raw" ? "text-amber-700 dark:text-amber-400" : ""}`}>
-                                        ${Math.round(history?.updatedRawPrice ?? product.rawPrice).toLocaleString()}
-                                    </p>
-                                )}
-                            </div>
+                        <div className="flex flex-wrap gap-1.5">
+                            {(() => {
+                                if ((loading || refreshing) && !history?.summary) {
+                                    return (
+                                        <>
+                                            <Skeleton className="h-[38px] flex-1 min-w-0 rounded-lg" />
+                                            <Skeleton className="h-[38px] flex-1 min-w-0 rounded-lg" />
+                                            <Skeleton className="h-[38px] flex-1 min-w-0 rounded-lg" />
+                                            <Skeleton className="h-[38px] flex-1 min-w-0 rounded-lg" />
+                                        </>
+                                    );
+                                }
 
-                            {(loading || refreshing) && !history?.summary ? (
-                                <>
-                                    <Skeleton className="h-[60px] w-full rounded-xl" />
-                                    <Skeleton className="h-[60px] w-full rounded-xl" />
-                                </>
-                            ) : history?.summary && (
-                                <>
-                                    {history.summary.grade9 && (
+                                const gradeConfigs = [
+                                    { id: "Raw", displayLabel: "Raw Price", price: history?.updatedRawPrice ?? product.rawPrice },
+                                    { id: "Grade 9", displayLabel: "PSA 9", price: history?.summary?.grade9 },
+                                    { id: "Grade 9.5", displayLabel: "BGS 9.5", price: history?.summary?.grade95 },
+                                    { id: "PSA 10", displayLabel: "PSA 10", price: history?.summary?.psa10 },
+                                    { id: "Grade 8", displayLabel: "PSA 8", price: history?.summary?.grade8 },
+                                    { id: "Grade 7", displayLabel: "PSA 7", price: history?.summary?.grade7 },
+                                ].filter(g => g.price !== undefined);
+
+                                const sortedGrades = [...gradeConfigs].sort((a, b) => {
+                                    const aHasSales = history?.prices.some(p => (p.grade === a.id) || (!p.grade && a.id === "Raw"));
+                                    const bHasSales = history?.prices.some(p => (p.grade === b.id) || (!p.grade && b.id === "Raw"));
+                                    if (aHasSales && !bHasSales) return -1;
+                                    if (!aHasSales && bHasSales) return 1;
+                                    return 0;
+                                });
+
+                                return sortedGrades.map((g) => {
+                                    const hasSales = (loading || refreshing) ? true : history?.prices.some(p => (p.grade === g.id) || (!p.grade && g.id === "Raw"));
+                                    const isSelected = selectedGrade === g.id;
+
+                                    return (
                                         <div
-                                            className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 9"
+                                            key={g.id}
+                                            className={`w-20 sm:w-24 h-11 py-1 px-2 rounded-lg border flex flex-col justify-center transition-all cursor-pointer ${isSelected
                                                 ? "bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/20"
                                                 : "bg-muted/20 border-border/50 hover:bg-muted/30"
-                                                }`}
-                                            onClick={() => setSelectedGrade("Grade 9")}
+                                                } ${!hasSales ? "opacity-40 grayscale-[0.5] cursor-default pointer-events-none" : ""}`}
+                                            onClick={() => hasSales && setSelectedGrade(g.id)}
                                         >
-                                            <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "Grade 9" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>PSA 9</p>
-                                            <p className={`text-base font-bold ${selectedGrade === "Grade 9" ? "text-amber-700 dark:text-amber-400" : ""}`}>
-                                                ${Math.round(history.summary.grade9).toLocaleString()}
+                                            <p className={`text-[7px] uppercase font-bold tracking-wider mb-0 ${isSelected ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>
+                                                {g.displayLabel}
+                                            </p>
+                                            <p className={`text-xs font-bold ${isSelected ? "text-amber-700 dark:text-amber-400" : ""}`}>
+                                                ${Math.round(g.price!).toLocaleString()}
                                             </p>
                                         </div>
-                                    )}
-                                    {history.summary.grade95 && (
-                                        <div
-                                            className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 9.5"
-                                                ? "bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/20"
-                                                : "bg-muted/20 border-border/50 hover:bg-muted/30"
-                                                }`}
-                                            onClick={() => setSelectedGrade("Grade 9.5")}
-                                        >
-                                            <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "Grade 9.5" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>BGS 9.5</p>
-                                            <p className={`text-base font-bold ${selectedGrade === "Grade 9.5" ? "text-amber-700 dark:text-amber-400" : ""}`}>
-                                                ${Math.round(history.summary.grade95).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    )}
-                                    {history.summary.psa10 && (
-                                        <div
-                                            className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "PSA 10"
-                                                ? "bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/20"
-                                                : "bg-muted/20 border-border/50 hover:bg-muted/30"
-                                                }`}
-                                            onClick={() => setSelectedGrade("PSA 10")}
-                                        >
-                                            <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "PSA 10" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>PSA 10</p>
-                                            <p className={`text-base font-bold ${selectedGrade === "PSA 10" ? "text-amber-700 dark:text-amber-400" : ""}`}>
-                                                ${Math.round(history.summary.psa10).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    )}
-                                    {history.summary.grade8 && (
-                                        <div
-                                            className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 8"
-                                                ? "bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/20"
-                                                : "bg-muted/20 border-border/50 hover:bg-muted/30"
-                                                }`}
-                                            onClick={() => setSelectedGrade("Grade 8")}
-                                        >
-                                            <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "Grade 8" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>PSA 8</p>
-                                            <p className={`text-base font-bold ${selectedGrade === "Grade 8" ? "text-amber-700 dark:text-amber-400" : ""}`}>
-                                                ${Math.round(history.summary.grade8).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    )}
-                                    {history.summary.grade7 && (
-                                        <div
-                                            className={`p-3 rounded-xl border flex flex-col justify-center transition-all cursor-pointer ${selectedGrade === "Grade 7"
-                                                ? "bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/20"
-                                                : "bg-muted/20 border-border/50 hover:bg-muted/30"
-                                                }`}
-                                            onClick={() => setSelectedGrade("Grade 7")}
-                                        >
-                                            <p className={`text-[8px] uppercase font-bold tracking-wider mb-1 ${selectedGrade === "Grade 7" ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>PSA 7</p>
-                                            <p className={`text-base font-bold ${selectedGrade === "Grade 7" ? "text-amber-700 dark:text-amber-400" : ""}`}>
-                                                ${Math.round(history.summary.grade7).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    )}
-                                </>
-                            )}
+                                    );
+                                });
+                            })()}
                         </div>
                     </div>
 
 
-                    <div className="flex items-center justify-between text-sm px-4 py-2 bg-muted/20 rounded-lg text-muted-foreground italic">
-                        <span>Last updated</span>
-                        {(loading || refreshing) ? (
-                            <Skeleton className="h-4 w-32" />
-                        ) : (
-                            <span>{new Date(product.lastUpdated).toLocaleString()}</span>
-                        )}
-                    </div>
-
                     <hr className="border-border" />
+
 
                     <div className="space-y-3">
                         <h3 className="text-sm font-semibold flex items-center justify-between">
@@ -221,7 +169,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                 Recent Sales
 
                             </span>
-                            <span className="text-[10px] font-normal text-muted-foreground">Last 10 entries</span>
+
                         </h3>
 
                         {error && (
@@ -258,9 +206,22 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {(history?.prices ?? [])
-                                            .filter(entry => !entry.grade || entry.grade === selectedGrade)
-                                            .map((entry, idx) => (
+                                        {(() => {
+                                            const filteredPrices = (history?.prices ?? []).filter(
+                                                (entry) => !entry.grade || entry.grade === selectedGrade
+                                            );
+
+                                            if (filteredPrices.length === 0) {
+                                                return (
+                                                    <TableRow>
+                                                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground text-xs italic">
+                                                            No recent sales found for {selectedGrade}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            }
+
+                                            return filteredPrices.map((entry, idx) => (
                                                 <TableRow key={idx}>
                                                     <TableCell className="text-xs py-3 px-4 font-medium whitespace-nowrap">{entry.date}</TableCell>
                                                     <TableCell className="text-xs py-3 px-4 max-w-[280px] truncate" title={entry.title}>
@@ -312,13 +273,24 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                                         )}
                                                     </TableCell>
                                                 </TableRow>
-                                            ))}
+                                            ));
+                                        })()}
                                     </TableBody>
 
                                 </Table>
                             </div>
                         )}
                     </div>
+
+                    <div className="flex items-center justify-between text-[10px] px-4 py-2 bg-muted/10 rounded-lg text-muted-foreground/60 italic mt-8">
+                        <span>Last sync</span>
+                        {(loading || refreshing) ? (
+                            <Skeleton className="h-3 w-24" />
+                        ) : (
+                            <span>{new Date(product.lastUpdated).toLocaleString()}</span>
+                        )}
+                    </div>
+
                 </div>
             </SheetContent>
         </Sheet>
