@@ -8,24 +8,6 @@ import { joinWaitlist } from "@/lib/api";
 
 export function WaitlistCTASection() {
     const { user, loading } = useAuth();
-    const [email, setEmail] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitted, setSubmitted] = useState(false);
-
-    async function handleSubmit(e: FormEvent) {
-        e.preventDefault();
-        if (!email.trim() || isSubmitting) return;
-
-        setIsSubmitting(true);
-        try {
-            await joinWaitlist(email);
-            setSubmitted(true);
-        } catch (error) {
-            console.error("Failed to join waitlist:", error);
-        } finally {
-            setIsSubmitting(false);
-        }
-    }
 
     return (
         <section id="waitlist" className="relative overflow-hidden px-4 py-20 lg:px-8 lg:py-28">
@@ -41,54 +23,25 @@ export function WaitlistCTASection() {
             <div className="relative mx-auto max-w-2xl text-center">
                 {/* Headline */}
                 <h2 className="font-display text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-                    {user ? "Revisit your shop" : "Join the waitlist and"}
+                    {user ? "Revisit your shop" : "Ready to master the market?"}
                     <br />
-                    {user ? "Manage your inventory" : "get early access"}
+                    {user ? "Manage your inventory" : "Get started for free today"}
                 </h2>
 
                 {/* Form */}
                 <div className="mx-auto mt-10 max-w-lg">
                     {loading ? (
-                        <div className="h-[58px]" />
-                    ) : user ? (
+                        <div className="h-[58px] w-full max-w-lg" />
+                    ) : (
                         <Button
                             size="lg"
                             className="rounded-full bg-[#FBAC00] px-10 py-7 text-lg font-bold text-[#030303] shadow-[0_0_20px_rgba(251,172,0,0.15)] transition-all hover:bg-[#FBAC00]/90 hover:shadow-[0_0_32px_rgba(251,172,0,0.3)] focus-visible:ring-2 focus-visible:ring-[#FBAC00]/50"
                             asChild
                         >
-                            <Link href="/dashboard">Go to Dashboard</Link>
+                            <Link href={user ? "/dashboard" : "/login"}>
+                                {user ? "Go to Dashboard" : "Get Started Now"}
+                            </Link>
                         </Button>
-                    ) : submitted ? (
-                        <p className="text-base font-medium text-primary">
-                            {"You're on the list."}
-                        </p>
-                    ) : (
-                        <form
-                            onSubmit={handleSubmit}
-                            className="relative flex items-center rounded-2xl border px-2 py-2 backdrop-blur-sm sm:px-3 sm:py-2.5 border-black/[0.10] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] dark:border-white/[0.12] dark:bg-black/30 dark:shadow-none"
-                        >
-                            <label htmlFor="waitlist-email" className="sr-only">
-                                Email Address
-                            </label>
-                            <input
-                                id="waitlist-email"
-                                type="email"
-                                required
-                                disabled={isSubmitting}
-                                placeholder="Email Address..."
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="min-w-0 flex-1 border-0 bg-transparent py-2 pl-3 pr-2 text-sm outline-none sm:pl-4 sm:text-base text-[#0C0C0C] placeholder:text-[#9CA3AF] dark:text-foreground dark:placeholder:text-muted-foreground disabled:opacity-50"
-                                aria-label="Email Address"
-                            />
-                            <Button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="shrink-0 rounded-full bg-[#FBAC00] px-5 py-2.5 text-sm font-semibold text-[#030303] shadow-[0_0_20px_rgba(251,172,0,0.15)] transition-all hover:bg-[#FBAC00]/90 hover:shadow-[0_0_32px_rgba(251,172,0,0.3)] focus-visible:ring-2 focus-visible:ring-[#FBAC00]/50 sm:px-6 disabled:opacity-50"
-                            >
-                                {isSubmitting ? "Joining..." : "Get Early Access"}
-                            </Button>
-                        </form>
                     )}
                 </div>
             </div>

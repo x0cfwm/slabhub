@@ -76,13 +76,23 @@ function Navbar() {
               <Link href="/dashboard">Go to Dashboard</Link>
             </Button>
           ) : (
-            <Button
-              size="sm"
-              className="rounded-full bg-[#FBAC00] px-6 text-[#030303] shadow-[0_0_20px_rgba(251,172,0,0.15)] transition-all hover:bg-[#FBAC00]/90 hover:shadow-[0_0_28px_rgba(251,172,0,0.25)] focus-visible:ring-2 focus-visible:ring-[#FBAC00]/50"
-              asChild
-            >
-              <a href="#waitlist">Get Early Access</a>
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full px-4 text-foreground hover:bg-secondary"
+                asChild
+              >
+                <Link href="/login">Log In</Link>
+              </Button>
+              <Button
+                size="sm"
+                className="rounded-full bg-[#FBAC00] px-6 text-[#030303] shadow-[0_0_20px_rgba(251,172,0,0.15)] transition-all hover:bg-[#FBAC00]/90 hover:shadow-[0_0_28px_rgba(251,172,0,0.25)] focus-visible:ring-2 focus-visible:ring-[#FBAC00]/50"
+                asChild
+              >
+                <Link href="/login">Get Started</Link>
+              </Button>
+            </div>
           )}
         </div>
 
@@ -117,14 +127,25 @@ function Navbar() {
                 </Link>
               </Button>
             ) : (
-              <Button
-                className="w-full rounded-full bg-[#FBAC00] px-4 text-[#030303] shadow-[0_0_20px_rgba(251,172,0,0.15)] transition-all hover:bg-[#FBAC00]/90 hover:shadow-[0_0_28px_rgba(251,172,0,0.25)] focus-visible:ring-2 focus-visible:ring-[#FBAC00]/50"
-                asChild
-              >
-                <a href="#waitlist" onClick={() => setMobileOpen(false)}>
-                  Get Early Access
-                </a>
-              </Button>
+              <div className="flex flex-col gap-3">
+                <Button
+                  variant="outline"
+                  className="w-full rounded-full px-4 text-foreground"
+                  asChild
+                >
+                  <Link href="/login" onClick={() => setMobileOpen(false)}>
+                    Log In
+                  </Link>
+                </Button>
+                <Button
+                  className="w-full rounded-full bg-[#FBAC00] px-4 text-[#030303] shadow-[0_0_20px_rgba(251,172,0,0.15)] transition-all hover:bg-[#FBAC00]/90 hover:shadow-[0_0_28px_rgba(251,172,0,0.25)] focus-visible:ring-2 focus-visible:ring-[#FBAC00]/50"
+                  asChild
+                >
+                  <Link href="/login" onClick={() => setMobileOpen(false)}>
+                    Get Started
+                  </Link>
+                </Button>
+              </div>
             )}
           </div>
         </div>
