@@ -1,5 +1,6 @@
----
-name: NestJS Backend Developer
+qwй---
+nam
+e: NestJS Backend Developer
 description: Guidelines and best practices for developing the NestJS backend
 ---
 
