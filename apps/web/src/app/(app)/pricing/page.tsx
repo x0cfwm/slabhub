@@ -314,7 +314,7 @@ function PricingContent() {
                                         <div className="flex flex-col gap-1.5 py-1">
                                             <div className="flex items-baseline gap-2">
                                                 <span className="font-bold text-sm">
-                                                    {product.rawPrice && product.rawPrice > 0 ? `$${Math.round(product.rawPrice).toLocaleString()}` : "-"}
+                                                    {product.rawPrice && product.rawPrice > 0 ? `$${product.rawPrice < 1 ? product.rawPrice.toFixed(2) : Math.round(product.rawPrice).toLocaleString()}` : "-"}
                                                 </span>
                                                 <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wide">Raw</span>
                                             </div>
@@ -329,7 +329,7 @@ function PricingContent() {
                                                 ].filter(g => g.price && g.price > 0).map((g) => (
                                                     <div key={g.label} className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-muted border border-border/50">
                                                         <span className="text-[8px] font-bold text-muted-foreground">{g.label}</span>
-                                                        <span className="text-[10px] font-semibold">${g.price ? Math.round(g.price).toLocaleString() : "-"}</span>
+                                                        <span className="text-[10px] font-semibold">${g.price ? (g.price < 1 ? g.price.toFixed(2) : Math.round(g.price).toLocaleString()) : "-"}</span>
                                                     </div>
                                                 ))}
                                             </div>

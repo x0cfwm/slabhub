@@ -150,7 +150,7 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                                 {g.displayLabel}
                                             </p>
                                             <p className={`text-xs font-bold ${isSelected ? "text-amber-700 dark:text-amber-400" : ""}`}>
-                                                ${Math.round(g.price!).toLocaleString()}
+                                                ${g.price! < 1 ? g.price!.toFixed(2) : Math.round(g.price!).toLocaleString()}
                                             </p>
                                         </div>
                                     );
