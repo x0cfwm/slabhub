@@ -74,3 +74,32 @@ export class CrawlOnePieceCommand extends CommandRunner {
         return val;
     }
 }
+
+@Command({ name: 'pricecharting:cleanup:links', description: 'Clean up referral links in PriceCharting sales data' })
+export class CleanupSalesLinksCommand extends CommandRunner {
+    private readonly logger = new Logger(CleanupSalesLinksCommand.name);
+
+    constructor(private readonly ingestService: PriceChartingIngestService) {
+        super();
+    }
+
+    async run(passedParam: string[], options?: { dryRun?: boolean }): Promise<void> {
+        try {
+            this.logger.log('Starting PriceCharting sales link cleanup...');
+            await this.ingestService.cleanupSalesLinks(options);
+            this.logger.log('Cleanup finished.');
+        } catch (e) {
+            this.logger.error(`Cleanup failed: ${e.message}`);
+            process.exit(1);
+        }
+    }
+
+    @Option({
+        flags: '-d, --dryRun',
+        description: 'Dry run (no DB writes)',
+        defaultValue: false,
+    })
+    parseDryRun(val: boolean): boolean {
+        return val;
+    }
+}

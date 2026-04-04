@@ -5,7 +5,7 @@ import { MediaModule } from '../media/media.module';
 import { PriceChartingClient } from './pricecharting.client';
 import { PriceChartingParser } from './pricecharting.parser';
 import { PriceChartingIngestService } from './pricecharting.ingest.service';
-import { CrawlOnePieceCommand } from './cli/pricecharting.commands';
+import { CleanupSalesLinksCommand, CrawlOnePieceCommand } from './cli/pricecharting.commands';
 import { InventoryModule } from '../inventory/inventory.module';
 
 @Module({
@@ -15,6 +15,7 @@ import { InventoryModule } from '../inventory/inventory.module';
         PriceChartingParser,
         PriceChartingIngestService,
         CrawlOnePieceCommand,
+        CleanupSalesLinksCommand,
     ],
     exports: [PriceChartingIngestService],
 })

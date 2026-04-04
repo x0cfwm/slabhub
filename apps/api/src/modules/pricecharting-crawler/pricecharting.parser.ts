@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 import { ParsedProductDetails, PriceChartingProductType, PriceChartingSaleEntry } from './types';
-import { canonicalizeUrl, extractSlug } from './utils/url';
+import { canonicalizeUrl, distillMarketplaceUrl, extractSlug } from './utils/url';
 
 @Injectable()
 export class PriceChartingParser {
@@ -246,12 +246,13 @@ export class PriceChartingParser {
             const date = this.normalizeDate(dateStr);
             const source = this.inferSource(fullTitleCellText);
 
+            const distilledLink = link ? distillMarketplaceUrl(link.startsWith('http') ? link : `https://www.pricecharting.com${link}`) : undefined;
             entries.push({
                 date,
                 title: titleText,
                 price,
                 source,
-                link: link ? (link.startsWith('http') ? link : `https://www.pricecharting.com${link}`) : undefined,
+                link: distilledLink,
                 grade,
             });
         });

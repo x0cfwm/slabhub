@@ -8,6 +8,7 @@ import * as path from 'path';
 
 import { MediaService } from '../media/media.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { distillMarketplaceUrl } from './utils/url';
 
 @Injectable()
 export class PriceChartingIngestService {
@@ -480,6 +481,75 @@ export class PriceChartingIngestService {
                 priceUpdatedAt: (pcProduct as any).priceUpdatedAt,
             }
         });
+    }
+
+    async cleanupSalesLinks(options: { dryRun?: boolean } = {}) {
+        this.logger.log(`Starting cleanup of sales links... ${options.dryRun ? '[DRY RUN]' : ''}`);
+
+        const batchSize = 1000;
+        let totalProcessed = 0;
+        let totalUpdated = 0;
+
+        // Extract common referral/tracking patterns from DB to target specifically
+        const patterns = ['partner.tcgplayer.com', 'ebay.com/itm/', '?u=', 'utm_'];
+
+        const salesCount = await (this.prisma.priceChartingSales as any).count();
+        this.logger.log(`Found ${salesCount} total sale records. Checking for links to distill...`);
+
+        // We'll iterate through all records with links
+        let cursor: string | undefined;
+
+        while (true) {
+            const sales = await (this.prisma.priceChartingSales as any).findMany({
+                take: batchSize,
+                skip: cursor ? 1 : 0,
+                cursor: cursor ? { id: cursor } : undefined,
+                where: {
+                    OR: [
+                        { link: { contains: 'partner.tcgplayer.com' } },
+                        { link: { contains: '/itm/' } },
+                        { link: { contains: 'u=' } },
+                        { link: { contains: 'utm_' } },
+                    ]
+                },
+                orderBy: { id: 'asc' },
+            });
+
+            if (sales.length === 0) break;
+            cursor = sales[sales.length - 1].id;
+
+            const updates = [];
+            for (const sale of sales) {
+                totalProcessed++;
+                const originalUrl = sale.link;
+                if (!originalUrl) continue;
+
+                const distilledUrl = distillMarketplaceUrl(originalUrl);
+
+                if (distilledUrl !== originalUrl) {
+                    updates.push({ id: sale.id, link: distilledUrl });
+                }
+            }
+
+            if (updates.length > 0) {
+                totalUpdated += updates.length;
+                if (!options.dryRun) {
+                    // Bulk update is tricky in Prisma for individual IDs, we'll use transaction or Promise.all
+                    // For safety and staying within transaction limits, we'll use a transaction for this batch
+                    await this.prisma.$transaction(
+                        updates.map(u => (this.prisma.priceChartingSales as any).update({
+                            where: { id: u.id },
+                            data: { link: u.link }
+                        }))
+                    );
+                }
+            }
+
+            this.logger.log(`Batch processed: ${totalProcessed} checked, ${totalUpdated} ${options.dryRun ? 'would be updated' : 'updated'}.`);
+        }
+
+        this.logger.log(`Cleanup finished. Total updated: ${totalUpdated}`);
+        return { totalProcessed, totalUpdated };
     }
 }
 
