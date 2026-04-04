@@ -17,8 +17,8 @@ export interface ImageOptimizationOptions {
  * Transforms a CDN URL into an optimized Cloudflare Image URL.
  * If the URL is not from the CDN, it returns it as is.
  */
-export function getOptimizedImageUrl(url: string | null | undefined, options: ImageOptimizationOptions = {}): string {
-    if (!url) return '';
+export function getOptimizedImageUrl(url: string | null | undefined, options: ImageOptimizationOptions = {}): string | undefined {
+    if (!url) return undefined;
 
     // Only optimize images from our CDN
     if (!url.startsWith(CDN_BASE_URL)) {
