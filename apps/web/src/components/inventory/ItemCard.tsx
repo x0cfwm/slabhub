@@ -119,36 +119,43 @@ export function ItemCard({ item, profile, price, onClick, isOverlay, scale = "no
             {scale !== "compact" && (
                 <div className="relative">
                     <AspectRatio ratio={2.5 / 3.5}>
-                        <ImageZoomTrigger
-                            imageUrl={imageUrl}
-                            onZoom={(url) => onZoom?.(url)}
-                            className="w-full h-full"
-                        >
-                            <div className="flex items-center justify-center w-full h-full bg-accent/10 relative overflow-hidden">
-                                <img
-                                    src={optimizedImageUrl}
-                                    alt={displayName}
-                                    className={cn(
-                                        "object-contain w-full h-full transition-all duration-500 group-hover:scale-110",
-                                        variantType === "ALTERNATE_ART" && "hue-rotate-15 saturate-110",
-                                        variantType === "PARALLEL_FOIL" && "contrast-125 brightness-110"
-                                    )}
-                                />
-                                {variantType === "PARALLEL_FOIL" && (
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-white/20 pointer-events-none animate-pulse" />
+                        <div className="flex items-center justify-center w-full h-full bg-accent/10 relative overflow-hidden group/image">
+                            <img
+                                src={optimizedImageUrl}
+                                alt={displayName}
+                                className={cn(
+                                    "object-contain w-full h-full transition-all duration-500 group-hover:scale-110",
+                                    variantType === "ALTERNATE_ART" && "hue-rotate-15 saturate-110",
+                                    variantType === "PARALLEL_FOIL" && "contrast-125 brightness-110"
                                 )}
-                                {variantType !== "NORMAL" && (
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent pointer-events-none mix-blend-overlay" />
-                                )}
-                                {isNewVariantId && (
-                                    <div className="absolute bottom-2 left-2">
-                                        <Badge className="bg-black/60 backdrop-blur-md text-[8px] px-1 py-0 h-4 border-white/10 text-white select-none">
-                                            {language}
-                                        </Badge>
+                            />
+                            {variantType === "PARALLEL_FOIL" && (
+                                <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-white/20 pointer-events-none animate-pulse" />
+                            )}
+                            {variantType !== "NORMAL" && (
+                                <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent pointer-events-none mix-blend-overlay" />
+                            )}
+                            {isNewVariantId && (
+                                <div className="absolute bottom-2 left-2">
+                                    <Badge className="bg-black/60 backdrop-blur-md text-[8px] px-1 py-0 h-4 border-white/10 text-white select-none">
+                                        {language}
+                                    </Badge>
+                                </div>
+                            )}
+
+                            {/* Zoom Button Overlay */}
+                            <div className="absolute top-2 left-2 z-20 opacity-0 group-hover/image:opacity-100 transition-opacity">
+                                <ImageZoomTrigger
+                                    imageUrl={imageUrl}
+                                    onZoom={(url) => onZoom?.(url)}
+                                    showOverlay={false}
+                                >
+                                    <div className="p-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm border border-white/10 transition-colors cursor-zoom-in">
+                                        <Maximize2 className="h-3 w-3" />
                                     </div>
-                                )}
+                                </ImageZoomTrigger>
                             </div>
-                        </ImageZoomTrigger>
+                        </div>
                     </AspectRatio>
                     <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
                         <Badge variant="secondary" className="backdrop-blur-md bg-white/50 text-[8px] uppercase font-bold">

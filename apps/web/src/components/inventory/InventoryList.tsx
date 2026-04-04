@@ -22,7 +22,7 @@ import { updateInventoryItem } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Maximize2 } from "lucide-react";
 import { getOptimizedImageUrl } from "@/lib/image-utils";
 import { SoldPromptDialog } from "./SoldPromptDialog";
 import { ListedPromptDialog } from "./ListedPromptDialog";
@@ -123,20 +123,26 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, s
 
                         return (
                             <TableRow key={item.id} className="cursor-pointer group hover:bg-primary/5 transition-colors" onClick={() => onItemClick(item)}>
-                                <TableCell onClick={(e) => e.stopPropagation()}>
-                                    <ImageZoomTrigger
-                                        imageUrl={item.photos?.[0] || (item as any).frontMediaUrl || (marketProduct as any)?.imageUrl}
-                                        onZoom={(url) => setZoomedImage(url)}
-                                        className="rounded-lg"
-                                    >
-                                        <div className="w-12 h-16 rounded-lg overflow-hidden border bg-accent/20 flex items-center justify-center">
-                                            <img
-                                                src={getOptimizedImageUrl(item.photos?.[0] || (item as any).frontMediaUrl || (marketProduct as any)?.imageUrl, { height: 160 })}
-                                                alt={displayName}
-                                                className="w-full h-full object-contain p-1 transition-transform group-hover:scale-110"
-                                            />
+                                <TableCell>
+                                    <div className="relative group/image w-12 h-16 rounded-lg overflow-hidden border bg-accent/20 flex items-center justify-center">
+                                        <img
+                                            src={getOptimizedImageUrl(item.photos?.[0] || (item as any).frontMediaUrl || (marketProduct as any)?.imageUrl, { height: 160 })}
+                                            alt={displayName}
+                                            className="w-full h-full object-contain p-1 transition-transform group-hover:scale-110"
+                                        />
+                                        
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity pointer-events-none">
+                                            <div className="p-1 rounded-full bg-black/40 text-white backdrop-blur-sm border border-white/5 pointer-events-auto">
+                                                <ImageZoomTrigger
+                                                    imageUrl={item.photos?.[0] || (item as any).frontMediaUrl || (marketProduct as any)?.imageUrl}
+                                                    onZoom={(url) => setZoomedImage(url)}
+                                                    showOverlay={false}
+                                                >
+                                                    <Maximize2 className="h-2.5 w-2.5 cursor-zoom-in" />
+                                                </ImageZoomTrigger>
+                                            </div>
                                         </div>
-                                    </ImageZoomTrigger>
+                                    </div>
                                 </TableCell>
 
                                 <TableCell>

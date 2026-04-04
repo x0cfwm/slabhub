@@ -45,9 +45,10 @@ interface ImageZoomTriggerProps {
     className?: string;
     children: React.ReactNode;
     onZoom: (url: string) => void;
+    showOverlay?: boolean;
 }
 
-export function ImageZoomTrigger({ imageUrl, className, children, onZoom }: ImageZoomTriggerProps) {
+export function ImageZoomTrigger({ imageUrl, className, children, onZoom, showOverlay = true }: ImageZoomTriggerProps) {
     if (!imageUrl) return <>{children}</>;
 
     return (
@@ -60,9 +61,12 @@ export function ImageZoomTrigger({ imageUrl, className, children, onZoom }: Imag
             }}
         >
             {children}
-            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-md">
-                <Maximize2 className="h-4 w-4 text-white" />
-            </div>
+            {showOverlay && (
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-md">
+                    <Maximize2 className="h-4 w-4 text-white" />
+                </div>
+            )}
         </div>
     );
 }
+
