@@ -35,7 +35,9 @@ import { toast } from "sonner";
 import { Search, ChevronRight, ChevronLeft, Check, Package as PackageIcon, FileText, BadgeCheck, Box, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Camera, Sparkles } from "lucide-react";
+import { Loader2, Camera, Sparkles, Maximize2 } from "lucide-react";
+import { ImageZoomDialog, ImageZoomTrigger } from "@/components/common/ImageZoomDialog";
+
 
 type InventoryCategory = "SINGLE_CARD_RAW" | "SINGLE_CARD_GRADED" | "SEALED_PRODUCT";
 
@@ -52,6 +54,9 @@ export default function AddItemPage() {
     const [isRecognizing, setIsRecognizing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const recognitionCancelledRef = useRef(false);
+    const [explicitlySelectedCard, setExplicitlySelectedCard] = useState<MarketProduct | null>(null);
+    const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+
 
     const [statuses, setStatuses] = useState<WorkflowStatus[]>([]);
 
@@ -115,6 +120,7 @@ export default function AddItemPage() {
                 setCards([]);
                 if (search.length === 0) {
                     setFormData((prev: any) => ({ ...prev, baseCardId: undefined, cardVariantId: undefined, refPriceChartingProductId: undefined }));
+                    setExplicitlySelectedCard(null);
                 }
             }
         };
@@ -138,8 +144,8 @@ export default function AddItemPage() {
                 const d = result.data;
                 const newFormData = { ...formData };
                 
-                if (d.cardName) {
-                    setSearch(d.cardName);
+                if (d.productName || d.cardName) {
+                    setSearch(d.productName || d.cardName);
                 }
                 
                 if (d.grader) {
@@ -156,8 +162,13 @@ export default function AddItemPage() {
                     }
                     
                     if (d.gradeValue) {
-                        newFormData.grade = d.gradeValue.toString();
-                        newFormData.gradeValue = parseFloat(d.gradeValue.toString().replace(/[^\d.]/g, ''));
+                        const numericValue = d.gradeValue.toString().replace(/[^\d.]/g, '');
+                        if (["PSA", "BGS"].includes(grader)) {
+                            newFormData.grade = `${grader} ${numericValue}`;
+                        } else {
+                            newFormData.grade = d.gradeValue.toString();
+                        }
+                        newFormData.gradeValue = parseFloat(numericValue);
                     }
                     if (d.certNumber) newFormData.certNumber = d.certNumber;
                 } else {
@@ -170,11 +181,56 @@ export default function AddItemPage() {
                     newFormData.refPriceChartingProductId = d.refPriceChartingProductId;
                     newFormData.baseCardId = d.refPriceChartingProductId;
                     newFormData.cardVariantId = d.refPriceChartingProductId;
+                    
+                    // Explicitly set the active card so it renders immediately
+                    setExplicitlySelectedCard({
+                        id: d.refPriceChartingProductId!,
+                        name: d.productName || d.cardName || '',
+                        set: d.productSet || d.setName || '',
+                        setCode: d.rawCardNumber?.split('-')[0] || '',
+                        number: d.productNumber || (d.rawCardNumber?.includes('-') ? d.rawCardNumber.split('-').slice(1).join('-') : (d.rawCardNumber || '')),
+                        imageUrl: d.productImageUrl || null,
+                        rawPrice: d.marketPrice || 0,
+                        grade7Price: d.grade7Price || null,
+                        grade8Price: d.grade8Price || null,
+                        grade9Price: d.grade9Price || null,
+                        grade95Price: d.grade95Price || null,
+                        grade10Price: d.grade10Price || null,
+                        sealedPrice: d.sealedPrice || null,
+                        lastUpdated: new Date().toISOString(),
+                        source: "PRICECHARTING"
+                    });
+                    
+                    // Manually push to cards array to immediately show selection regardless of fetch
+                    setCards(prev => {
+                        if (prev.some(c => c.id === d.refPriceChartingProductId)) return prev;
+                        return [...prev, {
+                            id: d.refPriceChartingProductId!,
+                            name: d.productName || d.cardName || '',
+                            set: d.productSet || d.setName || '',
+                            setCode: d.rawCardNumber?.split('-')[0] || '',
+                            number: d.productNumber || (d.rawCardNumber?.includes('-') ? d.rawCardNumber.split('-').slice(1).join('-') : (d.rawCardNumber || '')),
+                            imageUrl: d.productImageUrl || null,
+                            rawPrice: d.marketPrice || 0,
+                            grade7Price: d.grade7Price || null,
+                            grade8Price: d.grade8Price || null,
+                            grade9Price: d.grade9Price || null,
+                            grade95Price: d.grade95Price || null,
+                            grade10Price: d.grade10Price || null,
+                            sealedPrice: d.sealedPrice || null,
+                            lastUpdated: new Date().toISOString(),
+                            source: "PRICECHARTING"
+                        }];
+                    });
                 }
                 
                 setFormData(newFormData);
                 setStep(2);
-                toast.success("Card recognized successfully!");
+                if (d.refPriceChartingProductId) {
+                    toast.success("Card recognized successfully!");
+                } else {
+                    toast.info("Card recognized partially!");
+                }
             } else if (!recognitionCancelledRef.current) {
                 console.warn("Recognition returned success: false", result);
                 toast.error(`Recognize returned false: ${result.error || 'Unknown error'}`);
@@ -229,7 +285,7 @@ export default function AddItemPage() {
         }
     };
 
-    const selectedCard = cards.find(c => c.id === (formData.refPriceChartingProductId || formData.cardVariantId));
+    const selectedCard = explicitlySelectedCard || cards.find(c => c.id === (formData.refPriceChartingProductId || formData.cardVariantId));
 
     const applySealedPreset = (preset: "ILLUSTRATION_BOX" | "MINI_TIN") => {
         if (preset === "ILLUSTRATION_BOX") {
@@ -498,12 +554,20 @@ export default function AddItemPage() {
                                     </div>
                                 )}
 
-                                {cards.length > 0 && !isManualEntry && (
+                                {((cards.length > 0) || (explicitlySelectedCard && (formData.refPriceChartingProductId === explicitlySelectedCard.id || formData.baseCardId === explicitlySelectedCard.id))) && !isManualEntry && (
                                     <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
-                                        {cards.map(card => (
-                                            <div
+                                        {(() => {
+                                            const displayCards = [...cards];
+                                            if (explicitlySelectedCard && (formData.refPriceChartingProductId === explicitlySelectedCard.id || formData.baseCardId === explicitlySelectedCard.id)) {
+                                                if (!displayCards.some(c => c.id === explicitlySelectedCard.id)) {
+                                                    displayCards.unshift(explicitlySelectedCard);
+                                                }
+                                            }
+                                            return displayCards.map(card => (
+                                                <div
                                                 key={card.id}
                                                 onClick={() => {
+                                                    setExplicitlySelectedCard(card);
                                                     if (category === "SEALED_PRODUCT") {
                                                         setFormData({
                                                             ...formData,
@@ -528,20 +592,32 @@ export default function AddItemPage() {
                                                     (formData.refPriceChartingProductId === card.id || formData.baseCardId === card.id) ? "border-primary bg-primary/5" : "bg-card"
                                                 )}
                                             >
-                                                <img src={getOptimizedImageUrl(card.imageUrl, { height: 100 })} className="h-10 rounded-md shadow-lg" alt="" />
+                                                <ImageZoomTrigger
+                                                    imageUrl={card.imageUrl}
+                                                    onZoom={(url) => setZoomedImage(url)}
+                                                    className="shrink-0 rounded-md"
+                                                >
+                                                    <img src={getOptimizedImageUrl(card.imageUrl, { height: 100 })} className="h-10 rounded-md shadow-lg transition-transform group-hover:scale-105" alt="" />
+                                                </ImageZoomTrigger>
+
+
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-bold text-xs truncate">{card.name}</p>
                                                     <p className="text-[10px] text-muted-foreground uppercase">{card.set} {card.number ? `• ${card.number}` : ''}</p>
                                                 </div>
                                                 <div className="text-right shrink-0 bg-primary/5 px-2 py-1 rounded-lg border border-primary/10">
                                                     <p className="font-bold text-[11px] text-primary font-mono whitespace-nowrap">
-                                                        ${Math.round((category === "SEALED_PRODUCT" ? card.sealedPrice : card.rawPrice) || 0).toLocaleString()}
+                                                        {(() => {
+                                                            const p = (category === "SEALED_PRODUCT" ? card.sealedPrice : card.rawPrice) || 0;
+                                                            return `$${p < 1 ? p.toFixed(2) : Math.round(p).toLocaleString()}`;
+                                                        })()}
                                                     </p>
                                                     <p className="text-[7px] text-muted-foreground uppercase font-black tracking-tighter">Market Price</p>
                                                 </div>
                                                 {(formData.refPriceChartingProductId === card.id || formData.baseCardId === card.id) && <Check className="h-4 w-4 text-primary ml-2" />}
                                             </div>
-                                        ))}
+                                            ));
+                                        })()}
                                     </div>
                                 )}
                             </div>
@@ -553,63 +629,58 @@ export default function AddItemPage() {
                                 {formData.baseCardId && selectedCard && (
                                     <div className="p-4 rounded-2xl bg-card border border-border/60 shadow-sm space-y-6 animate-in fade-in slide-in-from-top-4">
                                         <div className="flex items-center gap-4">
-                                            <div className="relative h-24 w-16 shrink-0 rounded-lg overflow-hidden border-2 border-primary/20 shadow-2xl">
-                                                <img
-                                                    src={getOptimizedImageUrl(selectedCard?.imageUrl, { height: 200 })}
-                                                    className={cn(
-                                                        "h-full w-full object-cover transition-all duration-500",
-                                                        formData.variantType === "ALTERNATE_ART" && "hue-rotate-15 scale-110",
-                                                        formData.variantType === "PARALLEL_FOIL" && "saturate-150 contrast-125 brightness-110"
+                                            <ImageZoomTrigger
+                                                imageUrl={selectedCard?.imageUrl || null}
+                                                onZoom={(url) => setZoomedImage(url)}
+                                                className="shrink-0"
+                                            >
+                                                <div className="relative h-24 w-16 shrink-0 rounded-lg overflow-hidden border-2 border-primary/20 shadow-2xl">
+                                                    <img
+                                                        src={getOptimizedImageUrl(selectedCard?.imageUrl, { height: 200 })}
+                                                        className={cn(
+                                                            "h-full w-full object-cover transition-all duration-500 group-hover:scale-110",
+                                                            formData.variantType === "ALTERNATE_ART" && "hue-rotate-15 scale-110",
+                                                            formData.variantType === "PARALLEL_FOIL" && "saturate-150 contrast-125 brightness-110"
+                                                        )}
+                                                        alt="Card Preview"
+                                                    />
+                                                    {formData.variantType !== "NORMAL" && (
+                                                        <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent pointer-events-none" />
                                                     )}
-                                                    alt="Card Preview"
-                                                />
-                                                {formData.variantType !== "NORMAL" && (
-                                                    <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent pointer-events-none" />
-                                                )}
-                                            </div>
+                                                </div>
+                                            </ImageZoomTrigger>
+
+
                                             <div className="flex-1 space-y-1">
                                                 <p className="text-lg font-bold tracking-tight">{selectedCard?.name}</p>
                                                 <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">{selectedCard?.set} • {selectedCard?.number || 'N/A'}</p>
-                                                <div className="flex gap-2">
-                                                    <Badge variant="outline" className="text-[8px] h-4 uppercase">{formData.variantType}</Badge>
-                                                    <Badge variant="outline" className="text-[8px] h-4 uppercase">{formData.language}</Badge>
+                                                <div className="flex flex-wrap gap-1.5 pt-1">
+                                                    {[
+                                                        { id: "Raw", displayLabel: "Raw", price: selectedCard.rawPrice },
+                                                        { id: "10", displayLabel: "10", price: selectedCard.grade10Price },
+                                                        { id: "9.5", displayLabel: "9.5", price: selectedCard.grade95Price },
+                                                        { id: "9", displayLabel: "9", price: selectedCard.grade9Price },
+                                                        { id: "8", displayLabel: "8", price: selectedCard.grade8Price },
+                                                        { id: "7", displayLabel: "7", price: selectedCard.grade7Price },
+                                                    ].filter(g => g.price !== undefined && g.price !== null).map((g) => {
+                                                        const price = g.price!;
+                                                        return (
+                                                            <div
+                                                                key={g.id}
+                                                                className="flex items-center gap-1 h-6 px-2.5 rounded-lg bg-muted/40 border border-border/40"
+                                                            >
+                                                                <span className="text-[9px] font-bold text-muted-foreground/70">{g.displayLabel}</span>
+                                                                <span className="text-[9px] font-bold">
+                                                                    ${price < 1 ? price.toFixed(2) : Math.round(price).toLocaleString()}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-6">
-                                            <div className="space-y-2">
-                                                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70 italic">Variant Configuration</Label>
-                                                <Select
-                                                    value={formData.variantType}
-                                                    onValueChange={v => setFormData({ ...formData, variantType: v as VariantType })}
-                                                >
-                                                    <SelectTrigger className="border-primary/20 h-10">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="NORMAL">Standard Print</SelectItem>
-                                                        <SelectItem value="ALTERNATE_ART">Alternate Art (Alt)</SelectItem>
-                                                        <SelectItem value="PARALLEL_FOIL">Parallel / Foil</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70 italic">Localization</Label>
-                                                <Select
-                                                    value={formData.language}
-                                                    onValueChange={v => setFormData({ ...formData, language: v as Language })}
-                                                >
-                                                    <SelectTrigger className="border-primary/20 h-10">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="EN">English (EN)</SelectItem>
-                                                        <SelectItem value="JP">Japanese (JP)</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        </div>
+
                                     </div>
                                 )}
 
@@ -1030,7 +1101,14 @@ export default function AddItemPage() {
                     </div>
                 </Card>
             )}
+
+            <ImageZoomDialog 
+                imageUrl={zoomedImage} 
+                open={!!zoomedImage} 
+                onOpenChange={(open) => !open && setZoomedImage(null)} 
+            />
         </div>
+
     );
 }
 
