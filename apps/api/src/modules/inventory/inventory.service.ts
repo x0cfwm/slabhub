@@ -85,6 +85,18 @@ export class InventoryService {
         try {
             this.validateItemType(dto);
 
+            // Resolve statusId BEFORE create call
+            let finalStatusId = dto.statusId;
+            if (!finalStatusId) {
+                const defaultStatus = await this.prisma.workflowStatus.findFirst({
+                    where: { userId, systemId: 'ACQUIRED' },
+                }) || await this.prisma.workflowStatus.findFirst({
+                    where: { userId },
+                    orderBy: { position: 'asc' },
+                });
+                finalStatusId = defaultStatus?.id;
+            }
+
             const item = await this.prisma.inventoryItem.create({
                 data: {
                     user: { connect: { id: userId } },
@@ -134,8 +146,8 @@ export class InventoryService {
                     backMedia: dto.backMediaId
                         ? { connect: { id: dto.backMediaId } }
                         : undefined,
-                    status: dto.statusId
-                        ? { connect: { id: dto.statusId } }
+                    status: finalStatusId
+                        ? { connect: { id: finalStatusId } }
                         : undefined,
                 } as any,
                 include: {
@@ -246,8 +258,8 @@ export class InventoryService {
                 backMedia: dto.backMediaId !== undefined
                     ? (dto.backMediaId ? { connect: { id: dto.backMediaId } } : { disconnect: true })
                     : undefined,
-                status: dto.statusId !== undefined
-                    ? (dto.statusId ? { connect: { id: dto.statusId } } : { disconnect: true })
+                status: dto.statusId
+                    ? { connect: { id: dto.statusId } }
                     : undefined,
             } as any,
             include: {

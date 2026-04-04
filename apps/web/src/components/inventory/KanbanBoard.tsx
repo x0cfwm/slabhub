@@ -44,7 +44,7 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
         const { active, over } = event;
         setActiveId(null);
         if (!over) return;
-        const isColumn = statuses.some(s => s.id === over.id);
+        const isColumn = statuses.some(s => s.id === over.id) || over.id === "UNCATEGORIZED";
         const activeId = active.id as string;
         const overId = over.id as string;
 
@@ -53,6 +53,9 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
 
         const targetStatusId = isColumn ? overId : items.find(i => i.id === overId)?.statusId;
         const targetStatus = statuses.find(s => s.id === targetStatusId);
+
+        // If dropping into "UNCATEGORIZED" column, we don't move there (this column is catch-all)
+        if (targetStatusId === "UNCATEGORIZED") return;
 
         if (targetStatus?.systemId === "SOLD" && activeItem.status?.systemId !== "SOLD") {
             const vid = (activeItem as any).cardVariantId || (activeItem as any).cardProfileId || activeItem.refPriceChartingProductId;
@@ -166,6 +169,32 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
             onDragEnd={handleDragEnd}
         >
             <div className="flex justify-start lg:justify-center gap-4 p-4 md:px-8 pb-8 min-h-[calc(100vh-250px)] max-w-[2000px] mx-auto overflow-x-auto">
+                {items.some(i => !i.statusId) && (
+                    <StageColumn
+                        id="UNCATEGORIZED"
+                        label="Uncategorized"
+                        color="#64748b"
+                        count={items.filter(i => !i.statusId).length}
+                        itemIds={items.filter(i => !i.statusId).map(i => i.id)}
+                        scale={scale}
+                    >
+                        {items
+                            .filter(i => !i.statusId)
+                            .map(item => {
+                                const vid = (item as any).cardVariantId || (item as any).cardProfileId || item.refPriceChartingProductId;
+                                const marketProduct = cards.find(p => p.id === vid) || item.cardProfile;
+                                return (
+                                    <ItemCard
+                                        key={item.id}
+                                        item={item}
+                                        profile={marketProduct as any}
+                                        onClick={() => onItemClick(item)}
+                                        scale={scale}
+                                    />
+                                );
+                            })}
+                    </StageColumn>
+                )}
                 {statuses.filter(s => s.showOnKanban).map((status) => (
                     <StageColumn
                         key={status.id}
