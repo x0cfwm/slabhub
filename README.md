@@ -118,6 +118,7 @@ pnpm dev:web   # Web on http://localhost:3000
 | `pnpm prisma:studio` | Open Prisma Studio |
 | `pnpm seed` | Seed the database |
 | `pnpm pricecharting:crawl:onepiece` | Run PriceCharting One Piece crawler |
+| `pnpm pricecharting:cleanup:links` | Clean up referral links in PriceCharting sales data |
 
 ## 📈 PriceCharting Crawler
 
@@ -128,7 +129,8 @@ The PriceCharting crawler is a robust ingestion pipeline for One Piece TCG cards
 | Command | Description |
 |---------|-------------|
 | `pnpm pricecharting:crawl:onepiece` | Start a full crawl of One Piece cards |
-| `... --dryRun` | Fetch and parse but do not save to database |
+| `pnpm pricecharting:cleanup:links` | Clean up existing referral/tracking links in the database |
+| `... --dryRun` | Fetch/Parse/Cleanup but do not save to database |
 | `... --maxProducts 10` | Limit the number of products for testing |
 | `... --linkRefProducts` | Link crawled URLs to existing `RefProduct` records |
 | `... --onlySetSlug <slug>` | Only crawl a specific set (e.g. `one-piece-500-years-in-the-future`) |
