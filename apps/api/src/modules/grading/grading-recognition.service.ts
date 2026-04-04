@@ -87,12 +87,11 @@ export class GradingRecognitionService {
                                         },
                                         cardName: { type: SchemaType.STRING, description: 'Name of the character/card' },
                                         setName: { type: SchemaType.STRING, description: 'Name of the set or expansion' },
-                                        setCode: { type: SchemaType.STRING, description: 'Set identifier (e.g., OP05, EB01)' },
-                                        cardNumber: { type: SchemaType.STRING, description: 'Numeric card number only (e.g., 119). Exclude set code or variant prefixes.' },
-                                        language: { type: SchemaType.STRING, description: 'Language of the card' },
+                                        rawCardNumber: { type: SchemaType.STRING, description: 'Full printed card number including set prefix (e.g. OP05-119, EB01-001)' },
+                                        language: { type: SchemaType.STRING, description: 'Language of the card (English or Japanese)' },
                                         year: { type: SchemaType.STRING, description: 'Year of release' },
                                     },
-                                    required: ['grader', 'certNumber', 'gradeValue', 'cardName', 'setName'],
+                                    required: ['grader', 'certNumber', 'gradeValue', 'cardName', 'setName', 'rawCardNumber', 'language'],
                                 },
                             },
                         },
@@ -107,40 +106,24 @@ export class GradingRecognitionService {
 
                     IMPORTANT PARSING RULES:
 
-                    1. setCode
-                    Extract the set identifier used in One Piece TCG.
-                    Examples:
-                    OP01
-                    OP02
-                    OP05
-                    EB01
-                    ST01
+                    1. rawCardNumber
+                    Extract the FULL exact card number printed on the card exactly as it appears. 
+                    Examples: "OP05-119", "OP09-0118", "ST01-001".
+                    Do NOT remove the set prefix (like OP05).
+                    Return the exact alphanumeric string.
 
-                    If the card code appears as "OP05-119", "OP05 119", or "OP05-0119":
-                    setCode = "OP05"
-
-                    2. cardNumber
-                    Extract ONLY the numeric portion of the card number.
-
-                    Rules:
-                    - Remove the set code (OP05, OP09, etc.)
-                    - Remove prefixes like SP, AA, SEC
-                    - Remove leading zeros
-                    - Return only the integer portion
-
-                    Examples:
-                    OP05-119 → cardNumber = "119"
-                    OP09-0118 → cardNumber = "118"
-                    OP09-09118 → cardNumber = "118"
-                    SP OP05-119 → cardNumber = "119"
-
-                    3. cardName
+                    2. cardName
                     Return the full card name exactly as printed.
 
-                    5. certificationNumber
+                    3. certificationNumber
                     Extract the slab certification / cert number from the grading label only.
                     Do not infer it from the card.
                     Do not confuse it with the card number.
+
+                    4. language
+                    Identify the language of the card. 
+                    - For One Piece TCG: check the card text and back (if available). Japanese cards have "ONE PIECE" logo with Japanese text or specific card back.
+                    - Common values: "English", "Japanese".
 
                     Examples:
                     - BGS label "... 0018431564" -> certificationNumber = "0018431564"
@@ -167,36 +150,115 @@ export class GradingRecognitionService {
 
                 // Lookup PriceCharting ID if possible
                 if (parsed.success && parsed.data) {
-                    const { setCode, cardNumber } = parsed.data;
-                    if (setCode && cardNumber) {
+                    const { rawCardNumber } = parsed.data;
+                    if (rawCardNumber) {
                         try {
-                            // 1. Find the set by its code
-                            const set = await this.prisma.refPriceChartingSet.findFirst({
+                            let matchedProducts = await this.prisma.refPriceChartingProduct.findMany({
                                 where: {
-                                    code: { contains: setCode, mode: 'insensitive' }
+                                    cardNumber: { contains: rawCardNumber, mode: 'insensitive' }
+                                },
+                                include: {
+                                    set: true
                                 }
                             });
 
-                            if (set) {
-                                // 2. Find the product in that set by card number
-                                const matchedProduct = await this.prisma.refPriceChartingProduct.findFirst({
+                            // Try to format if no results (e.g. OP09118 -> OP09-118)
+                            if (matchedProducts.length === 0 && rawCardNumber.length >= 5 && !rawCardNumber.includes('-')) {
+                                const formatted = rawCardNumber.slice(0, 4) + '-' + rawCardNumber.slice(4);
+                                this.logger.debug(`No match for ${rawCardNumber}, trying formatted: ${formatted}`);
+                                matchedProducts = await this.prisma.refPriceChartingProduct.findMany({
                                     where: {
-                                        setId: set.id,
-                                        cardNumber: { contains: cardNumber, mode: 'insensitive' }
+                                        cardNumber: { contains: formatted, mode: 'insensitive' }
+                                    },
+                                    include: {
+                                        set: true
                                     }
                                 });
+                            }
 
-                                if (matchedProduct) {
-                                    this.logger.debug(`Matched product: ${matchedProduct.title} (${matchedProduct.id})`);
-                                    parsed.data.refPriceChartingProductId = matchedProduct.id;
-                                    if (matchedProduct.rawPrice) {
-                                        parsed.data.marketPrice = Number(matchedProduct.rawPrice);
+                            if (matchedProducts.length > 0) {
+
+                                let selectedProduct = null;
+
+                                if (matchedProducts.length === 1) {
+                                    selectedProduct = matchedProducts[0];
+                                } else if (matchedProducts.length > 1) {
+                                    this.logger.debug(`Found ${matchedProducts.length} candidates for cardNumber=${rawCardNumber}. Using LLM for final selection.`);
+                                    try {
+                                        const candidatePrompt = `
+You previously extracted:
+- Card Name: "${parsed.data.cardName || ''}"
+- Card Number: "${parsed.data.rawCardNumber || ''}"
+- Language: "${parsed.data.language || 'English'}"
+
+We found ${matchedProducts.length} variants of this card. Which of the following products EXACTLY matches the image and language?
+Look carefully at the art, border, and text. If the card language is ${parsed.data.language || 'English'}, do NOT select a version that says "Japanese" in the title unless there is no other option.
+
+Candidates:
+${matchedProducts.map(p => `- ID: ${p.id} | Title: ${p.title}`).join('\n')}
+
+Return a JSON with a single key "selectedId" containing the ID of the exact best match.
+If none seem to fit, return an empty string.
+`;
+                                        const selectionModel = this.genAI.getGenerativeModel({
+                                            model: modelName,
+                                            generationConfig: {
+                                                responseMimeType: 'application/json',
+                                                responseSchema: {
+                                                    type: SchemaType.OBJECT,
+                                                    properties: {
+                                                        selectedId: { type: SchemaType.STRING, description: 'ID of the best match, or empty string' },
+                                                    },
+                                                    required: ['selectedId'],
+                                                },
+                                            },
+                                        });
+
+                                        const selectionResult = await selectionModel.generateContent([
+                                            candidatePrompt,
+                                            {
+                                                inlineData: {
+                                                    data: base64Data,
+                                                    mimeType: processingBuffer === buffer ? mimeType : 'image/jpeg',
+                                                },
+                                            },
+                                        ]);
+
+                                        const selText = selectionResult.response.text();
+                                        this.logger.log(`[DEBUG] Final selection response: ${selText}`);
+                                        const selParsed = JSON.parse(selText);
+
+                                        if (selParsed.selectedId && selParsed.selectedId !== '') {
+                                            selectedProduct = matchedProducts.find(p => p.id === selParsed.selectedId) || matchedProducts[0];
+                                        } else {
+                                            this.logger.debug(`LLM couldn't decide, defaulting to first candidate.`);
+                                            selectedProduct = matchedProducts[0];
+                                        }
+                                    } catch (err) {
+                                        this.logger.warn(`Selection LLM failed: ${err.message}`);
+                                        selectedProduct = matchedProducts[0];
                                     }
-                                } else {
-                                    this.logger.debug(`No PriceCharting product found in set ${set.name} for cardNumber=${cardNumber}`);
+                                }
+
+                                if (selectedProduct) {
+                                    this.logger.debug(`Selected product: ${selectedProduct.title} (${selectedProduct.id})`);
+                                    parsed.data.refPriceChartingProductId = selectedProduct.id;
+                                    parsed.data.productName = selectedProduct.title || undefined;
+                                    parsed.data.productSet = (selectedProduct as any).set?.name || undefined;
+                                    parsed.data.productNumber = selectedProduct.cardNumber || undefined;
+                                    parsed.data.productImageUrl = (selectedProduct.imageUrl as string) || undefined;
+                                    if (selectedProduct.rawPrice) {
+                                        parsed.data.marketPrice = Number(selectedProduct.rawPrice);
+                                    }
+                                    if (selectedProduct.grade7Price) parsed.data.grade7Price = Number(selectedProduct.grade7Price);
+                                    if (selectedProduct.grade8Price) parsed.data.grade8Price = Number(selectedProduct.grade8Price);
+                                    if (selectedProduct.grade9Price) parsed.data.grade9Price = Number(selectedProduct.grade9Price);
+                                    if (selectedProduct.grade95Price) parsed.data.grade95Price = Number(selectedProduct.grade95Price);
+                                    if (selectedProduct.grade10Price) parsed.data.grade10Price = Number(selectedProduct.grade10Price);
+                                    if (selectedProduct.sealedPrice) parsed.data.sealedPrice = Number(selectedProduct.sealedPrice);
                                 }
                             } else {
-                                this.logger.debug(`No PriceCharting set found with code=${setCode}`);
+                                this.logger.debug(`No PriceCharting product found for cardNumber like ${rawCardNumber}`);
                             }
                         } catch (lookupError) {
                             this.logger.warn(`PriceCharting lookup failed: ${lookupError.message}`);

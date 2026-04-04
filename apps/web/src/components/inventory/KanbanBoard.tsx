@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { arrayMove } from "@dnd-kit/sortable";
 import { SoldPromptDialog } from "./SoldPromptDialog";
 import { ListedPromptDialog } from "./ListedPromptDialog";
+import { ImageZoomDialog } from "@/components/common/ImageZoomDialog";
+
 
 interface KanbanBoardProps {
     items: InventoryItem[];
@@ -32,6 +34,8 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
     const [activeId, setActiveId] = useState<string | null>(null);
     const [promptItem, setPromptItem] = useState<{ id: string, name: string, statusId: string, listingPrice?: number } | null>(null);
     const [listedPromptItem, setListedPromptItem] = useState<{ id: string, name: string, statusId: string } | null>(null);
+    const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+
     const sensors = useDndSensors();
 
     const activeItem = items.find(i => i.id === activeId);
@@ -218,7 +222,9 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
                                         profile={marketProduct as any}
                                         onClick={() => onItemClick(item)}
                                         scale={scale}
+                                        onZoom={(url) => setZoomedImage(url)}
                                     />
+
                                 );
                             })}
                     </StageColumn>
@@ -310,6 +316,13 @@ export function KanbanBoard({ items, setItems, cards, onUpdate, onItemClick, sta
                     }
                 }}
             />
+
+            <ImageZoomDialog 
+                imageUrl={zoomedImage} 
+                open={!!zoomedImage} 
+                onOpenChange={(open) => !open && setZoomedImage(null)} 
+            />
         </DndContext>
     );
 }
+

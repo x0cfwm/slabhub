@@ -12,6 +12,9 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { getOptimizedImageUrl } from "@/lib/image-utils";
+import { ImageZoomTrigger } from "@/components/common/ImageZoomDialog";
+import { Maximize2 } from "lucide-react";
+
 
 interface ItemCardProps {
     item: InventoryItem;
@@ -20,9 +23,12 @@ interface ItemCardProps {
     onClick?: () => void;
     isOverlay?: boolean;
     scale?: "compact" | "normal" | "large";
+    onZoom?: (url: string) => void;
 }
 
-export function ItemCard({ item, profile, price, onClick, isOverlay, scale = "normal" }: ItemCardProps) {
+
+export function ItemCard({ item, profile, price, onClick, isOverlay, scale = "normal", onZoom }: ItemCardProps) {
+
     const {
         attributes,
         listeners,
@@ -111,32 +117,38 @@ export function ItemCard({ item, profile, price, onClick, isOverlay, scale = "no
             }}
         >
             {scale !== "compact" && (
-                <div className="relative pointer-events-none">
+                <div className="relative">
                     <AspectRatio ratio={2.5 / 3.5}>
-                        <div className="flex items-center justify-center w-full h-full bg-accent/10 relative overflow-hidden">
-                            <img
-                                src={optimizedImageUrl}
-                                alt={displayName}
-                                className={cn(
-                                    "object-contain w-full h-full transition-all duration-500 group-hover:scale-110",
-                                    variantType === "ALTERNATE_ART" && "hue-rotate-15 saturate-110",
-                                    variantType === "PARALLEL_FOIL" && "contrast-125 brightness-110"
+                        <ImageZoomTrigger
+                            imageUrl={imageUrl}
+                            onZoom={(url) => onZoom?.(url)}
+                            className="w-full h-full"
+                        >
+                            <div className="flex items-center justify-center w-full h-full bg-accent/10 relative overflow-hidden">
+                                <img
+                                    src={optimizedImageUrl}
+                                    alt={displayName}
+                                    className={cn(
+                                        "object-contain w-full h-full transition-all duration-500 group-hover:scale-110",
+                                        variantType === "ALTERNATE_ART" && "hue-rotate-15 saturate-110",
+                                        variantType === "PARALLEL_FOIL" && "contrast-125 brightness-110"
+                                    )}
+                                />
+                                {variantType === "PARALLEL_FOIL" && (
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-white/20 pointer-events-none animate-pulse" />
                                 )}
-                            />
-                            {variantType === "PARALLEL_FOIL" && (
-                                <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-white/20 pointer-events-none animate-pulse" />
-                            )}
-                            {variantType !== "NORMAL" && (
-                                <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent pointer-events-none mix-blend-overlay" />
-                            )}
-                            {isNewVariantId && (
-                                <div className="absolute bottom-2 left-2">
-                                    <Badge className="bg-black/60 backdrop-blur-md text-[8px] px-1 py-0 h-4 border-white/10 text-white select-none">
-                                        {language}
-                                    </Badge>
-                                </div>
-                            )}
-                        </div>
+                                {variantType !== "NORMAL" && (
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent pointer-events-none mix-blend-overlay" />
+                                )}
+                                {isNewVariantId && (
+                                    <div className="absolute bottom-2 left-2">
+                                        <Badge className="bg-black/60 backdrop-blur-md text-[8px] px-1 py-0 h-4 border-white/10 text-white select-none">
+                                            {language}
+                                        </Badge>
+                                    </div>
+                                )}
+                            </div>
+                        </ImageZoomTrigger>
                     </AspectRatio>
                     <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
                         <Badge variant="secondary" className="backdrop-blur-md bg-white/50 text-[8px] uppercase font-bold">

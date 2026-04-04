@@ -26,6 +26,8 @@ import { ExternalLink } from "lucide-react";
 import { getOptimizedImageUrl } from "@/lib/image-utils";
 import { SoldPromptDialog } from "./SoldPromptDialog";
 import { ListedPromptDialog } from "./ListedPromptDialog";
+import { ImageZoomDialog, ImageZoomTrigger } from "@/components/common/ImageZoomDialog";
+
 
 interface InventoryListProps {
     items: InventoryItem[];
@@ -39,6 +41,8 @@ interface InventoryListProps {
 export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, statuses }: InventoryListProps) {
     const [promptItem, setPromptItem] = useState<{ id: string, name: string, statusId: string, listingPrice?: number } | null>(null);
     const [listedPromptItem, setListedPromptItem] = useState<{ id: string, name: string, statusId: string } | null>(null);
+    const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+
 
     const handleStatusChange = async (itemId: string, newStatusId: string) => {
         const item = items.find(i => i.id === itemId);
@@ -120,14 +124,21 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, s
                         return (
                             <TableRow key={item.id} className="cursor-pointer group hover:bg-primary/5 transition-colors" onClick={() => onItemClick(item)}>
                                 <TableCell onClick={(e) => e.stopPropagation()}>
-                                    <div className="w-12 h-16 rounded-lg overflow-hidden border bg-accent/20 flex items-center justify-center">
-                                        <img
-                                            src={getOptimizedImageUrl(item.photos?.[0] || (item as any).frontMediaUrl || (marketProduct as any)?.imageUrl, { height: 160 })}
-                                            alt={displayName}
-                                            className="w-full h-full object-contain p-1"
-                                        />
-                                    </div>
+                                    <ImageZoomTrigger
+                                        imageUrl={item.photos?.[0] || (item as any).frontMediaUrl || (marketProduct as any)?.imageUrl}
+                                        onZoom={(url) => setZoomedImage(url)}
+                                        className="rounded-lg"
+                                    >
+                                        <div className="w-12 h-16 rounded-lg overflow-hidden border bg-accent/20 flex items-center justify-center">
+                                            <img
+                                                src={getOptimizedImageUrl(item.photos?.[0] || (item as any).frontMediaUrl || (marketProduct as any)?.imageUrl, { height: 160 })}
+                                                alt={displayName}
+                                                className="w-full h-full object-contain p-1 transition-transform group-hover:scale-110"
+                                            />
+                                        </div>
+                                    </ImageZoomTrigger>
                                 </TableCell>
+
                                 <TableCell>
                                     <div className="flex flex-col">
                                         <span className="font-bold text-sm tracking-tight">{displayName}</span>
@@ -257,6 +268,13 @@ export function InventoryList({ items, setItems, cards, onUpdate, onItemClick, s
                     }
                 }}
             />
+
+            <ImageZoomDialog 
+                imageUrl={zoomedImage} 
+                open={!!zoomedImage} 
+                onOpenChange={(open) => !open && setZoomedImage(null)} 
+            />
         </div>
     );
 }
+

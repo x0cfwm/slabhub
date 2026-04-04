@@ -7,9 +7,11 @@ import { getProductPriceHistory } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, ExternalLink } from "lucide-react";
+import { RefreshCw, ExternalLink, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getOptimizedImageUrl } from "@/lib/image-utils";
+import { ImageZoomDialog, ImageZoomTrigger } from "@/components/common/ImageZoomDialog";
+
 
 interface MarketPricingDrawerProps {
     product: MarketProduct | null;
@@ -23,6 +25,8 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedGrade, setSelectedGrade] = useState<string>("Raw");
+    const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+
 
 
     const fetchHistory = (isRefresh = false) => {
@@ -66,15 +70,22 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                 <SheetHeader className="mb-8">
                     <div className="flex flex-col sm:flex-row gap-6">
                         {product.imageUrl && (
-                            <div className="w-24 h-32 flex-shrink-0 rounded-xl overflow-hidden border bg-muted/30 shadow-sm mx-auto sm:mx-0">
-                                <img
-                                    src={getOptimizedImageUrl(product.imageUrl, { height: 300 })}
-                                    alt={product.name}
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
+                            <ImageZoomTrigger
+                                imageUrl={product.imageUrl}
+                                onZoom={(url) => setZoomedImage(url)}
+                                className="mx-auto sm:mx-0"
+                            >
+                                <div className="w-24 h-32 flex-shrink-0 rounded-xl overflow-hidden border bg-muted/30 shadow-md ring-1 ring-primary/5 relative group">
+                                    <img
+                                        src={getOptimizedImageUrl(product.imageUrl, { height: 300 })}
+                                        alt={product.name}
+                                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                    />
+                                </div>
+                            </ImageZoomTrigger>
                         )}
                         <div className="flex-1 flex justify-between items-start min-w-0">
+
                             <div>
                                 <SheetTitle className="text-2xl font-bold leading-tight">{product.name}</SheetTitle>
                                 <SheetDescription className="font-mono text-sm flex items-center gap-3 mt-1">
@@ -293,6 +304,12 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
 
                 </div>
             </SheetContent>
+            <ImageZoomDialog 
+                imageUrl={zoomedImage} 
+                open={!!zoomedImage} 
+                onOpenChange={(open) => !open && setZoomedImage(null)} 
+            />
         </Sheet>
     );
 }
+
