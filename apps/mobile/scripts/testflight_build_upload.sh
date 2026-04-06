@@ -34,17 +34,9 @@ if [[ -f "$BUILD_NUMBER_COUNTER_FILE" ]]; then
   fi
 fi
 
-GIT_COUNT=0
-if git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  GIT_COUNT="$(git -C "$SCRIPT_DIR" rev-list --count HEAD)"
-fi
 
 if [[ -z "${BUILD_NUMBER:-}" ]]; then
-  BASE_BUILD_NUMBER="$LAST_BUILD_NUMBER"
-  if (( GIT_COUNT > BASE_BUILD_NUMBER )); then
-    BASE_BUILD_NUMBER="$GIT_COUNT"
-  fi
-  BUILD_NUMBER="$((BASE_BUILD_NUMBER + 1))"
+  BUILD_NUMBER="$((LAST_BUILD_NUMBER + 1))"
 elif ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
   echo "Error: BUILD_NUMBER must be numeric, got '$BUILD_NUMBER'" >&2
   exit 1
