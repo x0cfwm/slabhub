@@ -1,0 +1,28 @@
+{
+  "name": "@slabhub/mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "slabhub-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev:stdio": "tsx src/index.ts",
+    "test": "node --import tsx --import ../../apps/api/test/setup-env.ts --test --test-concurrency=1 src/slabhub-mcp.test.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.5",
+    "@prisma/client": "^6.2.0",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.7.0"
+  }
+}

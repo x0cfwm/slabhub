@@ -4,13 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-    LayoutDashboard,
-    Package,
-    Tag,
     Settings,
     Send,
-    Sparkles,
-    Store
 } from "lucide-react";
 
 import { ThemeToggle } from "../common/ThemeToggle";
@@ -26,15 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { Logo } from "../common/Logo";
-
-const NAV_ITEMS = [
-    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Inventory", href: "/inventory", icon: Package },
-    { label: "Pricing", href: "/pricing", icon: Tag },
-    { label: "Posting", href: "/posting", icon: Sparkles },
-    { label: "Shop", href: "/shop", icon: Store },
-    { label: "Settings", href: "/settings", icon: Settings },
-];
+import { APP_NAV_ITEMS } from "./navigation";
 
 interface SidebarProps {
     isCollapsed?: boolean;
@@ -57,7 +44,7 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
                 </Link>
             </div>
             <nav className={cn("flex-1 px-4 space-y-2", isCollapsed && "flex flex-col items-center")}>
-                {NAV_ITEMS.map((item) => {
+                {APP_NAV_ITEMS.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname.startsWith(item.href);
                     return (
