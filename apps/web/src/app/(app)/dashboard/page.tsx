@@ -69,11 +69,8 @@ function DashboardPageContent() {
             return acqDate <= now;
         });
 
-        // Split into active (in portfolio) and sold
-        const activeItems = allItems.filter(i => i.stage !== "SOLD");
-        const soldItems = allItems.filter(i => i.stage === "SOLD");
-
-        const totalItems = activeItems.reduce((acc, i) => acc + (i.quantity || 1), 0);
+        // Calculate total items across all stages for proper breakdown percentages
+        const totalItems = allItems.reduce((acc, i) => acc + (i.quantity || 1), 0);
         const stages = allItems.reduce((acc, item) => {
             acc[item.stage] = (acc[item.stage] || 0) + (item.quantity || 1);
             return acc;
