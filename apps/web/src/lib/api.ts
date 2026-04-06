@@ -38,12 +38,20 @@ export interface GradingLookupResult {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 function getFullUrl(path: string) {
-    if (API_BASE_URL.startsWith('http')) {
-        return new URL(`${API_BASE_URL}${path}`);
+    const url = API_BASE_URL.startsWith('http') 
+        ? new URL(`${API_BASE_URL}${path}`)
+        : new URL(`${API_BASE_URL}${path}`, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+
+    // Forward the 'as' query parameter for impersonation if present in the browser URL
+    if (typeof window !== 'undefined') {
+        const browserParams = new URLSearchParams(window.location.search);
+        const as = browserParams.get('as');
+        if (as) {
+            url.searchParams.set('as', as);
+        }
     }
-    // Handle relative path (for Netlify proxy)
-    const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-    return new URL(`${API_BASE_URL}${path}`, base);
+
+    return url;
 }
 
 export async function requestOtp(email: string, inviteToken?: string) {

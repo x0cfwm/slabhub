@@ -14,6 +14,7 @@ export interface AuthenticatedRequest extends Request {
     userId?: string;
     sellerId?: string;
     sellerHandle?: string;
+    impersonatorId?: string;
 }
 
 import { AuthService } from './auth.service';
@@ -40,6 +41,7 @@ export class AuthMiddleware implements NestMiddleware {
         }
 
         let seller = null;
+        let authenticatedUser = null;
 
         // 1. Try session first
         if (sessionToken) {
@@ -50,6 +52,7 @@ export class AuthMiddleware implements NestMiddleware {
             });
 
             if (session && !session.revokedAt && session.expiresAt > new Date()) {
+                authenticatedUser = session.user;
                 seller = session.user.sellerProfile;
                 req.userId = session.userId;
             }
@@ -68,21 +71,28 @@ export class AuthMiddleware implements NestMiddleware {
             }
         }
 
-        // 3. (Optional) Default to demo seller if no auth provided (guest mode)
-        // Disabled to ensure real authentication is required for personal data
-        /*
-        if (!seller && !req.userId) {
-            seller = await this.prisma.sellerProfile.findUnique({
-                where: { handle: DEFAULT_SELLER_HANDLE },
-            });
-        }
-        */
-
         if (seller) {
             req.sellerId = seller.id;
             req.sellerHandle = seller.handle;
             if (!req.userId && seller.userId) {
                 req.userId = seller.userId;
+            }
+        }
+
+        // 3. Impersonation Logic
+        // If the authenticated user is an admin, they can impersonate another user via '?as=userId'
+        const impersonateUserId = req.query.as as string;
+        if (authenticatedUser?.admin === 1 && impersonateUserId) {
+            const targetUser = await this.prisma.user.findUnique({
+                where: { id: impersonateUserId },
+                include: { sellerProfile: true },
+            });
+
+            if (targetUser) {
+                req.impersonatorId = req.userId;
+                req.userId = targetUser.id;
+                req.sellerId = targetUser.sellerProfile?.id;
+                req.sellerHandle = targetUser.sellerProfile?.handle;
             }
         }
 
