@@ -1,5 +1,5 @@
-import * as SecureStore from "expo-secure-store";
-import { apiRequest, getApiUrl } from "./query-client";
+import { Platform } from "react-native";
+import { apiRequest, getApiUrl, getStoredToken } from "./query-client";
 import {
     GeneratedPosting,
     InventoryItem,
@@ -45,15 +45,22 @@ export async function uploadMedia(originalUri: string): Promise<{ mediaId: strin
     const match = /\.(\w+)$/.exec(filename);
     const type = match ? `image/${match[1]}` : `image/jpeg`;
 
-    // Note: React Native's FormData.append expects an object with uri, name, type for files
-    formData.append('file', {
-        uri: optimizedUri,
-        name: filename,
-        type,
-    } as any);
-
     const baseUrl = getApiUrl();
-    const token = await SecureStore.getItemAsync("slabhub_session_token");
+    const token = await getStoredToken();
+
+    // For web, data URI from ImageManipulator needs to be converted to Blob
+    if (Platform.OS === 'web') {
+        const response = await fetch(optimizedUri);
+        const blob = await response.blob();
+        formData.append('file', blob, filename);
+    } else {
+        // Note: React Native's FormData.append expects an object with uri, name, type for files
+        formData.append('file', {
+            uri: optimizedUri,
+            name: filename,
+            type,
+        } as any);
+    }
 
     const res = await fetch(`${baseUrl}media/upload`, {
         method: 'POST',
@@ -145,14 +152,20 @@ export async function recognizeImage(originalUri: string): Promise<GradingRecogn
     const match = /\.(\w+)$/.exec(filename);
     const type = match ? `image/${match[1]}` : `image/jpeg`;
 
-    formData.append('file', {
-        uri: optimizedUri,
-        name: filename,
-        type,
-    } as any);
-
     const baseUrl = getApiUrl();
-    const token = await SecureStore.getItemAsync("slabhub_session_token");
+    const token = await getStoredToken();
+
+    if (Platform.OS === 'web') {
+        const response = await fetch(optimizedUri);
+        const blob = await response.blob();
+        formData.append('file', blob, filename);
+    } else {
+        formData.append('file', {
+            uri: optimizedUri,
+            name: filename,
+            type,
+        } as any);
+    }
 
     const res = await fetch(`${baseUrl}grading/recognize`, {
         method: 'POST',

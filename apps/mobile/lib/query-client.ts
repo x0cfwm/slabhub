@@ -47,7 +47,7 @@ import { Platform } from "react-native";
 const TOKEN_KEY = "slabhub_session_token";
 const REQUEST_TIMEOUT_MS = 15000;
 
-async function getStoredToken(): Promise<string | null> {
+export async function getStoredToken(): Promise<string | null> {
   if (Platform.OS === 'web') {
     return localStorage.getItem(TOKEN_KEY);
   }

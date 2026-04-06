@@ -21,6 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
 import * as api from '@/lib/api';
+import { MarketProduct } from '@/lib/types';
 import Colors from '@/constants/colors';
 import {
   ItemStage,
@@ -76,7 +77,29 @@ export default function AddItemScreen() {
   const [language, setLanguage] = useState(editingItem?.language || '');
   const [notes, setNotes] = useState(editingItem?.notes || '');
   const [showPricingSuggestions, setShowPricingSuggestions] = useState(false);
-  const [pricingSuggestions, setPricingSuggestions] = useState<any[]>([]);
+  const [pricingSuggestions, setPricingSuggestions] = useState<MarketProduct[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<MarketProduct | null>(null);
+  const nameInputRef = useRef<TextInput>(null);
+  const [isFetchingProduct, setIsFetchingProduct] = useState(false);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (refPriceChartingProductId && !selectedProduct) {
+        setIsFetchingProduct(true);
+        try {
+          const product = await api.getMarketProduct(refPriceChartingProductId);
+          setSelectedProduct(product);
+        } catch (error) {
+          console.error("Failed to fetch product details", error);
+        } finally {
+          setIsFetchingProduct(false);
+        }
+      } else if (!refPriceChartingProductId) {
+        setSelectedProduct(null);
+      }
+    };
+    fetchProduct();
+  }, [refPriceChartingProductId]);
 
   // Background upload state
   const uploadPromiseRef = useRef<{ uri: string; promise: Promise<string> } | null>(null);
@@ -132,6 +155,16 @@ export default function AddItemScreen() {
         if (d.language) setLanguage(d.language);
         if (d.refPriceChartingProductId) setRefPriceChartingProductId(d.refPriceChartingProductId);
         if (d.marketPrice) setMarketPrice(d.marketPrice.toString());
+
+        // Update selected product if ID is returned
+        if (d.refPriceChartingProductId) {
+          try {
+            const product = await api.getMarketProduct(d.refPriceChartingProductId);
+            setSelectedProduct(product);
+          } catch (error) {
+            console.error("Failed to fetch recognized product info", error);
+          }
+        }
 
         // Add subgrades to notes if available
         if (d.subgrades) {
@@ -299,7 +332,16 @@ export default function AddItemScreen() {
       setMarketPrice((card.rawPrice || 0).toString());
       setProductType(undefined);
     }
+    setSelectedProduct(card);
     setShowPricingSuggestions(false);
+  };
+
+  const handleClearMatchedProduct = () => {
+    setRefPriceChartingProductId(undefined);
+    setSelectedProduct(null);
+    if (nameInputRef.current) {
+      nameInputRef.current.focus();
+    }
   };
 
   const [isSaving, setIsSaving] = useState(false);
@@ -433,11 +475,60 @@ export default function AddItemScreen() {
           )}
         </Pressable>
 
+        {selectedProduct && (
+          <View style={styles.matchedProductSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Matched Product</Text>
+              <Pressable style={styles.changeBtn} onPress={handleClearMatchedProduct}>
+                <Text style={styles.changeBtnText}>Change</Text>
+              </Pressable>
+            </View>
+            <View style={styles.matchedProductCard}>
+              <View style={styles.matchedProductMain}>
+                {selectedProduct.imageUrl ? (
+                  <Image 
+                    source={{ uri: getOptimizedImageUrl(selectedProduct.imageUrl, { height: 200 }) }} 
+                    style={styles.matchedProductImage} 
+                    contentFit="contain" 
+                  />
+                ) : (
+                  <View style={[styles.matchedProductImage, styles.matchedProductImagePlaceholder]}>
+                    <Ionicons name="image-outline" size={24} color={c.textTertiary} />
+                  </View>
+                )}
+                <View style={styles.matchedProductInfo}>
+                  <Text style={styles.matchedProductName} numberOfLines={2}>{selectedProduct.name}</Text>
+                  <Text style={styles.matchedProductMeta}>
+                    {selectedProduct.set} {selectedProduct.number ? `#${selectedProduct.number}` : ''}
+                  </Text>
+                  <View style={styles.priceGrid}>
+                    {[
+                      { label: 'Raw', val: selectedProduct.rawPrice },
+                      { label: 'PSA 10', val: selectedProduct.grade10Price },
+                      { label: 'PSA 9', val: selectedProduct.grade9Price },
+                    ].filter(p => p.val !== undefined && p.val !== null).map((p, idx) => (
+                      <View key={idx} style={styles.priceChip}>
+                        <Text style={styles.priceChipLabel}>{p.label}</Text>
+                        <Text style={styles.priceChipValue}>${(p.val || 0).toLocaleString('en-US', { minimumFractionDigits: 0 })}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </View>
+              <View style={styles.matchedProductStatus}>
+                <Ionicons name="checkmark-circle" size={14} color={c.accent} />
+                <Text style={styles.matchedProductStatusText}>Found in database</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Item Details</Text>
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Name</Text>
             <TextInput
+              ref={nameInputRef}
               style={styles.input}
               value={name}
               onChangeText={handleNameChange}
@@ -976,5 +1067,113 @@ const styles = StyleSheet.create({
     color: c.accent,
     fontSize: 14,
     fontWeight: '500' as const,
+  },
+  matchedProductSection: {
+    gap: 12,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  changeBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: c.surfaceHighlight,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  changeBtnText: {
+    fontSize: 12,
+    color: c.accent,
+    fontWeight: '600' as const,
+  },
+  matchedProductCard: {
+    backgroundColor: c.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: c.accent,
+    padding: 16,
+    gap: 12,
+    shadowColor: c.accent,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  matchedProductMain: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  matchedProductImage: {
+    width: 60,
+    height: 84,
+    borderRadius: 8,
+    backgroundColor: c.surfaceHighlight,
+  },
+  matchedProductImagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: c.border,
+    borderStyle: 'dashed',
+  },
+  matchedProductInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  matchedProductName: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: c.text,
+    lineHeight: 20,
+  },
+  matchedProductMeta: {
+    fontSize: 12,
+    color: c.textTertiary,
+    textTransform: 'uppercase' as const,
+    fontWeight: '500' as const,
+  },
+  priceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 6,
+  },
+  priceChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: c.surfaceHighlight,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  priceChipLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: c.textTertiary,
+    textTransform: 'uppercase' as const,
+  },
+  priceChipValue: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: c.accent,
+  },
+  matchedProductStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: c.borderLight,
+  },
+  matchedProductStatusText: {
+    fontSize: 11,
+    color: c.accent,
+    fontWeight: '600' as const,
   },
 });
