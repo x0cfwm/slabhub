@@ -13,12 +13,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
+import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from '@/contexts/AppContext';
 import Colors from '@/constants/colors';
 import { getMarketProduct } from '@/lib/api';
 import MarketProductDetail from '@/components/pricing/MarketProductDetail';
+import { ImageZoomModal } from '@/components/inventory/ImageZoomModal';
 import {
   STAGE_LABELS,
   STAGE_ORDER,
@@ -49,6 +51,7 @@ export default function ItemDetailScreen() {
   const [modalVisible, setModalVisible] = React.useState(false);
   const [listedPromptVisible, setListedPromptVisible] = React.useState(false);
   const [soldPromptVisible, setSoldPromptVisible] = React.useState(false);
+  const [isZoomVisible, setIsZoomVisible] = React.useState(false);
 
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
@@ -165,7 +168,20 @@ export default function ItemDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {item.imageUri ? (
-          <Image source={{ uri: getOptimizedImageUrl(item.imageUri, { height: 800 }) }} style={styles.heroImage} contentFit="cover" />
+          <Pressable onPress={() => setIsZoomVisible(true)} style={styles.heroImageContainer}>
+            <Image
+              source={{ uri: getOptimizedImageUrl(item.imageUri, { height: 320 }) }}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              blurRadius={15}
+            />
+            <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+            <Image 
+              source={{ uri: getOptimizedImageUrl(item.imageUri, { height: 800 }) }} 
+              style={styles.heroImage} 
+              contentFit="contain" 
+            />
+          </Pressable>
         ) : (
           <View style={styles.heroImagePlaceholder}>
             <MaterialCommunityIcons name="cards-playing-outline" size={64} color={c.textTertiary} />
@@ -328,6 +344,12 @@ export default function ItemDetailScreen() {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />
+
+      <ImageZoomModal
+        isVisible={isZoomVisible}
+        onClose={() => setIsZoomVisible(false)}
+        imageUri={item.imageUri ? getOptimizedImageUrl(item.imageUri, { quality: 90 }) : null}
+      />
     </View>
   );
 }
@@ -374,10 +396,15 @@ const styles = StyleSheet.create({
   scrollContent: {
     gap: 16,
   },
+  heroImageContainer: {
+    width: '100%',
+    height: 380,
+    backgroundColor: c.surfaceHighlight,
+    overflow: 'hidden',
+  },
   heroImage: {
     width: '100%',
-    height: 320,
-    backgroundColor: c.surfaceHighlight,
+    height: '100%',
   },
   heroImagePlaceholder: {
     width: '100%',

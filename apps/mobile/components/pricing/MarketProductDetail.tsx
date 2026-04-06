@@ -7,6 +7,7 @@ import {
     Pressable,
     ActivityIndicator,
     Platform,
+    Linking,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -131,28 +132,46 @@ export default function MarketProductDetail({ product, onClose }: MarketProductD
                     ) : (
                         <View style={styles.salesList}>
                             {filteredPrices.slice(0, 10).map((sale, idx) => (
-                                <View key={idx} style={styles.saleRow}>
+                                <Pressable
+                                    key={idx}
+                                    style={({ pressed }) => [
+                                        styles.saleRow,
+                                        pressed && sale.link && { backgroundColor: c.surfaceHighlight }
+                                    ]}
+                                    onPress={() => {
+                                        if (sale.link) {
+                                            Linking.openURL(sale.link).catch((err: any) =>
+                                                console.error("Failed to open URL", err)
+                                            );
+                                        }
+                                    }}
+                                >
                                     <View style={styles.saleMain}>
                                         <Text style={styles.saleDate}>{sale.date}</Text>
                                         <Text style={styles.saleTitle} numberOfLines={2}>{sale.title}</Text>
                                     </View>
-                                    <View style={styles.saleSide}>
-                                        <Text style={styles.salePrice}>${sale.price.toFixed(2)}</Text>
-                                        {Boolean(sale.source && !sale.source.toLowerCase().includes('pricecharting')) && (
-                                            <View style={[
-                                                styles.sourceBadgeSmall,
-                                                { borderColor: sale.source === 'eBay' ? '#0064D240' : '#FF620040' }
-                                            ]}>
-                                                <Text style={[
-                                                    styles.sourceTextSmall,
-                                                    { color: sale.source === 'eBay' ? '#5BA3F5' : '#FF9050' }
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        <View style={styles.saleSide}>
+                                            <Text style={styles.salePrice}>${sale.price.toFixed(2)}</Text>
+                                            {Boolean(sale.source && !sale.source.toLowerCase().includes('pricecharting')) && (
+                                                <View style={[
+                                                    styles.sourceBadgeSmall,
+                                                    { borderColor: sale.source === 'eBay' ? '#0064D240' : '#FF620040' }
                                                 ]}>
-                                                    {sale.source}
-                                                </Text>
-                                            </View>
+                                                    <Text style={[
+                                                        styles.sourceTextSmall,
+                                                        { color: sale.source === 'eBay' ? '#5BA3F5' : '#FF9050' }
+                                                    ]}>
+                                                        {sale.source}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                        {sale.link && (
+                                            <Ionicons name="chevron-forward" size={14} color={c.textTertiary} />
                                         )}
                                     </View>
-                                </View>
+                                </Pressable>
                             ))}
                         </View>
                     )}
