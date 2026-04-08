@@ -82,7 +82,7 @@ export class AuthMiddleware implements NestMiddleware {
         // 3. Impersonation Logic
         // If the authenticated user is an admin, they can impersonate another user via '?as=userId'
         const impersonateUserId = req.query.as as string;
-        if (authenticatedUser?.admin === 1 && impersonateUserId) {
+        if ((authenticatedUser as any)?.admin === 1 && impersonateUserId) {
             const targetUser = await this.prisma.user.findUnique({
                 where: { id: impersonateUserId },
                 include: { sellerProfile: true },

@@ -12,6 +12,7 @@ import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RequestOtpDto } from './dto/request-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { AppleLoginDto } from './dto/apple-login.dto';
 import { CookieUtils } from './utils/cookies';
 import { SessionGuard } from './guards/session.guard';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -44,6 +45,32 @@ export class AuthController {
         const { sessionToken, user } = await this.authService.verifyOtp(
             dto.email,
             dto.otp,
+            userAgent,
+            ip,
+            dto.inviteToken
+        );
+
+        CookieUtils.setSessionCookie(res, sessionToken);
+
+        return { ok: true, user, sessionToken };
+    }
+
+    @Post('apple')
+    @ApiOperation({ summary: 'Login or signup with Apple ID' })
+    @ApiResponse({ status: 200, description: 'Apple login successful' })
+    @ApiResponse({ status: 401, description: 'Invalid Apple token' })
+    async loginWithApple(
+        @Body() dto: AppleLoginDto,
+        @Req() req: Request,
+        @Res({ passthrough: true }) res: Response
+    ) {
+        console.log(`[AuthController] Logging in with Apple...`);
+        const userAgent = req.headers['user-agent'];
+        const ip = req.ip;
+
+        const { sessionToken, user } = await this.authService.signInWithApple(
+            dto.identityToken,
+            dto.fullName,
             userAgent,
             ip,
             dto.inviteToken

@@ -19,7 +19,12 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
-      "buildNumber": "12"
+      "entitlements": {
+        "com.apple.developer.applesignin": [
+          "Default"
+        ]
+      },
+      "buildNumber": "20"
     },
     "android": {
       "package": "com.myapp",
@@ -34,7 +39,8 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true,

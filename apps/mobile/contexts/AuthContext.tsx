@@ -2,6 +2,7 @@ import * as React from 'react';
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { apiRequest } from '@/lib/query-client';
 
 const TOKEN_KEY = 'slabhub_session_token';
@@ -18,6 +19,7 @@ interface AuthContextValue {
     isLoading: boolean;
     signIn: (email: string) => Promise<{ ok: boolean }>;
     verifyOtp: (email: string, otp: string) => Promise<{ ok: boolean }>;
+    signInWithApple: () => Promise<{ ok: boolean }>;
     signOut: () => Promise<void>;
 }
 
@@ -118,6 +120,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
+    const signInWithApple = useCallback(async () => {
+        try {
+            if (Platform.OS === 'web') {
+                throw new Error('Apple Sign In is not supported on web in this implementation');
+            }
+
+            const credential = await AppleAuthentication.signInAsync({
+                requestedScopes: [
+                    AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+                    AppleAuthentication.AppleAuthenticationScope.EMAIL,
+                ],
+            });
+
+            if (!credential.identityToken) {
+                throw new Error('No identity token received from Apple');
+            }
+
+            const res = await apiRequest('POST', '/auth/apple', {
+                identityToken: credential.identityToken,
+                fullName: credential.fullName
+                    ? `${credential.fullName.givenName || ''} ${credential.fullName.familyName || ''}`.trim()
+                    : undefined,
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to sign in with Apple');
+            }
+
+            const data = await res.json();
+
+            if (data.sessionToken) {
+                await SecureStore.setItemAsync(TOKEN_KEY, data.sessionToken);
+                await SecureStore.setItemAsync(USER_KEY, JSON.stringify(data.user));
+                setSessionToken(data.sessionToken);
+                setUser(data.user);
+                return { ok: true };
+            }
+            return { ok: false };
+        } catch (e: any) {
+            if (e.code === 'ERR_REQUEST_CANCELED') {
+                return { ok: false }; // User cancelled
+            }
+            console.error('Apple Sign In error:', e);
+            throw e;
+        }
+    }, []);
+
     const signOut = useCallback(async () => {
         try {
             if (sessionToken) {
@@ -139,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, [sessionToken]);
 
     return (
-        <AuthContext.Provider value={{ user, sessionToken, isLoading, signIn, verifyOtp, signOut }}>
+        <AuthContext.Provider value={{ user, sessionToken, isLoading, signIn, verifyOtp, signInWithApple, signOut }}>
             {children}
         </AuthContext.Provider>
     );

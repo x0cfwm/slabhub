@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OtpUtils } from './utils/otp';
 import { MailerService } from './mail/mailer.service';
 import * as crypto from 'crypto';
+import * as appleSignin from 'apple-signin-auth';
 
 @Injectable()
 export class AuthService {
@@ -154,6 +155,132 @@ export class AuthService {
                     where: { id: invite.id },
                     data: { usedCount: { increment: 1 } }
                 });
+            }
+        }
+
+        // Create session
+        const sessionToken = await this.createSession(user.id, userAgent, ip);
+
+        return {
+            sessionToken,
+            user: {
+                id: user.id,
+                email: user.email
+            }
+        };
+    }
+
+    async signInWithApple(identityToken: string, fullName?: string, userAgent?: string, ip?: string, inviteToken?: string) {
+        let appleResponse;
+        try {
+            appleResponse = await appleSignin.verifyIdToken(identityToken, {
+                // EXPO_APPLE_BUNDLE_ID should be provided in env
+                audience: this.configService.get<string>('APPLE_BUNDLE_ID') || 'gg.slabhub.crm',
+                ignoreExpiration: false,
+            });
+        } catch (error: any) {
+            this.logger.error('Apple token verification failed', error);
+            throw new UnauthorizedException('Apple identity token invalid or expired');
+        }
+
+        const { email, sub: providerUserId } = appleResponse;
+        if (!email) {
+            throw new BadRequestException('Email is required from Apple');
+        }
+
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // Find existing identity
+        const existingIdentity = await this.prisma.oAuthIdentity.findUnique({
+            where: { provider_providerUserId: { provider: 'apple', providerUserId } },
+            include: { user: true },
+        });
+
+        let user;
+
+        if (existingIdentity) {
+            user = existingIdentity.user;
+            // Update profile data if needed
+            await this.prisma.oAuthIdentity.update({
+                where: { id: existingIdentity.id },
+                data: { email: normalizedEmail, profileData: appleResponse as any },
+            });
+        } else {
+            // Check if user exists with this email
+            const existingUser = await this.prisma.user.findUnique({
+                where: { email: normalizedEmail },
+            });
+
+            if (existingUser) {
+                user = existingUser;
+                // Link identity
+                await this.prisma.oAuthIdentity.create({
+                    data: {
+                        provider: 'apple',
+                        providerUserId,
+                        userId: user.id,
+                        email: normalizedEmail,
+                        profileData: appleResponse as any,
+                    },
+                });
+            } else {
+                // New user signup
+                const isInviteOnly = this.configService.get<boolean>('INVITE_ONLY_REGISTRATION');
+                let invite = null;
+
+                if (isInviteOnly) {
+                    if (!inviteToken) {
+                        throw new BadRequestException('Invitation required for new accounts');
+                    }
+
+                    // Validate invite
+                    invite = await this.prisma.invite.findUnique({
+                        where: { tokenHash: inviteToken, revokedAt: null },
+                    });
+
+                    if (!invite || invite.expiresAt < new Date()) {
+                        throw new BadRequestException('Invalid or expired invitation');
+                    }
+                } else if (inviteToken) {
+                    invite = await this.prisma.invite.findUnique({
+                        where: { tokenHash: inviteToken },
+                    });
+                }
+
+                // Create user
+                user = await this.prisma.user.create({
+                    data: {
+                        email: normalizedEmail,
+                        emailVerifiedAt: new Date(),
+                    },
+                });
+
+                // Link identity
+                await this.prisma.oAuthIdentity.create({
+                    data: {
+                        provider: 'apple',
+                        providerUserId,
+                        userId: user.id,
+                        email: normalizedEmail,
+                        profileData: appleResponse as any,
+                    },
+                });
+
+                // Record acceptance if invite found
+                if (invite) {
+                    await this.prisma.inviteAcceptance.create({
+                        data: {
+                            inviteId: invite.id,
+                            invitedUserId: user.id,
+                            invitedEmailMasked: this.maskEmail(normalizedEmail),
+                        }
+                    });
+
+                    await this.prisma.invite.update({
+                        where: { id: invite.id },
+                        data: { usedCount: { increment: 1 } }
+                    });
+                }
             }
         }
 

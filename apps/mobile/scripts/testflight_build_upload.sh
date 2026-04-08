@@ -51,8 +51,8 @@ echo "==> Syncing build number $BUILD_NUMBER to app.json..."
 cd "$SCRIPT_DIR"
 node -e "const fs=require('fs'); const a=JSON.parse(fs.readFileSync('app.json','utf8')); if(!a.expo.ios) a.expo.ios={}; a.expo.ios.buildNumber='$BUILD_NUMBER'; fs.writeFileSync('app.json',JSON.stringify(a,null,2));"
 
-echo "==> Running Expo prebuild..."
-npx expo prebuild --platform ios --no-install
+echo "==> Running Expo prebuild (including pod install)..."
+npx expo prebuild --platform ios
 
 if [[ ! -d "$IOS_DIR" ]]; then
   echo "Error: iOS directory not found: $IOS_DIR" >&2
@@ -83,6 +83,15 @@ xcodebuild \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
   archive | tee "$BUILD_DIR/archive-unsigned.log"
+
+echo "==> 1.5/4 Inject Entitlements into Unsigned Archive"
+# Inject the entitlements manually so that xcodebuild exportArchive requests the correct App Store profile
+if [[ -f "$IOS_DIR/SlabHubCRM/SlabHubCRM.entitlements" ]]; then
+  codesign --force --sign - --entitlements "$IOS_DIR/SlabHubCRM/SlabHubCRM.entitlements" "$ARCHIVE_PATH/Products/Applications/SlabHubCRM.app"
+  echo "Injected SlabHubCRM.entitlements into archive"
+else
+  echo "Warning: No entitlements file found at $IOS_DIR/SlabHubCRM/SlabHubCRM.entitlements"
+fi
 
 echo "==> 2/4 Create ExportOptions.plist"
 cat > "$EXPORT_PLIST" <<PLIST

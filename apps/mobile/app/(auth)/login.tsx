@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/colors';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as AppleAuthentication from 'expo-apple-authentication';
 
 const c = Colors.dark;
 
@@ -26,8 +27,16 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
-  const { signIn } = useAuth();
+  const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
+  const { signIn, signInWithApple } = useAuth();
   const router = useRouter();
+
+  React.useEffect(() => {
+    AppleAuthentication.isAvailableAsync().then(available => {
+      console.log(`[LoginScreen] Apple ID availability: ${available}, OS: ${Platform.OS}`);
+      setAppleAuthAvailable(available);
+    });
+  }, []);
 
   const handleSendCode = async () => {
     if (!email || !email.includes('@')) {
@@ -52,6 +61,21 @@ export default function LoginScreen() {
       }
     } catch (e: any) {
       setError(e.message || 'An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { ok } = await signInWithApple();
+      if (ok) {
+        // AuthContext will update and _layout will redirect to tabs
+      }
+    } catch (e: any) {
+      setError(e.message || 'Apple Sign In failed');
     } finally {
       setLoading(false);
     }
@@ -143,6 +167,24 @@ export default function LoginScreen() {
                 </>
               )}
             </Pressable>
+
+            {(appleAuthAvailable || Platform.OS === 'ios') && (
+              <View style={styles.dividerContainer}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.divider} />
+              </View>
+            )}
+
+            {(appleAuthAvailable || Platform.OS === 'ios') && (
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                cornerRadius={14}
+                style={styles.appleButton}
+                onPress={handleAppleSignIn}
+              />
+            )}
           </View>
 
           {/* Footer */}
@@ -295,6 +337,27 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: c.accentText,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 8,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: c.border,
+    opacity: 0.5,
+  },
+  dividerText: {
+    fontSize: 14,
+    color: c.textTertiary,
+    fontWeight: '500',
+  },
+  appleButton: {
+    width: '100%',
+    height: 52,
   },
 
   // Footer
