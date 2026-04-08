@@ -101,7 +101,7 @@ export default function LoginScreen() {
 
             <Text style={styles.title}>Sign In to{'\n'}SlabHub</Text>
             <Text style={styles.subtitle}>
-              Enter your email and we'll send you a verification code
+              The ultimate tool for slab collectors
             </Text>
           </View>
 
@@ -188,12 +188,7 @@ export default function LoginScreen() {
           </View>
 
           {/* Footer */}
-          <View style={styles.footer}>
-            <Ionicons name="shield-checkmark-outline" size={16} color={c.textTertiary} />
-            <Text style={styles.footerText}>
-              We'll send a one-time code to verify your identity
-            </Text>
-          </View>
+          <View style={{ height: 40 }} />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -358,18 +353,5 @@ const styles = StyleSheet.create({
   appleButton: {
     width: '100%',
     height: 52,
-  },
-
-  // Footer
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 32,
-  },
-  footerText: {
-    fontSize: 13,
-    color: c.textTertiary,
   },
 });

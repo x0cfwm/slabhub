@@ -8,37 +8,17 @@ A production-quality monorepo for managing One Piece TCG inventory, pricing, and
 /
 ├── apps/
 │   ├── api/               # NestJS backend API
-│   │   └── src/
-│   │       ├── modules/
-│   │       │   ├── auth/      # Authentication (minimal Stage 1)
-│   │       │   ├── cards/     # Card catalog endpoints
-│   │       │   ├── health/    # Health check endpoint
-│   │       │   ├── inventory/ # Inventory CRUD
-│   │       │   ├── pricing/   # Pricing endpoints
-│   │       │   ├── prisma/    # Database service
-│   │       │   ├── profile/   # Seller profile endpoints
-│   │       │   └── vendor/    # Public vendor page
-│   │       ├── app.module.ts
-│   │       └── main.ts
-│   │
-│   └── web/               # Next.js frontend
-│       └── src/
-│           ├── app/
-│           ├── components/
-│           └── lib/
-│
+│   ├── web/               # Next.js frontend (App Router)
+│   ├── mobile/            # Expo / React Native app
+│   └── landing/           # Marketing landing page
 ├── packages/
-│   └── shared/           # Shared types (future use)
-│
+│   └── shared/           # Shared logic, utilities and types
 ├── infra/
-│   └── docker/           # Docker compose for PostgreSQL
-│
+│   └── docker/           # Infrastructure config (PostgreSQL)
 ├── prisma/
-│   ├── schema.prisma     # Database schema
-│   ├── migrations/       # Migration history
-│   └── seed.ts           # Seed script
-│
-└── package.json          # Root monorepo scripts
+│   ├── schema.prisma     # Unified database schema
+│   └── migrations/       # Prisma migrations
+└── package.json          # Root monorepo config & scripts
 ```
 
 ## 🚀 Quick Start
@@ -362,12 +342,44 @@ curl http://localhost:3001/v1/vendor/nami-treasures
 - `SINGLE_CARD_GRADED` - Professionally graded card
 - `SEALED_PRODUCT` - Unopened product
 
+## 🏗 Monorepo Architecture
+
+SlabHub is built as a **pnpm workspace monorepo**, ensuring a unified developer experience across the entire stack.
+
+- **Unified Schema**: A single Prisma schema at the root governs the database across all services.
+- **Shared Packages**: Common logic and types are extracted into `packages/shared`.
+- **Parallel Workflows**: Use `pnpm dev` to launch the entire development environment (API + Web) simultaneously.
+- **Consistent Tooling**: Shared ESLint, Prettier, and TypeScript configurations across all applications.
+
 ## 🛠 Tech Stack
 
-- **Backend**: NestJS, TypeScript, Prisma
-- **Database**: PostgreSQL
-- **Frontend**: Next.js, React, TailwindCSS, Shadcn/UI
-- **Infrastructure**: Docker, pnpm workspaces
+### Backend
+- **Framework**: NestJS 11 (Node.js)
+- **Language**: TypeScript
+- **ORM**: Prisma 6
+- **Database**: PostgreSQL 16
+- **Auth**: Email OTP + Social Login (Facebook/Apple)
+- **API Documentation**: Swagger (OpenAPI)
+
+### Web Frontend
+- **Framework**: Next.js 16 (App Router)
+- **UI Library**: shadcn/ui + Radix UI
+- **Styling**: Tailwind CSS 4
+- **State Management**: React Hook Form + Zod
+
+### 📱 Mobile Stack
+- **Framework**: Expo 54 (React Native 0.81)
+- **Navigation**: Expo Router (File-based routing)
+- **Server State**: TanStack Query (React Query) v5
+- **Animations**: React Native Reanimated v4
+- **Styling**: NativeWind (Tailwind for React Native)
+- **Storage**: Expo Secure Store (Auth tokens)
+
+### Infrastructure
+- **Hosting**: DigitalOcean (API), Netlify (Web), Apple/Google Stores (Mobile)
+- **Storage**: Cloudflare R2 (S3-compatible)
+- **Monitoring**: Sentry
+- **CI/CD**: GitHub Actions
 
 ## 🔐 Auth flow (Email OTP)
 
