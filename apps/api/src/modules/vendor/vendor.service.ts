@@ -54,9 +54,20 @@ export class VendorService {
                 },
                 frontMedia: true,
                 backMedia: true,
+                status: true,
             },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         });
+
+        // Get listed workflow statuses for tabs
+        const listedStatuses = seller.userId ? await this.prisma.workflowStatus.findMany({
+            where: {
+                userId: seller.userId,
+                systemId: 'LISTED',
+                showOnKanban: true, // typically only show active kanban columns
+            },
+            orderBy: { position: 'asc' }
+        }) : [];
 
         // Use central transformation logic from InventoryService
         const items = (forSaleItems as any[]).map((item) => {
@@ -91,6 +102,7 @@ export class VendorService {
             },
             items,
             itemCount: items.length,
+            listedStatuses,
         };
     }
 }

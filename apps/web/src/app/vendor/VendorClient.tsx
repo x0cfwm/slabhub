@@ -56,11 +56,13 @@ export default function VendorClient() {
 
     const [profile, setProfile] = useState<SellerProfile | null>(null);
     const [items, setItems] = useState<InventoryItem[]>([]);
+    const [listedStatuses, setListedStatuses] = useState<{ id: string; name: string }[]>([]);
     const [marketProducts, setMarketProducts] = useState<MarketProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [isContactOpen, setIsContactOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<string>("");
 
     // Sync selected item state with URL on initial load and browser navigation
     useEffect(() => {
@@ -70,6 +72,10 @@ export default function VendorClient() {
             if (items.length > 0) {
                 const item = items.find(i => i.id === id);
                 setSelectedItem(item || null);
+            }
+            const tabParam = params.get("tab");
+            if (tabParam) {
+                setActiveTab(tabParam);
             }
         };
 
@@ -98,6 +104,13 @@ export default function VendorClient() {
         }
         // Update URL without triggering Next.js RSC fetch
         window.history.pushState(null, "", url.toString());
+    };
+
+    const handleTabChange = (val: string) => {
+        setActiveTab(val);
+        const url = new URL(window.location.href);
+        url.searchParams.set("tab", val);
+        window.history.replaceState(null, "", url.toString());
     };
     const [activePhoto, setActivePhoto] = useState<string | null>(null);
     const [isZoomed, setIsZoomed] = useState(false);
@@ -158,6 +171,16 @@ export default function VendorClient() {
 
                 setProfile(data.profile);
                 setItems(data.items);
+                setListedStatuses(data.listedStatuses || []);
+
+                const currentTabParam = new URLSearchParams(window.location.search).get("tab");
+                if (currentTabParam) {
+                    setActiveTab(currentTabParam);
+                } else if (data.listedStatuses && data.listedStatuses.length > 0) {
+                    setActiveTab(data.listedStatuses[0].id);
+                } else {
+                    setActiveTab("for-sale");
+                }
 
                 // Extract market products from items to satisfy existing logic
                 const extractedMarketProducts: MarketProduct[] = data.items
@@ -233,6 +256,81 @@ export default function VendorClient() {
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [selectedItem, currentItemIndex, filteredItems, isContactOpen]);
+
+    const renderItemGrid = (itemsToRender: InventoryItem[]) => {
+        return (
+            <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                    {itemsToRender.map(item => {
+                        const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
+                        const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
+                        const cardProfile = (item as any).cardProfile;
+
+                        const displayName = isSealed ? (item as any).productName : cardProfile?.name || "Unknown Asset";
+                        const displaySub = isSealed ? "Sealed Product" : cardProfile?.set || "TCG Asset";
+
+                        return (
+                            <div key={item.id} className="group relative cursor-pointer" onClick={() => handleOpenItem(item)}>
+                                <div className="absolute -inset-0.5 bg-gradient-to-b from-primary/20 to-transparent rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                                <Card className={cn(
+                                    "relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border-border/50 bg-card/50 backdrop-blur-md border py-0 gap-0",
+                                    itType === "SINGLE_CARD_GRADED" && "ring-1 ring-primary/20 bg-primary/[0.02]"
+                                )}>
+                                    <div className="aspect-[2.5/3.5] overflow-hidden relative bg-accent/5 flex items-center justify-center p-2">
+                                        <img
+                                            src={getOptimizedImageUrl(item.photos?.[0] || (item as any).frontMediaUrl || cardProfile?.imageUrl || "https://placehold.co/300x400?text=Asset", { height: 800 })}
+                                            className="object-contain w-full h-full transition-all duration-700 group-hover:scale-105"
+                                            alt={displayName}
+                                        />
+                                        
+                                        {/* Status Badges - Top Right */}
+                                        <div className="absolute top-2 right-2 flex flex-col gap-1 items-end pointer-events-none z-10">
+                                            <Badge variant="secondary" className="backdrop-blur-md bg-white/70 dark:bg-black/70 text-[8px] uppercase font-bold border-none">
+                                                {itType.replace("SINGLE_CARD_", "").replace("_PRODUCT", "")}
+                                            </Badge>
+                                            {(item as any).grade && (
+                                                <Badge className="bg-primary text-black text-[8px] font-bold border-none shadow-sm">
+                                                    {(item as any).gradingCompany} {(item as any).grade}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    <CardContent className="p-3 md:p-4 space-y-2.5">
+                                        <div className="min-w-0">
+                                            <h4 className="font-bold text-[13px] tracking-tight group-hover:text-primary transition-colors leading-[1.2rem] line-clamp-2 min-h-[2.4rem]">{displayName}</h4>
+                                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate font-medium opacity-70">
+                                                {displaySub}
+                                            </p>
+                                        </div>
+
+                                        <div className="pt-2.5 border-t border-border/50 flex items-center justify-between">
+                                            <div className="text-left">
+                                                <span className="text-base font-black tracking-tight leading-none">${Math.round(item.listingPrice || 0).toLocaleString()}</span>
+                                            </div>
+                                            
+                                            {item.quantity > 1 ? (
+                                                <Badge variant="outline" className="text-[9px] h-5 px-1.5 uppercase font-bold border-primary/20 text-primary">
+                                                    x{item.quantity} Stock
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-[9px] text-muted-foreground font-bold uppercase">1 in stock</span>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        );
+                    })}
+                </div>
+                {itemsToRender.length === 0 && (
+                    <div className="text-center py-32 bg-muted/30 rounded-[2rem] border-2 border-dashed">
+                        <p className="text-muted-foreground font-medium italic text-lg">No items currently for sale.</p>
+                    </div>
+                )}
+            </>
+        );
+    };
 
 
     if (loading) return <div className="p-8 text-center text-primary-foreground/50">Loading public page...</div>;
@@ -371,18 +469,31 @@ export default function VendorClient() {
             </div>
 
             <div className="max-w-6xl mx-auto px-4 py-12">
-                <Tabs defaultValue="for-sale" className="space-y-8">
+                <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-muted/20 p-2 md:p-3 rounded-[2rem] border border-border/50">
-                        <TabsList className="bg-background/50 backdrop-blur-sm p-1 rounded-2xl w-full md:w-auto">
-                            <TabsTrigger value="for-sale" className="flex-1 md:flex-none px-6 md:px-10 py-2.5 rounded-xl font-bold uppercase text-[10px] md:text-xs tracking-widest transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                                Items For Sale
-                            </TabsTrigger>
-                            <TabsTrigger value="wishlist" className="flex-1 md:flex-none px-6 md:px-10 py-2.5 rounded-xl font-bold uppercase text-[10px] md:text-xs tracking-widest transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                        <TabsList className="bg-background/50 backdrop-blur-sm p-1 rounded-2xl w-full md:w-auto overflow-x-auto flex flex-nowrap [&::-webkit-scrollbar]:hidden">
+                            {listedStatuses.length > 0 ? (
+                                listedStatuses.map((status) => (
+                                    <TabsTrigger key={status.id} value={status.id} className="flex-none px-6 md:px-10 py-2.5 rounded-xl font-bold uppercase text-[10px] md:text-xs tracking-widest transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                                        {status.name}
+                                    </TabsTrigger>
+                                ))
+                            ) : (
+                                <TabsTrigger value="for-sale" className="flex-1 md:flex-none px-6 md:px-10 py-2.5 rounded-xl font-bold uppercase text-[10px] md:text-xs tracking-widest transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                                    Items For Sale
+                                </TabsTrigger>
+                            )}
+                            {filteredItems.some(i => !listedStatuses.find(s => s.id === i.statusId)) && listedStatuses.length > 0 && (
+                                <TabsTrigger value="other" className="flex-none px-6 md:px-10 py-2.5 rounded-xl font-bold uppercase text-[10px] md:text-xs tracking-widest transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                                    Other
+                                </TabsTrigger>
+                            )}
+                            <TabsTrigger value="wishlist" className="flex-none md:flex-none px-6 md:px-10 py-2.5 rounded-xl font-bold uppercase text-[10px] md:text-xs tracking-widest transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
                                 Wishlist
                             </TabsTrigger>
                         </TabsList>
 
-                        <div className="relative w-full md:w-72">
+                        <div className="relative w-full md:w-72 shrink-0">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder="Search inventory..."
@@ -393,76 +504,27 @@ export default function VendorClient() {
                         </div>
                     </div>
 
-                    <TabsContent value="for-sale">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                            {filteredItems.map(item => {
-                                const itType = (item as any).type || (item as any).itemType || "UNKNOWN";
-                                const isSealed = itType === "SEALED_PRODUCT" || itType === "SEALED";
-                                const cardProfile = (item as any).cardProfile;
-
-                                const displayName = isSealed ? (item as any).productName : cardProfile?.name || "Unknown Asset";
-                                const displaySub = isSealed ? "Sealed Product" : cardProfile?.set || "TCG Asset";
-
+                    {listedStatuses.length > 0 ? (
+                        <>
+                            {listedStatuses.map((status) => {
+                                const statusItems = filteredItems.filter(i => i.statusId === status.id);
                                 return (
-                                    <div key={item.id} className="group relative cursor-pointer" onClick={() => handleOpenItem(item)}>
-                                        <div className="absolute -inset-0.5 bg-gradient-to-b from-primary/20 to-transparent rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                                        <Card className={cn(
-                                            "relative overflow-hidden transition-all rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border-border/50 bg-card/50 backdrop-blur-md border py-0 gap-0",
-                                            itType === "SINGLE_CARD_GRADED" && "ring-1 ring-primary/20 bg-primary/[0.02]"
-                                        )}>
-                                            <div className="aspect-[2.5/3.5] overflow-hidden relative bg-accent/5 flex items-center justify-center p-2">
-                                                <img
-                                                    src={getOptimizedImageUrl(item.photos?.[0] || (item as any).frontMediaUrl || cardProfile?.imageUrl || "https://placehold.co/300x400?text=Asset", { height: 800 })}
-                                                    className="object-contain w-full h-full transition-all duration-700 group-hover:scale-105"
-                                                    alt={displayName}
-                                                />
-                                                
-                                                {/* Status Badges - Top Right */}
-                                                <div className="absolute top-2 right-2 flex flex-col gap-1 items-end pointer-events-none z-10">
-                                                    <Badge variant="secondary" className="backdrop-blur-md bg-white/70 dark:bg-black/70 text-[8px] uppercase font-bold border-none">
-                                                        {itType.replace("SINGLE_CARD_", "").replace("_PRODUCT", "")}
-                                                    </Badge>
-                                                    {(item as any).grade && (
-                                                        <Badge className="bg-primary text-black text-[8px] font-bold border-none shadow-sm">
-                                                            {(item as any).gradingCompany} {(item as any).grade}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            
-                                            <CardContent className="p-3 md:p-4 space-y-2.5">
-                                                <div className="min-w-0">
-                                                    <h4 className="font-bold text-[13px] tracking-tight group-hover:text-primary transition-colors leading-[1.2rem] line-clamp-2 min-h-[2.4rem]">{displayName}</h4>
-                                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate font-medium opacity-70">
-                                                        {displaySub}
-                                                    </p>
-                                                </div>
-
-                                                <div className="pt-2.5 border-t border-border/50 flex items-center justify-between">
-                                                    <div className="text-left">
-                                                        <span className="text-base font-black tracking-tight leading-none">${Math.round(item.listingPrice || 0).toLocaleString()}</span>
-                                                    </div>
-                                                    
-                                                    {item.quantity > 1 ? (
-                                                        <Badge variant="outline" className="text-[9px] h-5 px-1.5 uppercase font-bold border-primary/20 text-primary">
-                                                            x{item.quantity} Stock
-                                                        </Badge>
-                                                    ) : (
-                                                        <span className="text-[9px] text-muted-foreground font-bold uppercase">1 in stock</span>
-                                                    )}
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
+                                    <TabsContent key={status.id} value={status.id}>
+                                        {renderItemGrid(statusItems)}
+                                    </TabsContent>
                                 );
                             })}
-                        </div>
-                        {filteredItems.length === 0 && (
-                            <div className="text-center py-32 bg-muted/30 rounded-[2rem] border-2 border-dashed">
-                                <p className="text-muted-foreground font-medium italic text-lg">No items currently for sale.</p>
-                            </div>
-                        )}
-                    </TabsContent>
+                            {filteredItems.some(i => !listedStatuses.find(s => s.id === i.statusId)) && (
+                                <TabsContent value="other">
+                                    {renderItemGrid(filteredItems.filter(i => !listedStatuses.find(s => s.id === i.statusId)))}
+                                </TabsContent>
+                            )}
+                        </>
+                    ) : (
+                        <TabsContent value="for-sale">
+                            {renderItemGrid(filteredItems)}
+                        </TabsContent>
+                    )}
 
                     <TabsContent value="wishlist">
                         <Card className="border-border/50 bg-gradient-to-br from-card to-muted/30 rounded-[2.5rem] overflow-hidden shadow-xl">

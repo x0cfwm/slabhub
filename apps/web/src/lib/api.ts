@@ -374,7 +374,7 @@ export async function deleteAccount(): Promise<void> {
     }
 }
 
-export async function getVendorPage(handle: string): Promise<{ profile: SellerProfile, items: InventoryItem[] }> {
+export async function getVendorPage(handle: string): Promise<{ profile: SellerProfile, items: InventoryItem[], listedStatuses?: { id: string, name: string }[] }> {
     const url = getFullUrl(`/v1/vendor/${handle}`);
     const response = await fetch(url.toString(), { credentials: 'include' });
     if (!response.ok) {
