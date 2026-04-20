@@ -6,6 +6,7 @@ import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { Response } from 'express';
 import { CookieUtils } from '../auth/utils/cookies';
+import { ensureSellerProfile } from '../profile/utils/shop-name-generator';
 
 @Injectable()
 export class OauthFacebookService {
@@ -149,6 +150,13 @@ export class OauthFacebookService {
                     data: { facebookVerifiedAt: new Date() },
                 });
 
+                // Explicit link from settings → opt the shop into the public badge.
+                // updateMany is a no-op if the user has no SellerProfile yet.
+                await this.prisma.sellerProfile.updateMany({
+                    where: { userId: currentUser.id },
+                    data: { showFacebookBadge: true },
+                });
+
                 return res.redirect(`${webOrigin}/settings?success=facebook_linked`);
 
             } else {
@@ -217,6 +225,10 @@ export class OauthFacebookService {
                             }
                         });
 
+                        // Seed a default SellerProfile so shop name/handle are
+                        // stable from the very first visit to the shop page.
+                        await ensureSellerProfile(this.prisma, user.id);
+
                         await this.prisma.oAuthIdentity.create({
                             data: {
                                 provider: 'facebook',
@@ -279,6 +291,11 @@ export class OauthFacebookService {
         await this.prisma.user.update({
             where: { id: userId },
             data: { facebookVerifiedAt: null }
+        });
+
+        await this.prisma.sellerProfile.updateMany({
+            where: { userId },
+            data: { showFacebookBadge: false }
         });
 
         return { ok: true };

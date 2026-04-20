@@ -108,4 +108,9 @@ export class UpdateProfileDto {
     @IsOptional()
     @IsString()
     avatarId?: string;
+
+    @ApiProperty({ required: false, description: 'Display the Facebook Verified badge on the public shop page. Requires a linked Facebook account to take effect.' })
+    @IsOptional()
+    @IsBoolean()
+    showFacebookBadge?: boolean;
 }

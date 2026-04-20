@@ -78,6 +78,7 @@ model SellerProfile {
   fulfillmentOptions String[]        @default([])
   location           String          @default("")
   discordWebhookUrl  String?
+  showFacebookBadge  Boolean         @default(false)
   inventoryItems     InventoryItem[]
   avatarMedia        Media?          @relation("AvatarMedia", fields: [avatarId], references: [id])
   user               User?           @relation(fields: [userId], references: [id])

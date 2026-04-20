@@ -13,15 +13,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { AlertTriangle, CreditCard, MapPin, Save, Truck, Link, Calendar, User, X, Plus, ImageIcon } from "lucide-react";
+import { AlertTriangle, CreditCard, MapPin, Save, Truck, Link, Calendar, User, X, Plus, ImageIcon, ShieldCheck, ArrowRight } from "lucide-react";
+import NextLink from "next/link";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
 import { getOptimizedImageUrl } from "@/lib/image-utils";
 
+const HANDLE_REGEX = /^[a-z0-9-]+$/;
+
 const profileSchema = z.object({
-    shopName: z.string().optional(),
-    handle: z.string().optional(),
-    isActive: z.boolean(),
+    shopName: z
+        .string()
+        .trim()
+        .min(1, "Shop name is required"),
+    handle: z
+        .string()
+        .trim()
+        .min(1, "Handle is required")
+        .regex(HANDLE_REGEX, "Handle can only contain lowercase letters, numbers, and hyphens"),
     location: z.string().optional(),
     paymentsAccepted: z.array(z.string()).default([]),
     meetupsEnabled: z.boolean(),
@@ -39,29 +48,6 @@ const profileSchema = z.object({
     })).default([]),
     avatarId: z.string().optional().nullable(),
     avatarUrl: z.string().optional().nullable(),
-}).superRefine((data, ctx) => {
-    if (data.isActive) {
-        if (!data.shopName || data.shopName.trim() === "") {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Shop name is required",
-                path: ["shopName"],
-            });
-        }
-        if (!data.handle || data.handle.trim() === "") {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Handle is required",
-                path: ["handle"],
-            });
-        } else if (!/^[a-z0-9-]+$/.test(data.handle)) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Handle can only contain lowercase letters, numbers, and hyphens",
-                path: ["handle"],
-            });
-        }
-    }
 });
 
 export default function ShopSettingsPage() {
@@ -70,6 +56,8 @@ export default function ShopSettingsPage() {
     const [saving, setSaving] = useState(false);
     const [isHandleDirty, setIsHandleDirty] = useState(false);
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const [togglingBadge, setTogglingBadge] = useState(false);
+    const [togglingActive, setTogglingActive] = useState(false);
 
     const {
         register,
@@ -77,6 +65,7 @@ export default function ShopSettingsPage() {
         reset,
         setValue,
         watch,
+        getValues,
         control,
         formState: { errors },
     } = useForm<any>({
@@ -84,7 +73,6 @@ export default function ShopSettingsPage() {
         defaultValues: {
             shopName: "",
             handle: "",
-            isActive: false,
             location: "",
             meetupsEnabled: false,
             shippingEnabled: false,
@@ -109,9 +97,18 @@ export default function ShopSettingsPage() {
     });
 
     const shopName = watch("shopName");
-    const isActive = watch("isActive");
+    const handleValue = watch("handle");
     const avatarUrl = watch("avatarUrl");
     const selectedPayments = watch("paymentsAccepted") || [];
+
+    const savedProfile = user?.profile;
+    const isActive = savedProfile?.isActive ?? false;
+    const trimmedShopName = (shopName ?? "").trim();
+    const trimmedHandle = (handleValue ?? "").trim();
+    const canActivate =
+        trimmedShopName.length > 0 &&
+        trimmedHandle.length > 0 &&
+        HANDLE_REGEX.test(trimmedHandle);
 
     const paymentOptions = [
         "Paypal G&S",
@@ -124,30 +121,29 @@ export default function ShopSettingsPage() {
     ];
 
     useEffect(() => {
-        if (user?.profile) {
-            reset({
-                shopName: user.profile.shopName || "",
-                handle: user.profile.handle || "",
-                isActive: user.profile.isActive ?? false,
-                location: user.profile.location || "",
-                paymentsAccepted: user.profile.paymentsAccepted || [],
-                meetupsEnabled: user.profile.meetupsEnabled ?? false,
-                shippingEnabled: user.profile.shippingEnabled ?? false,
-                fulfillmentOptions: user.profile.fulfillmentOptions || [],
-                wishlistText: user.profile.wishlistText || "",
-                referenceLinks: Array.isArray(user.profile.referenceLinks)
-                    ? user.profile.referenceLinks.filter((l: any) => l && typeof l === 'object' && !Array.isArray(l))
-                    : [],
-                upcomingEvents: Array.isArray(user.profile.upcomingEvents)
-                    ? user.profile.upcomingEvents.filter((e: any) => e && typeof e === 'object' && !Array.isArray(e))
-                    : [],
-                avatarId: user.profile.avatarId,
-                avatarUrl: user.profile.avatarUrl,
-            });
-            setLoading(false);
-        } else if (user) {
-            setLoading(false);
-        }
+        if (!user) return;
+        const profile = user.profile;
+        // The API guarantees every user has a SellerProfile seeded at
+        // registration, so shopName/handle are always populated on read.
+        reset({
+            shopName: profile?.shopName || "",
+            handle: profile?.handle || "",
+            location: profile?.location || "",
+            paymentsAccepted: profile?.paymentsAccepted || [],
+            meetupsEnabled: profile?.meetupsEnabled ?? false,
+            shippingEnabled: profile?.shippingEnabled ?? false,
+            fulfillmentOptions: profile?.fulfillmentOptions || [],
+            wishlistText: profile?.wishlistText || "",
+            referenceLinks: Array.isArray(profile?.referenceLinks)
+                ? profile!.referenceLinks.filter((l: any) => l && typeof l === 'object' && !Array.isArray(l))
+                : [],
+            upcomingEvents: Array.isArray(profile?.upcomingEvents)
+                ? profile!.upcomingEvents.filter((e: any) => e && typeof e === 'object' && !Array.isArray(e))
+                : [],
+            avatarId: profile?.avatarId ?? null,
+            avatarUrl: profile?.avatarUrl ?? null,
+        });
+        setLoading(false);
     }, [user, reset]);
 
     useEffect(() => {
@@ -193,6 +189,32 @@ export default function ShopSettingsPage() {
         }
     };
 
+    const handleToggleActive = async (nextActive: boolean) => {
+        if (togglingActive) return;
+        if (nextActive && !canActivate) {
+            toast.error("Enter a shop name and a valid handle first.");
+            return;
+        }
+        setTogglingActive(true);
+        try {
+            if (nextActive) {
+                // Persist current form edits alongside the activation so the user
+                // doesn't need to hit Save before flipping the switch.
+                const { avatarUrl: _avatarUrl, ...formPayload } = getValues();
+                await updateProfile({ ...formPayload, isActive: true });
+                setIsHandleDirty(false);
+            } else {
+                await updateProfile({ isActive: false });
+            }
+            await refresh();
+            toast.success(nextActive ? "Shop is now active" : "Shop is now inactive");
+        } catch (err: any) {
+            toast.error(err?.message || "Failed to update shop status");
+        } finally {
+            setTogglingActive(false);
+        }
+    };
+
     const onFormError = (errs: any) => {
         toast.error("Please check the form for errors");
     };
@@ -204,45 +226,97 @@ export default function ShopSettingsPage() {
     );
 
     return (
-        <div className="max-w-4xl space-y-8 pb-20">
+        <div className="max-w-4xl space-y-6 pb-20">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Shop Profile</h1>
                 <p className="text-muted-foreground">Manage your public shop identity and settings.</p>
             </div>
 
+            <div className={cn(
+                "flex items-center justify-between gap-3 rounded-xl border px-4 py-2.5 shadow-sm transition-colors",
+                isActive
+                    ? "border-primary/30 bg-primary/5"
+                    : "border-border bg-muted/30"
+            )}>
+                <div className="flex min-w-0 items-center gap-2">
+                    <span className="text-sm font-semibold">Shop is {isActive ? 'Active' : 'Inactive'}</span>
+                    <span className={cn(
+                        "inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] font-semibold uppercase tracking-wider",
+                        isActive
+                            ? "bg-primary/10 border-primary/30 text-primary"
+                            : "bg-muted border-muted-foreground/20 text-muted-foreground"
+                    )}>
+                        {isActive ? 'Live' : 'Hidden'}
+                    </span>
+                    {!isActive && !canActivate && (
+                        <span className="flex min-w-0 items-center gap-1 text-xs text-amber-600 dark:text-amber-500 truncate">
+                            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">Enter shop name and handle first.</span>
+                        </span>
+                    )}
+                </div>
+                <Switch
+                    id="shop-active"
+                    checked={isActive}
+                    disabled={togglingActive || (!isActive && !canActivate)}
+                    onCheckedChange={handleToggleActive}
+                    aria-label="Toggle shop active status"
+                />
+            </div>
+
+            {isActive && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-2.5 shadow-sm">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
+                        <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">Show Verified badge on public shop</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                                {(user as any)?.facebookVerifiedAt
+                                    ? "Buyers see a Verified badge linking to your Facebook profile."
+                                    : "Connect your Facebook profile in Settings to enable this."}
+                            </p>
+                        </div>
+                    </div>
+                    {(user as any)?.facebookVerifiedAt ? (
+                        <Switch
+                            id="show-fb-badge"
+                            checked={!!(user as any)?.showFacebookBadge}
+                            disabled={togglingBadge}
+                            onCheckedChange={async (checked) => {
+                                setTogglingBadge(true);
+                                try {
+                                    await updateProfile({ showFacebookBadge: checked });
+                                    await refresh();
+                                    toast.success(checked ? 'Verified badge enabled' : 'Verified badge hidden');
+                                } catch (e: any) {
+                                    toast.error(e?.message || 'Failed to update badge setting');
+                                } finally {
+                                    setTogglingBadge(false);
+                                }
+                            }}
+                            aria-label="Toggle Verified badge"
+                        />
+                    ) : (
+                        <Button asChild type="button" variant="outline" size="sm" className="shrink-0">
+                            <NextLink href="/settings#facebook-profile">
+                                Connect
+                                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                            </NextLink>
+                        </Button>
+                    )}
+                </div>
+            )}
+
             <form onSubmit={handleSubmit(onSubmit, onFormError)} className="space-y-6">
                 <Card className="overflow-hidden border-primary/20 bg-card shadow-sm">
                     <CardHeader className="border-b border-primary/10">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle>{isActive ? 'Active' : 'Inactive'} Shop Profile</CardTitle>
-                                <CardDescription>Adjust your public identity and shop status.</CardDescription>
-                            </div>
-                            <div className={cn(
-                                "flex items-center space-x-2 px-3 py-1.5 rounded-full transition-colors border",
-                                isActive
-                                    ? "bg-primary/5 border-primary/20 text-primary"
-                                    : "bg-muted border-muted-foreground/10 text-muted-foreground"
-                            )}>
-                                <Label
-                                    htmlFor="shop-active"
-                                    className="text-sm font-medium cursor-pointer"
-                                >
-                                    Shop is {isActive ? 'Active' : 'Inactive'}
-                                </Label>
-                                <Switch
-                                    id="shop-active"
-                                    checked={isActive}
-                                    onCheckedChange={checked => setValue("isActive", checked)}
-                                    className="data-[state=unchecked]:bg-muted dark:data-[state=unchecked]:bg-input"
-                                />
-                            </div>
-                        </div>
+                        <CardTitle>Shop Profile</CardTitle>
+                        <CardDescription>Adjust your public identity and storefront details.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6 pt-6">
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <Label className={cn(errors.shopName && "text-destructive")}>Shop Name {isActive && "*"}</Label>
+                                <Label className={cn(errors.shopName && "text-destructive")}>Shop Name *</Label>
                                 <Input
                                     {...register("shopName")}
                                     placeholder="e.g. Nami's Treasures"
@@ -251,7 +325,7 @@ export default function ShopSettingsPage() {
                                 {errors.shopName && <p className="text-xs text-destructive">{(errors.shopName as any)?.message}</p>}
                             </div>
                             <div className="space-y-2">
-                                <Label className={cn(errors.handle && "text-destructive")}>Handle {isActive && "*"}</Label>
+                                <Label className={cn(errors.handle && "text-destructive")}>Handle *</Label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">@</span>
                                     <Input

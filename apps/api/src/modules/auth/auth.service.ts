@@ -5,6 +5,7 @@ import { OtpUtils } from './utils/otp';
 import { MailerService } from './mail/mailer.service';
 import * as crypto from 'crypto';
 import * as appleSignin from 'apple-signin-auth';
+import { ensureSellerProfile } from '../profile/utils/shop-name-generator';
 
 @Injectable()
 export class AuthService {
@@ -135,6 +136,12 @@ export class AuthService {
             },
         });
 
+        // Seed a default SellerProfile on first sign-in so shop name/handle
+        // are stable from the very first visit to the shop page.
+        if (!existingUser) {
+            await ensureSellerProfile(this.prisma, user.id);
+        }
+
         // If new user and inviteToken provided, record acceptance
         if (!existingUser && inviteToken) {
             const invite = await this.prisma.invite.findUnique({
@@ -254,6 +261,10 @@ export class AuthService {
                         emailVerifiedAt: new Date(),
                     },
                 });
+
+                // Seed a default SellerProfile so shop name/handle are
+                // stable from the very first visit to the shop page.
+                await ensureSellerProfile(this.prisma, user.id);
 
                 // Link identity
                 await this.prisma.oAuthIdentity.create({

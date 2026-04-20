@@ -88,6 +88,8 @@ export class VendorService {
                     })
                     .filter(Boolean);
 
+                const showBadge = seller.showFacebookBadge && seller.user?.facebookVerifiedAt;
+
                 return {
                     handle: seller.handle,
                     shopName: seller.shopName,
@@ -104,7 +106,7 @@ export class VendorService {
                     paymentsAccepted: seller.paymentsAccepted || [],
                     itemCount,
                     previewImages,
-                    facebookVerifiedAt: seller.user?.facebookVerifiedAt?.toISOString() || null,
+                    facebookVerifiedAt: showBadge ? seller.user.facebookVerifiedAt.toISOString() : null,
                 };
             }),
         );
@@ -176,6 +178,7 @@ export class VendorService {
         });
 
         const facebookIdentity = seller.user?.oauthIdentities?.find((i: any) => i.provider === 'facebook');
+        const showBadge = seller.showFacebookBadge && seller.user?.facebookVerifiedAt;
 
         return {
             profile: {
@@ -197,8 +200,8 @@ export class VendorService {
                 referenceLinks: (seller.referenceLinks as any[]) || [],
                 upcomingEvents: (seller.upcomingEvents as any[]) || [],
                 avatarUrl: seller.avatarMedia ? this.mediaService.getPublicUrl(seller.avatarMedia, { preferCdn: true }) : null,
-                facebookVerifiedAt: seller.user?.facebookVerifiedAt?.toISOString() || null,
-                facebookProfileUrl: facebookIdentity?.profileUrl || null,
+                facebookVerifiedAt: showBadge ? seller.user.facebookVerifiedAt.toISOString() : null,
+                facebookProfileUrl: showBadge ? (facebookIdentity?.profileUrl || null) : null,
                 email: seller.user?.email || null,
             },
             items,

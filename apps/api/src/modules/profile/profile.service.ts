@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException, BadRequestException }
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { MediaService } from '../media/media.service';
+import { ensureSellerProfile } from './utils/shop-name-generator';
 
 @Injectable()
 export class ProfileService {
@@ -11,13 +12,23 @@ export class ProfileService {
     ) { }
 
     async getProfileByUserId(userId: string) {
-        const user: any = await this.prisma.user.findUnique({
+        let user: any = await this.prisma.user.findUnique({
             where: { id: userId },
             include: { sellerProfile: { include: { avatarMedia: true } }, oauthIdentities: true },
         });
 
         if (!user) {
             throw new NotFoundException('User not found');
+        }
+
+        // Backfill for users registered before the profile-seeding feature
+        // shipped. No-op for anyone created after.
+        if (!user.sellerProfile) {
+            await ensureSellerProfile(this.prisma, userId);
+            user = await this.prisma.user.findUnique({
+                where: { id: userId },
+                include: { sellerProfile: { include: { avatarMedia: true } }, oauthIdentities: true },
+            });
         }
 
         const facebookIdentity = user.oauthIdentities?.find((i: any) => i.provider === 'facebook');
@@ -27,8 +38,24 @@ export class ProfileService {
             email: user.email,
             facebookVerifiedAt: user.facebookVerifiedAt?.toISOString() || null,
             facebookProfileUrl: facebookIdentity?.profileUrl || null,
+            showFacebookBadge: user.sellerProfile?.showFacebookBadge ?? false,
+            hasRegularEmailAccount: this.computeHasRegularEmailAccount(user, facebookIdentity),
             profile: user.sellerProfile ? this.transformProfile(user.sellerProfile) : null,
         };
+    }
+
+    /**
+     * A "regular email account" means the user has a verified email they can sign in with
+     * independently of Facebook. True when the user pre-existed the Facebook OAuth link
+     * (created via OTP and later linked Facebook), false when the account was created via
+     * Facebook sign-up (email verification derives from Facebook).
+     */
+    private computeHasRegularEmailAccount(user: any, facebookIdentity: any): boolean {
+        if (!user.emailVerifiedAt) return false;
+        if (!facebookIdentity) return true;
+        const userCreated = new Date(user.createdAt).getTime();
+        const identityCreated = new Date(facebookIdentity.createdAt).getTime();
+        return identityCreated - userCreated > 60 * 1000;
     }
 
     async getProfile(sellerId: string) {
@@ -49,6 +76,8 @@ export class ProfileService {
             email: seller.user?.email || '',
             facebookVerifiedAt: seller.user?.facebookVerifiedAt?.toISOString() || null,
             facebookProfileUrl: facebookIdentity?.profileUrl || null,
+            showFacebookBadge: seller.showFacebookBadge ?? false,
+            hasRegularEmailAccount: seller.user ? this.computeHasRegularEmailAccount(seller.user, facebookIdentity) : false,
             profile: this.transformProfile(seller),
         };
     }

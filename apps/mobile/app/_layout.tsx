@@ -35,6 +35,12 @@ function RootLayoutNav() {
   const isLoading = authLoading || hasCompletedOnboarding === null;
 
   useEffect(() => {
+    if (!isLoading) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isLoading]);
+
+  useEffect(() => {
     if (isLoading) return;
 
     const inAuthGroup = (segments[0] as string) === "(auth)";
@@ -114,10 +120,6 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
-
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>

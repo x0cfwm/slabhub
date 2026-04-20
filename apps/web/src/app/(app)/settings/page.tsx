@@ -45,10 +45,10 @@ export default function SettingsPage() {
             <div className="space-y-6">
                 <WorkflowSettings />
 
-                <Card className="border-border bg-muted/30 shadow-sm">
+                <Card id="facebook-profile" className="border-border bg-muted/30 shadow-sm scroll-mt-24">
                     <CardHeader>
                         <CardTitle className="text-muted-foreground uppercase text-[10px] tracking-[0.2em] font-bold">Facebook Profile</CardTitle>
-                        <CardDescription>Connect your Facebook account to display a clickable "Verified" badge on your public shop page. This builds buyer trust and lets them easily visit your Facebook profile.</CardDescription>
+                        <CardDescription>Connect your Facebook account to unlock the clickable "Verified" badge on your public shop page. This builds buyer trust and lets them easily visit your Facebook profile.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {(user as any)?.facebookVerifiedAt ? (
@@ -57,7 +57,12 @@ export default function SettingsPage() {
                                     <p className="text-sm font-medium flex items-center gap-2">
                                         <Check className="h-4 w-4 text-green-500" /> Connected
                                     </p>
-                                    <a href={(user as any).facebookProfileUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline block truncate max-w-[200px] sm:max-w-xs cursor-pointer">
+                                    <a
+                                        href={(user as any).facebookProfileUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-xs text-primary hover:underline block truncate max-w-[200px] sm:max-w-xs cursor-pointer"
+                                    >
                                         View Profile
                                     </a>
                                 </div>
@@ -65,6 +70,12 @@ export default function SettingsPage() {
                                     type="button"
                                     variant="outline"
                                     size="sm"
+                                    disabled={!!(user as any)?.hasRegularEmailAccount}
+                                    title={
+                                        (user as any)?.hasRegularEmailAccount
+                                            ? 'This account also has a verified email login. Facebook stays linked.'
+                                            : undefined
+                                    }
                                     onClick={async () => {
                                         try {
                                             const url = new URL('/v1/auth/facebook', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');

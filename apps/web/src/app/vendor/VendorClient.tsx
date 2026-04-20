@@ -384,7 +384,9 @@ export default function VendorClient() {
                             <div>
                                 <h1 className="text-3xl md:text-5xl font-black tracking-tight flex items-center gap-3 justify-center md:justify-start">
                                     {profile.shopName}
-                                    <CheckCircle2 className="h-6 w-6 text-blue-500 fill-blue-500/10" />
+                                    {(profile as any).facebookVerifiedAt && (
+                                        <CheckCircle2 className="h-6 w-6 text-blue-500 fill-blue-500/10" />
+                                    )}
                                 </h1>
                                 <p className="text-muted-foreground flex items-center justify-center md:justify-start gap-1.5 mt-1 font-bold tracking-wider uppercase text-[10px] md:text-xs">
                                     <span className="text-primary/70">@{profile.handle}</span>
@@ -744,7 +746,9 @@ export default function VendorClient() {
                                             <div>
                                                 <p className="text-sm font-bold flex items-center gap-1.5">
                                                     {profile.shopName}
-                                                    <CheckCircle2 className="h-3 w-3 text-blue-500 fill-blue-500/10" />
+                                                    {(profile as any).facebookVerifiedAt && (
+                                                        <CheckCircle2 className="h-3 w-3 text-blue-500 fill-blue-500/10" />
+                                                    )}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground flex items-center gap-1 opacity-70">
                                                     @{profile.handle}
