@@ -22,9 +22,9 @@ function NativeTabLayout() {
         <Icon sf={{ default: "tag", selected: "tag.fill" }} />
         <Label>Pricing</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: "person", selected: "person.fill" }} />
-        <Label>Profile</Label>
+      <NativeTabs.Trigger name="shop">
+        <Icon sf={{ default: "storefront", selected: "storefront.fill" }} />
+        <Label>Shop</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -85,11 +85,11 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="shop"
         options={{
-          title: "Profile",
+          title: "Shop",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+            <Ionicons name="storefront-outline" size={size} color={color} />
           ),
         }}
       />

@@ -97,6 +97,18 @@ function RootLayoutNav() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="shop-settings"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="vendor/[handle]"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

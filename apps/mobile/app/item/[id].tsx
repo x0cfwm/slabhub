@@ -176,11 +176,14 @@ export default function ItemDetailScreen() {
               blurRadius={15}
             />
             <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-            <Image 
-              source={{ uri: getOptimizedImageUrl(item.imageUri, { height: 800 }) }} 
-              style={styles.heroImage} 
-              contentFit="contain" 
+            <Image
+              source={{ uri: getOptimizedImageUrl(item.imageUri, { height: 800 }) }}
+              style={styles.heroImage}
+              contentFit="contain"
             />
+            <View style={styles.heroZoomHint} pointerEvents="none">
+              <Ionicons name="expand-outline" size={14} color="#fff" />
+            </View>
           </Pressable>
         ) : (
           <View style={styles.heroImagePlaceholder}>
@@ -405,6 +408,17 @@ const styles = StyleSheet.create({
   heroImage: {
     width: '100%',
     height: '100%',
+  },
+  heroZoomHint: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heroImagePlaceholder: {
     width: '100%',

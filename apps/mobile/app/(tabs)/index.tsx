@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,6 +7,10 @@ import {
   Platform,
   Pressable,
   ActivityIndicator,
+  Modal,
+  TouchableWithoutFeedback,
+  Linking,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -17,8 +21,10 @@ import {
   getMarketValueHistory,
 } from '@/lib/api';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { MarketValueChart } from '@/components/MarketValueChart';
 import Colors from '@/constants/colors';
+import Constants from 'expo-constants';
 
 const c = Colors.dark;
 
@@ -43,7 +49,9 @@ const STAGE_COLORS: Record<string, string> = {
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
-  const { inventory, statuses, isLoading: appLoading } = useApp();
+  const { inventory, statuses, isLoading: appLoading, profile } = useApp();
+  const { signOut, user } = useAuth();
+  const [showAccount, setShowAccount] = useState(false);
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
   const { data: marketData, isLoading: marketLoading } = useQuery({
@@ -52,8 +60,8 @@ export default function DashboardScreen() {
   });
 
   const { data: historyData, isLoading: historyLoading } = useQuery({
-    queryKey: ['market-value-history', 30],
-    queryFn: () => getMarketValueHistory(30),
+    queryKey: ['market-value-history', 90],
+    queryFn: () => getMarketValueHistory(90),
   });
 
   const loading = appLoading || marketLoading || historyLoading;
@@ -175,17 +183,22 @@ export default function DashboardScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.brand}>SlabHub</Text>
-          <Text style={styles.title}>Dashboard</Text>
+        <View style={styles.headerLeft}>
+          <Pressable
+            style={({ pressed }) => [styles.avatarBtn, { opacity: pressed ? 0.8 : 1 }]}
+            onPress={() => setShowAccount(true)}
+          >
+            <Text style={styles.avatarBtnText}>
+              {(profile.username || user?.email || 'U')[0].toUpperCase()}
+            </Text>
+          </Pressable>
+          <View>
+            <Text style={styles.brand}>SlabHub</Text>
+            <Text style={styles.title}>Dashboard</Text>
+          </View>
         </View>
         <View style={styles.headerActions}>
-          <Pressable
-            style={({ pressed }) => [styles.secondaryHeaderBtn, { opacity: pressed ? 0.8 : 1 }]}
-            onPress={() => router.push('/posting' as any)}
-          >
-            <Ionicons name="sparkles-outline" size={18} color={c.accent} />
-          </Pressable>
+
           <Pressable
             style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.8 : 1 }]}
             onPress={() => router.push('/add-item')}
@@ -200,15 +213,12 @@ export default function DashboardScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
       >
+        <MarketValueChart items={inventory} history={historyData || []} />
+
         <View style={styles.statsRow}>
           <StatCard icon="cube" label="Total Items" value={stats.totalItems.toString()} />
           <StatCard icon="pricetag" label="For Sale" value={stats.forSaleItems.toString()} accentColor={c.warning} />
         </View>
-        <View style={styles.statsRow}>
-          <StatCard icon="trending-up" label="Market Value" value={`$${stats.marketValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} wide />
-        </View>
-
-        <MarketValueChart history={historyData || []} />
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Items by Stage</Text>
@@ -257,6 +267,72 @@ export default function DashboardScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Account Bottom Sheet */}
+      <Modal visible={showAccount} transparent animationType="fade">
+        <TouchableWithoutFeedback onPress={() => setShowAccount(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.accountSheet}>
+                <View style={styles.accountSheetHandle} />
+                <View style={styles.accountHeader}>
+                  <View style={styles.accountAvatar}>
+                    <Text style={styles.accountAvatarText}>
+                      {(profile.username || user?.email || 'U')[0].toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.accountInfo}>
+                    <Text style={styles.accountName} numberOfLines={1}>
+                      {profile.username || 'My Shop'}
+                    </Text>
+                    <Text style={styles.accountEmail} numberOfLines={1}>
+                      {user?.email || ''}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.accountDivider} />
+                <Pressable
+                  style={({ pressed }) => [styles.accountRow, { opacity: pressed ? 0.7 : 1 }]}
+                  onPress={async () => {
+                    setShowAccount(false);
+                    try { await Linking.openURL('https://slabhub.gg'); } catch {}
+                  }}
+                >
+                  <Ionicons name="globe-outline" size={18} color={c.accent} />
+                  <Text style={styles.accountRowText}>Open SlabHub.gg</Text>
+                </Pressable>
+                <View style={styles.accountDivider} />
+                <Pressable
+                  style={({ pressed }) => [styles.accountRow, { opacity: pressed ? 0.7 : 1 }]}
+                  onPress={() => {
+                    setShowAccount(false);
+                    if (Platform.OS === 'web') {
+                      if (window.confirm('Are you sure you want to log out?')) {
+                        signOut();
+                      }
+                    } else {
+                      Alert.alert(
+                        'Logout',
+                        'Are you sure you want to log out?',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          { text: 'Logout', style: 'destructive', onPress: signOut },
+                        ]
+                      );
+                    }
+                  }}
+                >
+                  <Ionicons name="log-out-outline" size={18} color={c.error} />
+                  <Text style={[styles.accountRowText, { color: c.error }]}>Log Out</Text>
+                </Pressable>
+                <Text style={styles.accountVersion}>
+                  Version {Constants.nativeAppVersion ?? Constants.expoConfig?.version ?? 'unknown'}
+                </Text>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   );
 }
@@ -492,5 +568,101 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600' as const,
     color: c.accentText,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatarBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: c.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: c.accent,
+  },
+  avatarBtnText: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: c.accent,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  accountSheet: {
+    backgroundColor: c.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  accountSheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: c.border,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  accountHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  accountAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: c.surfaceHighlight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: c.accent,
+  },
+  accountAvatarText: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: c.accent,
+  },
+  accountInfo: {
+    flex: 1,
+  },
+  accountName: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: c.text,
+  },
+  accountEmail: {
+    fontSize: 13,
+    color: c.textSecondary,
+    marginTop: 2,
+  },
+  accountDivider: {
+    height: 1,
+    backgroundColor: c.borderLight,
+    marginVertical: 4,
+  },
+  accountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+  },
+  accountRowText: {
+    fontSize: 15,
+    fontWeight: '500' as const,
+    color: c.text,
+  },
+  accountVersion: {
+    fontSize: 12,
+    color: c.textTertiary,
+    textAlign: 'center' as const,
+    marginTop: 16,
   },
 });

@@ -66,7 +66,10 @@ export interface InventoryItem {
 export interface UserProfile {
   username: string;
   handle: string;
+  isActive: boolean;
   location: string;
+  avatarUrl?: string | null;
+  avatarId?: string | null;
   paymentMethods: PaymentMethod[];
   fulfillmentOptions: FulfillmentOption[];
   tradeshows: { name: string; date?: string; link: string }[];

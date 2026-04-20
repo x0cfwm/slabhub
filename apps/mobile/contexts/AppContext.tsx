@@ -13,6 +13,7 @@ import {
 } from '@/constants/types';
 import * as api from '@/lib/api';
 import { InventoryItem as ApiInventoryItem } from '@/lib/types';
+import { queryClient } from '@/lib/query-client';
 
 import { AppState, AppStateStatus } from 'react-native';
 
@@ -21,6 +22,7 @@ const PROFILE_KEY = '@slabhub_profile';
 const DEFAULT_PROFILE: UserProfile = {
   username: '',
   handle: '',
+  isActive: false,
   location: '',
   paymentMethods: [],
   fulfillmentOptions: [],
@@ -218,7 +220,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const updatedProfile: UserProfile = {
           username: p.shopName,
           handle: p.handle,
+          isActive: p.isActive ?? false,
           location: p.location || '',
+          avatarUrl: (p as any).avatarUrl ?? null,
+          avatarId: (p as any).avatarId ?? null,
           paymentMethods: (p.paymentsAccepted || []).map((m: any) => {
             const map: any = {
               'Paypal G&S': 'paypal_gs',
@@ -276,6 +281,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const dto = mapUiToApiDto(item);
       const newItem = await api.createInventoryItem(dto);
       setInventory(prev => [...prev, mapApiToUiItem(newItem)]);
+
+      if (item.stage === 'listed' || item.stage === 'sold') {
+        queryClient.invalidateQueries({ queryKey: ['vendor-page'] });
+      }
     } catch (e) {
       console.error('Failed to add item:', e);
       throw e;
@@ -295,6 +304,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setInventory(prev => prev.map((item) =>
         item.id === id ? mapApiToUiItem(updatedItem) : item
       ));
+
+      // Invalidate vendor-page if stage could affect shop tab visibility
+      if (
+        merged.stage === 'listed' || current.stage === 'listed' ||
+        merged.stage === 'sold' || current.stage === 'sold'
+      ) {
+        queryClient.invalidateQueries({ queryKey: ['vendor-page'] });
+      }
     } catch (e) {
       console.error('Failed to update item:', e);
       throw e;
@@ -303,13 +320,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const deleteItem = useCallback(async (id: string) => {
     try {
+      const current = inventory.find(i => i.id === id);
       await api.deleteInventoryItem(id);
       setInventory(prev => prev.filter((item) => item.id !== id));
+
+      if (current && (current.stage === 'listed' || current.stage === 'sold')) {
+        queryClient.invalidateQueries({ queryKey: ['vendor-page'] });
+      }
     } catch (e) {
       console.error('Failed to delete item:', e);
       throw e;
     }
-  }, []);
+  }, [inventory]);
 
   const moveItem = useCallback(async (id: string, stage: ItemStage) => {
     const STAGE_TO_SYSTEM_MAP_SINGLE: Record<ItemStage, string> = {
@@ -335,6 +357,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const apiDto: any = {};
       if (updates.username) apiDto.shopName = updates.username;
       if (updates.handle) apiDto.handle = updates.handle;
+      if (typeof updates.isActive === 'boolean') apiDto.isActive = updates.isActive;
       if (updates.location) {
         apiDto.location = updates.location;
       }
@@ -351,7 +374,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return map[m] || m;
       });
       if (updates.fulfillmentOptions) apiDto.fulfillmentOptions = updates.fulfillmentOptions;
-      if (updates.wishlist) apiDto.wishlistText = updates.wishlist;
+      if (typeof updates.wishlist === 'string') apiDto.wishlistText = updates.wishlist;
+      if (typeof updates.avatarId === 'string' || updates.avatarId === null) apiDto.avatarId = updates.avatarId;
       if (updates.tradeshows) apiDto.upcomingEvents = updates.tradeshows.map(t => ({ name: t.name, date: t.date, location: t.link }));
       if (updates.references) apiDto.referenceLinks = updates.references.map(r => ({ title: r.name, url: r.link }));
       if (updates.socials) apiDto.socials = updates.socials;
@@ -364,7 +388,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const syncedProfile: UserProfile = {
             username: p.shopName,
             handle: p.handle,
+            isActive: p.isActive ?? false,
             location: p.location || '',
+            avatarUrl: (p as any).avatarUrl ?? null,
+            avatarId: (p as any).avatarId ?? null,
             paymentMethods: (p.paymentsAccepted || []).map((m: any) => {
               const map: any = {
                 'Paypal G&S': 'paypal_gs',
@@ -385,12 +412,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           };
           setProfile(syncedProfile);
           await saveProfile(syncedProfile);
+          queryClient.invalidateQueries({ queryKey: ['vendor-page'] });
           return;
         }
       }
 
       setProfile(updated);
       await saveProfile(updated);
+      queryClient.invalidateQueries({ queryKey: ['vendor-page'] });
     } catch (e) {
       console.error('Failed to update profile:', e);
       throw e;

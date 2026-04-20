@@ -11,7 +11,8 @@ import {
     SellerProfile,
     PortfolioHistoryEntry,
     GradingRecognitionResult,
-    WorkflowStatus
+    WorkflowStatus,
+    VendorPageResponse
 } from "./types";
 import { optimizeLocalImage } from "./image-utils";
 
@@ -191,4 +192,23 @@ export async function listStatuses(includeDisabled = false): Promise<WorkflowSta
 export async function generatePosting(payload: PostingGenerateRequest): Promise<GeneratedPosting> {
     const response = await apiRequest("POST", "/posting/generate", payload);
     return response.json();
+}
+
+export async function getVendorPage(handle: string): Promise<VendorPageResponse> {
+    const response = await apiRequest("GET", `/vendor/${handle}`);
+    return response.json();
+}
+
+export async function trackShopEvent(data: {
+    type: 'VIEW_SHOP' | 'VIEW_ITEM' | 'INQUIRY_START' | 'INQUIRY_COMPLETE';
+    handle: string;
+    itemId?: string;
+    channel?: string;
+}): Promise<void> {
+    try {
+        await apiRequest("POST", "/analytics/track", data);
+    } catch (e) {
+        // Analytics failures should not crash the app
+        console.warn('[analytics] Failed to track event:', e);
+    }
 }

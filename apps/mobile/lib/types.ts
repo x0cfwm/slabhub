@@ -255,3 +255,72 @@ export interface GeneratedPosting {
     textOptions: PostingTextOptions;
     visualOptions: PostingVisualOptions;
 }
+
+// Vendor / Shop types
+export interface VendorProfile {
+    handle: string;
+    shopName: string;
+    isActive: boolean;
+    location: string;
+    avatarUrl?: string | null;
+    paymentsAccepted: string[];
+    fulfillmentOptions: string[];
+    meetupsEnabled?: boolean;
+    shippingEnabled?: boolean;
+    wishlistText: string;
+    upcomingEvents: { name: string; date?: string; location?: string }[];
+    referenceLinks: { title: string; url: string }[];
+    socials?: {
+        instagram?: string;
+        tiktok?: string;
+        discord?: string;
+        tcgplayer?: string;
+        ebay?: string;
+    };
+    facebookVerifiedAt?: string | null;
+    facebookProfileUrl?: string | null;
+    email?: string | null;
+}
+
+export interface VendorItem {
+    id: string;
+    type: string;
+    stage: string;
+    quantity: number;
+    listingPrice?: number | null;
+    marketPrice?: number | null;
+    notes?: string | null;
+    sellingDescription?: string | null;
+    photos?: string[];
+    sortOrder?: number;
+    statusId?: string | null;
+    condition?: string;
+    gradingCompany?: string;
+    grade?: string | number;
+    gradeProvider?: string;
+    gradeValue?: string;
+    certNumber?: string;
+    productName?: string;
+    productType?: string;
+    cardProfile?: {
+        id: string;
+        name: string;
+        set: string;
+        setCode?: string;
+        cardNumber?: string;
+        rarity?: string;
+        imageUrl?: string;
+    };
+    frontMediaUrl?: string | null;
+    backMediaUrl?: string | null;
+    status?: WorkflowStatus | null;
+    createdAt: string;
+}
+
+export interface VendorPageResponse {
+    profile: VendorProfile;
+    items: VendorItem[];
+    itemCount: number;
+    listedStatuses: WorkflowStatus[];
+}
+

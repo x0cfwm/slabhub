@@ -12,9 +12,12 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   RefreshControl,
+  Modal,
+  TouchableWithoutFeedback,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
@@ -56,6 +59,7 @@ export default function InventoryScreen() {
   const [activeStage, setActiveStage] = useState<ItemStage | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showWorkflowModal, setShowWorkflowModal] = useState(false);
   const [listedPromptVisible, setListedPromptVisible] = useState(false);
   const [soldPromptVisible, setSoldPromptVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
@@ -230,6 +234,12 @@ export default function InventoryScreen() {
         <View style={styles.headerActions}>
           <Pressable
             style={({ pressed }) => [styles.secondaryHeaderBtn, { opacity: pressed ? 0.8 : 1 }]}
+            onPress={() => setShowWorkflowModal(true)}
+          >
+            <Ionicons name="options-outline" size={18} color={c.textSecondary} />
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.secondaryHeaderBtn, { opacity: pressed ? 0.8 : 1 }]}
             onPress={() => router.push('/posting' as any)}
           >
             <Ionicons name="sparkles-outline" size={18} color={c.accent} />
@@ -355,6 +365,60 @@ export default function InventoryScreen() {
           }
         }}
       />
+
+      <Modal visible={showWorkflowModal} transparent animationType="fade">
+        <TouchableWithoutFeedback onPress={() => setShowWorkflowModal(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalSheet}>
+                <View style={styles.modalSheetHandle} />
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Workflow & Kanban</Text>
+                </View>
+                <Text style={styles.modalSubtitle}>
+                  Your workflow statuses control the stages of your inventory. Customize your Kanban board columns and colors on the SlabHub web app.
+                </Text>
+                
+                <View style={styles.statusGrid}>
+                  {statuses && statuses.length > 0 ? (
+                    statuses.map((status) => (
+                      <View
+                        key={status.id}
+                        style={[
+                          styles.statusChip,
+                          !status.isEnabled && styles.statusDisabled,
+                          !status.showOnKanban && styles.statusHidden,
+                        ]}
+                      >
+                        <View style={[styles.statusColor, { backgroundColor: status.color || '#94a3b8' }]} />
+                        <Text style={[styles.statusChipText, !status.isEnabled && { color: c.textTertiary }]}>
+                          {status.name}
+                        </Text>
+                        {!status.showOnKanban && (
+                          <Feather name="eye-off" size={10} color={c.textTertiary} style={{ marginLeft: 4 }} />
+                        )}
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.emptyStatusText}>No workflow statuses available.</Text>
+                  )}
+                </View>
+
+                <Pressable
+                  style={({ pressed }) => [styles.webActionBtn, { opacity: pressed ? 0.8 : 1 }]}
+                  onPress={async () => {
+                    try { await Linking.openURL('https://slabhub.gg/shop-settings'); } catch {}
+                  }}
+                >
+                  <Ionicons name="desktop-outline" size={16} color={c.textSecondary} />
+                  <Text style={styles.webActionBtnText}>Edit on Web</Text>
+                </Pressable>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
     </View>
   );
 }
@@ -656,5 +720,101 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: c.textSecondary,
     textAlign: 'center' as const,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: c.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+    maxHeight: '80%',
+  },
+  modalSheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: c.border,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: c.text,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: c.textTertiary,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  webActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: c.surfaceHighlight,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginTop: 20,
+    marginBottom: 0,
+  },
+  webActionBtnText: {
+    color: c.textSecondary,
+    fontSize: 14,
+    fontWeight: '600' as const,
+  },
+  statusGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: c.surfaceHighlight,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+  },
+  statusDisabled: {
+    opacity: 0.4,
+    borderStyle: 'dashed' as const,
+  },
+  statusHidden: {
+    opacity: 0.7,
+    backgroundColor: 'transparent',
+    borderColor: c.borderLight,
+  },
+  statusColor: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  statusChipText: {
+    fontSize: 13,
+    color: c.textSecondary,
+    fontWeight: '600' as const,
+  },
+  emptyStatusText: {
+    fontSize: 14,
+    color: c.textTertiary,
+    fontStyle: 'italic' as const,
   },
 });
