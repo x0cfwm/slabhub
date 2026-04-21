@@ -227,9 +227,11 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                                                         <SelectItem key={g.id} value={g.id}>
                                                             <span className="flex items-center justify-between w-full gap-6 min-w-[220px]">
                                                                 <span className="font-medium">{g.displayLabel}</span>
-                                                                <span className="text-muted-foreground text-xs tabular-nums">
-                                                                    {formatPrice(g.price!)}
-                                                                    {g.sales > 0 && <span className="ml-1.5 opacity-70">· {g.sales}</span>}
+                                                                <span className="flex items-center text-muted-foreground text-xs tabular-nums gap-1.5">
+                                                                    <span>{formatPrice(g.price!)}</span>
+                                                                    <span className="opacity-70 min-w-[32px] text-left">
+                                                                        {g.sales > 0 ? `· ${g.sales}` : ""}
+                                                                    </span>
                                                                 </span>
                                                             </span>
                                                         </SelectItem>
