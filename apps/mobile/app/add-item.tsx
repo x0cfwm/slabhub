@@ -477,19 +477,14 @@ export default function AddItemScreen() {
 
         {selectedProduct && (
           <View style={styles.matchedProductSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Matched Product</Text>
-              <Pressable style={styles.changeBtn} onPress={handleClearMatchedProduct}>
-                <Text style={styles.changeBtnText}>Change</Text>
-              </Pressable>
-            </View>
+            <Text style={styles.sectionTitle}>Matched Product</Text>
             <View style={styles.matchedProductCard}>
               <View style={styles.matchedProductMain}>
                 {selectedProduct.imageUrl ? (
-                  <Image 
-                    source={{ uri: getOptimizedImageUrl(selectedProduct.imageUrl, { height: 200 }) }} 
-                    style={styles.matchedProductImage} 
-                    contentFit="contain" 
+                  <Image
+                    source={{ uri: getOptimizedImageUrl(selectedProduct.imageUrl, { height: 200 }) }}
+                    style={styles.matchedProductImage}
+                    contentFit="contain"
                   />
                 ) : (
                   <View style={[styles.matchedProductImage, styles.matchedProductImagePlaceholder]}>
@@ -514,10 +509,9 @@ export default function AddItemScreen() {
                     ))}
                   </View>
                 </View>
-              </View>
-              <View style={styles.matchedProductStatus}>
-                <Ionicons name="checkmark-circle" size={14} color={c.accent} />
-                <Text style={styles.matchedProductStatusText}>Found in database</Text>
+                <Pressable style={styles.changeBtn} onPress={handleClearMatchedProduct} hitSlop={8}>
+                  <Text style={styles.changeBtnText}>Change</Text>
+                </Pressable>
               </View>
             </View>
           </View>
@@ -1071,12 +1065,8 @@ const styles = StyleSheet.create({
   matchedProductSection: {
     gap: 12,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   changeBtn: {
+    alignSelf: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -1162,18 +1152,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700' as const,
     color: c.accent,
-  },
-  matchedProductStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: c.borderLight,
-  },
-  matchedProductStatusText: {
-    fontSize: 11,
-    color: c.accent,
-    fontWeight: '600' as const,
   },
 });
