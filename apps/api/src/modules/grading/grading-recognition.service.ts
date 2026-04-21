@@ -347,7 +347,6 @@ export class GradingRecognitionService {
                                 );
                                 const top = matchedProducts.slice(0, DISAMBIGUATION_IMAGE_LIMIT);
 
-                                const disambigStart = Date.now();
                                 const selectedId = await this.disambiguateWithImages(
                                     top,
                                     parsed,
@@ -355,15 +354,6 @@ export class GradingRecognitionService {
                                     processingMimeType,
                                     disambiguationModelName,
                                     telemetry,
-                                );
-                                telemetry.step(
-                                    'disambiguation',
-                                    disambigStart,
-                                    {
-                                        model: disambiguationModelName,
-                                        candidates: top.map((p) => ({ id: p.id, title: p.title, hasImage: !!p.imageUrl })),
-                                    },
-                                    { selectedId: selectedId ?? '' },
                                 );
 
                                 if (selectedId) {
@@ -661,6 +651,12 @@ export class GradingRecognitionService {
 
         const llmStart = Date.now();
         const imageParts = parts.filter((p) => 'fileData' in p || 'inlineData' in p).length;
+        const stepInput = {
+            model: modelName,
+            partsCount: parts.length,
+            imageParts,
+            candidates: products.map((p) => ({ id: p.id, title: p.title, hasImage: !!p.imageUrl })),
+        };
         try {
             const selectionModel = this.genAI.getGenerativeModel({
                 model: modelName,
@@ -684,22 +680,11 @@ export class GradingRecognitionService {
                 selParsed.selectedId && selParsed.selectedId.trim() !== ''
                     ? selParsed.selectedId.trim()
                     : null;
-            telemetry.step(
-                'disambiguation.llm',
-                llmStart,
-                { model: modelName, partsCount: parts.length, imageParts },
-                { selectedId: selectedId ?? '' },
-            );
+            telemetry.step('disambiguation', llmStart, stepInput, { selectedId: selectedId ?? '' });
             return selectedId;
         } catch (err) {
             this.logger.warn(`Disambiguation LLM failed: ${err.message}`);
-            telemetry.step(
-                'disambiguation.llm',
-                llmStart,
-                { model: modelName, partsCount: parts.length, imageParts },
-                undefined,
-                err?.message || String(err),
-            );
+            telemetry.step('disambiguation', llmStart, stepInput, undefined, err?.message || String(err));
             return null;
         }
     }

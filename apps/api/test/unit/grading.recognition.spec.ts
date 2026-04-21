@@ -399,14 +399,19 @@ describe('GradingRecognitionService', () => {
         expect(names).toContain('language-tiebreak');
 
         const disambig = steps.find((s) => s.name === 'disambiguation');
+        expect(disambig).toBeDefined();
         expect((disambig?.input.candidates as any[]).map((c) => c.id).sort()).toEqual(['en', 'jp']);
+        expect(disambig?.input).toMatchObject({
+            model: expect.any(String),
+            partsCount: expect.any(Number),
+            imageParts: expect.any(Number),
+        });
         expect(disambig?.output).toEqual({ selectedId: '' });
 
-        const disambigLlm = steps.find((s) => s.name === 'disambiguation.llm');
-        expect(disambigLlm).toBeDefined();
-        expect(disambigLlm?.input).toMatchObject({ model: expect.any(String) });
-        expect(disambigLlm?.output).toEqual({ selectedId: '' });
-        expect(disambigLlm!.durationMs).toBeLessThanOrEqual(disambig!.durationMs);
+        // Sanity: every step appears at most once and durations sum to <= telemetry total
+        // (no overlapping wrapper/inner steps that would double-count).
+        const totalStepDuration = steps.reduce((sum, s) => sum + s.durationMs, 0);
+        expect(totalStepDuration).toBeLessThanOrEqual(args.data.durationMs + 5);
 
         const tieBreak = steps.find((s) => s.name === 'language-tiebreak');
         expect(tieBreak?.input).toMatchObject({ language: 'English', inCount: 2 });

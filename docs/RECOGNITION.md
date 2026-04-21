@@ -148,7 +148,7 @@ So `"OP09118"` produces `OP09-118, OP09118, #OP09-118, #OP09118, OP09-0118, OP09
 
 **disambiguation** — `disambiguateWithImages`. Runs only when >1 candidate remains. Sends the target photo as `inlineData` (base64) and up to 8 candidate images as `fileData` parts referencing their public `imageUrl` directly — Gemini fetches them server-side, so we save the round-trip from API → R2 → API. Model: `gemini-2.5-flash-lite`. Prompt includes the originally extracted `cardName`, `rawCardNumber`, `language`, `rarity`, `treatment` as context, and asks for `selectedId` or empty string when uncertain.
 
-A nested `disambiguation.llm` step is recorded for the Gemini call alone (input: `model`, `partsCount`, `imageParts`; output: `selectedId`). Comparing the outer `disambiguation` duration vs `disambiguation.llm` duration shows how much time goes to payload building vs the model itself — currently they're equal (payload assembly is ~0ms), but the split helps catch future regressions.
+Telemetry input includes `model`, `partsCount`, `imageParts`, and the candidate list (`{id, title, hasImage}`). Output is `{selectedId}`. Steps in the trace never overlap — summing `step.durationMs` across all steps gives a total ≤ `telemetry.durationMs`.
 
 **language-tiebreak** — `applyLanguageFilter` runs only when disambiguation returned empty or an unknown id. Filters product titles by `japan` keyword based on extracted `language`. Soft: if result is 0, falls back to the original pool before the tie-break. Deliberately placed **after** disambiguation because the first-pass `language` flag can be wrong (especially on Manga Rare cards).
 
