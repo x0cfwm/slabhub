@@ -374,6 +374,18 @@ export async function deleteAccount(): Promise<void> {
     }
 }
 
+export async function disconnectFacebook(): Promise<void> {
+    const url = getFullUrl('/v1/auth/facebook');
+    const response = await fetch(url.toString(), {
+        method: 'DELETE',
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to disconnect Facebook');
+    }
+}
+
 export async function getVendorPage(handle: string): Promise<{ profile: SellerProfile, items: InventoryItem[], listedStatuses?: { id: string, name: string }[] }> {
     const url = getFullUrl(`/v1/vendor/${handle}`);
     const response = await fetch(url.toString(), { credentials: 'include' });

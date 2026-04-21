@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { deleteAccount } from "@/lib/api";
+import { deleteAccount, disconnectFacebook } from "@/lib/api";
 import { WorkflowSettings } from "@/components/settings/WorkflowSettings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -78,12 +78,11 @@ export default function SettingsPage() {
                                     }
                                     onClick={async () => {
                                         try {
-                                            const url = new URL('/v1/auth/facebook', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
-                                            await fetch(url.toString(), { method: 'DELETE', credentials: 'include' });
+                                            await disconnectFacebook();
                                             toast.success('Disconnected Facebook');
                                             await refresh();
-                                        } catch (e) {
-                                            toast.error('Failed to disconnect');
+                                        } catch (e: any) {
+                                            toast.error(e?.message || 'Failed to disconnect');
                                         }
                                     }}
                                 >
