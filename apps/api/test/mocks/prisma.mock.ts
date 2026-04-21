@@ -141,5 +141,9 @@ export function createPrismaMock() {
       findUnique: jest.fn(),
       create: jest.fn(),
     },
+    gradingRecognitionTrace: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+    },
   } as any;
 }

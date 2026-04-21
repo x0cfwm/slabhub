@@ -139,7 +139,7 @@ export default function AddItemPage() {
             
             // Then recognize
             const result = await recognizeImage(file);
-            
+
             if (result.success && result.data && !recognitionCancelledRef.current) {
                 const d = result.data;
                 const newFormData = { ...formData };
@@ -181,7 +181,7 @@ export default function AddItemPage() {
                     newFormData.refPriceChartingProductId = d.refPriceChartingProductId;
                     newFormData.baseCardId = d.refPriceChartingProductId;
                     newFormData.cardVariantId = d.refPriceChartingProductId;
-                    
+
                     // Explicitly set the active card so it renders immediately
                     setExplicitlySelectedCard({
                         id: d.refPriceChartingProductId!,
@@ -200,7 +200,7 @@ export default function AddItemPage() {
                         lastUpdated: new Date().toISOString(),
                         source: "PRICECHARTING"
                     });
-                    
+
                     // Manually push to cards array to immediately show selection regardless of fetch
                     setCards(prev => {
                         if (prev.some(c => c.id === d.refPriceChartingProductId)) return prev;
@@ -222,12 +222,35 @@ export default function AddItemPage() {
                             source: "PRICECHARTING"
                         }];
                     });
+                } else if (d.ambiguous && d.candidates && d.candidates.length > 0) {
+                    const setCodeFromRaw = d.rawCardNumber?.split('-')[0] || '';
+                    setExplicitlySelectedCard(null);
+                    setCards(d.candidates.map(c => ({
+                        id: c.id,
+                        name: c.title || d.cardName || '',
+                        set: c.set || d.setName || '',
+                        setCode: setCodeFromRaw,
+                        number: c.cardNumber || d.rawCardNumber || '',
+                        imageUrl: c.imageUrl || null,
+                        productType: c.productType || null,
+                        rawPrice: c.rawPrice || 0,
+                        grade7Price: c.grade7Price ?? null,
+                        grade8Price: c.grade8Price ?? null,
+                        grade9Price: c.grade9Price ?? null,
+                        grade95Price: c.grade95Price ?? null,
+                        grade10Price: c.grade10Price ?? null,
+                        sealedPrice: c.sealedPrice ?? null,
+                        lastUpdated: new Date().toISOString(),
+                        source: "PRICECHARTING",
+                    })));
                 }
-                
+
                 setFormData(newFormData);
                 setStep(2);
                 if (d.refPriceChartingProductId) {
                     toast.success("Card recognized successfully!");
+                } else if (d.ambiguous && d.candidates && d.candidates.length > 0) {
+                    toast.warning(`Found ${d.candidates.length} variants — please pick the correct one`);
                 } else {
                     toast.info("Card recognized partially!");
                 }

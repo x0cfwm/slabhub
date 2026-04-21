@@ -6,6 +6,7 @@ import { GradingRecognitionService } from './grading-recognition.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MediaService } from '../media/media.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CurrentUserId } from '../auth/auth.middleware';
 
 @Controller('grading')
 export class GradingController {
@@ -27,6 +28,7 @@ export class GradingController {
     @UseInterceptors(FileInterceptor('file'))
     async recognize(
         @UploadedFile() file: Express.Multer.File,
+        @CurrentUserId() userId: string | undefined,
         @Body('mediaId') mediaId?: string,
     ): Promise<GradingRecognitionResult> {
         let buffer: Buffer;
@@ -51,6 +53,6 @@ export class GradingController {
             throw new BadRequestException('Either file or mediaId is required');
         }
 
-        return this.recognitionService.recognizeFromImage(buffer, mimeType);
+        return this.recognitionService.recognizeFromImage(buffer, mimeType, { userId });
     }
 }

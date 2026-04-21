@@ -562,3 +562,28 @@ enum ShopEventType {
   INQUIRY_START
   INQUIRY_COMPLETE
 }
+
+/// Per-request trace of the grading card-recognition pipeline.
+/// Denormalized fields for fast filtering; full step-by-step payload in `steps`.
+model GradingRecognitionTrace {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  userId           String?
+  durationMs       Int
+  success          Boolean
+  error            String?
+  rawCardNumber    String?
+  language         String?
+  treatment        String?
+  grader           String?
+  decisionReason   String?
+  matchedProductId String?
+  ambiguous        Boolean  @default(false)
+  candidateCount   Int?
+  steps            Json
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([matchedProductId])
+  @@index([decisionReason])
+}

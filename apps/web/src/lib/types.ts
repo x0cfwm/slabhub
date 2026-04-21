@@ -334,6 +334,22 @@ export interface GeneratedPosting {
 }
 
 
+export interface GradingRecognitionCandidate {
+    id: string;
+    title?: string;
+    set?: string;
+    cardNumber?: string;
+    imageUrl?: string;
+    productType?: string;
+    rawPrice?: number;
+    grade7Price?: number;
+    grade8Price?: number;
+    grade9Price?: number;
+    grade95Price?: number;
+    grade10Price?: number;
+    sealedPrice?: number;
+}
+
 export interface GradingRecognitionResult {
     success: boolean;
     data?: {
@@ -352,6 +368,8 @@ export interface GradingRecognitionResult {
         rawCardNumber?: string;
         language?: string;
         year?: string;
+        rarity?: string;
+        treatment?: string;
         refPriceChartingProductId?: string;
         marketPrice?: number;
         grade7Price?: number;
@@ -364,6 +382,8 @@ export interface GradingRecognitionResult {
         productSet?: string;
         productNumber?: string;
         productImageUrl?: string;
+        ambiguous?: boolean;
+        candidates?: GradingRecognitionCandidate[];
     };
     durationMs?: number;
     error?: string;
