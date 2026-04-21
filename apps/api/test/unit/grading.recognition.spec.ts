@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import {
     GradingRecognitionService,
     generateCardNumberCandidates,
+    extractSetNameTokens,
 } from '../../src/modules/grading/grading-recognition.service';
 import { createPrismaMock } from '../mocks/prisma.mock';
 
@@ -101,6 +102,17 @@ describe('generateCardNumberCandidates', () => {
         expect(out).not.toContain('OP010018');
     });
 
+    it('extractSetNameTokens drops stop words and short tokens', () => {
+        expect(extractSetNameTokens('One Piece Emperors in the New World')).toEqual([
+            'emperors', 'new', 'world',
+        ]);
+        expect(extractSetNameTokens('One Piece Japanese Awakening of the New Era')).toEqual([
+            'awakening', 'new', 'era',
+        ]);
+        expect(extractSetNameTokens('')).toEqual([]);
+        expect(extractSetNameTokens(undefined)).toEqual([]);
+    });
+
     it('includes #-prefixed variants to match PriceCharting storage format', () => {
         const out = generateCardNumberCandidates('OP05-119');
         expect(out).toEqual(expect.arrayContaining(['#OP05-119', '#OP05119']));
@@ -170,6 +182,59 @@ describe('GradingRecognitionService', () => {
         const out = await service.recognizeFromImage(Buffer.from('x'), 'image/jpeg');
         expect(out.data?.refPriceChartingProductId).toBe('en');
         expect(out.data?.ambiguous).toBeFalsy();
+    });
+
+    it('set-name filter narrows multi-set cardNumber pools before disambiguation', async () => {
+        let disambigSize = 0;
+        const { service } = makeService(
+            [
+                baseGeminiData({
+                    rawCardNumber: 'OP05-119',
+                    setName: 'Awakening of the New Era',
+                    treatment: 'Alt Art',
+                }),
+                { selectedId: 'awak-en-alt' },
+            ],
+            {
+                'awak-en-alt': product('awak-en-alt', {
+                    title: 'Monkey.D.Luffy [Alternate Art] OP05-119 One Piece Awakening of the New Era',
+                    set: { name: 'One Piece Awakening of the New Era' },
+                }),
+                'awak-jp-alt': product('awak-jp-alt', {
+                    title: 'Monkey.D.Luffy [Alternate Art] OP05-119 One Piece Japanese Awakening of the New Era',
+                    set: { name: 'One Piece Japanese Awakening of the New Era' },
+                }),
+                'fist-en-sp': product('fist-en-sp', {
+                    title: 'Monkey.D.Luffy [SP Gold] OP05-119 One Piece Fist of Divine Speed',
+                    set: { name: 'One Piece Fist of Divine Speed' },
+                }),
+                'fist-jp-sp': product('fist-jp-sp', {
+                    title: 'Monkey.D.Luffy [SP Gold] OP05-119 One Piece Japanese Fist of Divine Speed',
+                    set: { name: 'One Piece Japanese Fist of Divine Speed' },
+                }),
+            },
+        );
+        const originalDisambig = (service as any).disambiguateWithImages.bind(service);
+        (service as any).disambiguateWithImages = async (products: any[], ...rest: any[]) => {
+            disambigSize = products.length;
+            return originalDisambig(products, ...rest);
+        };
+        await service.recognizeFromImage(Buffer.from('x'), 'image/jpeg');
+        // Awakening narrows away both Fist variants. Treatment+set narrows to 2 (en/jp Alt) → disambig.
+        expect(disambigSize).toBe(2);
+    });
+
+    it('set-name filter is soft — keeps pool when no candidate matches', async () => {
+        const { service, prisma } = makeService(
+            [baseGeminiData({ setName: 'Totally Wrong Set Name' })],
+            { p1: product('p1', { title: 'Monkey D. Luffy [Normal] OP05-119 One Piece Awakening', set: { name: 'One Piece Awakening' } }) },
+        );
+        const out = await service.recognizeFromImage(Buffer.from('x'), 'image/jpeg');
+        expect(out.data?.refPriceChartingProductId).toBe('p1');
+        const args = prisma.gradingRecognitionTrace.create.mock.calls[0][0];
+        const setNameStep = (args.data.steps as any[]).find((s) => s.name === 'set-name-filter');
+        expect(setNameStep.input.inCount).toBe(1);
+        expect(setNameStep.output.outCount).toBe(1);
     });
 
     it('does NOT pre-filter by language — sends both EN and JP variants to disambiguation', async () => {
@@ -261,6 +326,7 @@ describe('GradingRecognitionService', () => {
             'normalize-card-number',
             'db-lookup',
             'treatment-filter',
+            'set-name-filter',
             'decision',
         ]);
 

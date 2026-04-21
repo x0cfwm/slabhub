@@ -165,7 +165,7 @@ export class GradingRecognitionService {
                                             }
                                         },
                                         cardName: { type: SchemaType.STRING, description: 'Name of the character/card' },
-                                        setName: { type: SchemaType.STRING, description: 'Name of the set or expansion' },
+                                        setName: { type: SchemaType.STRING, description: 'Specific set/expansion name (subtitle), e.g. "Awakening of the New Era", "Emperors in the New World" — NOT just "One Piece"' },
                                         rawCardNumber: { type: SchemaType.STRING, description: 'Full printed card number including set prefix (e.g. OP05-119, EB01-001)' },
                                         language: { type: SchemaType.STRING, description: 'Language of the card (English or Japanese)' },
                                         year: { type: SchemaType.STRING, description: 'Year of release' },
@@ -194,6 +194,11 @@ export class GradingRecognitionService {
 
                     2. cardName
                     Return the full card name exactly as printed.
+
+                    2a. setName
+                    Return the specific set/expansion name. The card or slab usually shows the set's subtitle in small text near the card number, the booster pack art, or on the grading label.
+                    Examples (One Piece TCG): "Awakening of the New Era", "Emperors in the New World", "Fist of Divine Speed", "Legacy of the Master", "Carrying on His Will", "500 Years in the Future", "Memorial Collection".
+                    DO NOT return just "One Piece" or "One Piece TCG" alone — that's the game name, not the set name. If you cannot read the specific set name, return an empty string instead of a generic placeholder.
 
                     3. certificationNumber
                     Extract the slab certification / cert number from the grading label only.
@@ -265,7 +270,7 @@ export class GradingRecognitionService {
                 );
 
                 if (parsed.success && parsed.data) {
-                    const { rawCardNumber, language, treatment } = parsed.data;
+                    const { rawCardNumber, language, treatment, setName } = parsed.data;
                     if (rawCardNumber) {
                         try {
                             const normStart = Date.now();
@@ -308,6 +313,20 @@ export class GradingRecognitionService {
                                 'treatment-filter',
                                 treatmentStart,
                                 { treatment, inCount: beforeTreatment },
+                                {
+                                    outCount: matchedProducts.length,
+                                    kept: matchedProducts.map((p) => ({ id: p.id, title: p.title })),
+                                },
+                            );
+
+                            const setNameStart = Date.now();
+                            const beforeSetName = matchedProducts.length;
+                            const setNameTokens = extractSetNameTokens(setName);
+                            matchedProducts = this.applySetNameFilter(matchedProducts, setNameTokens);
+                            telemetry.step(
+                                'set-name-filter',
+                                setNameStart,
+                                { setName, tokens: setNameTokens, inCount: beforeSetName },
                                 {
                                     outCount: matchedProducts.length,
                                     kept: matchedProducts.map((p) => ({ id: p.id, title: p.title })),
@@ -460,6 +479,23 @@ export class GradingRecognitionService {
         } catch (err: any) {
             this.logger.warn(`Failed to persist recognition trace: ${err?.message || err}`);
         }
+    }
+
+    private applySetNameFilter(products: MatchedProduct[], tokens: string[]): MatchedProduct[] {
+        if (tokens.length === 0) return products;
+        const matchesAll = (haystack: string) => {
+            const h = haystack.toLowerCase();
+            return tokens.every((t) => h.includes(t));
+        };
+        const matchesAny = (haystack: string) => {
+            const h = haystack.toLowerCase();
+            return tokens.some((t) => h.includes(t));
+        };
+        const haystack = (p: MatchedProduct) => `${p.set?.name || ''} ${p.title || ''}`;
+        const strict = products.filter((p) => matchesAll(haystack(p)));
+        if (strict.length > 0) return strict;
+        const loose = products.filter((p) => matchesAny(haystack(p)));
+        return loose.length > 0 ? loose : products;
     }
 
     private applyTreatmentFilter(products: MatchedProduct[], treatment?: string): MatchedProduct[] {
@@ -689,6 +725,44 @@ export function generateCardNumberCandidates(raw: string): string[] {
         out.add(`#${prefix}${padded}`);
     }
     return Array.from(out);
+}
+
+// Words that appear in many One Piece TCG set names and don't help discriminate;
+// excluded from set-name token matching so we filter on the meaningful tokens only.
+const SET_NAME_STOP_WORDS = new Set([
+    'one',
+    'piece',
+    'the',
+    'of',
+    'and',
+    'a',
+    'an',
+    'in',
+    'on',
+    'to',
+    'for',
+    'his',
+    'her',
+    'with',
+    'tcg',
+    'card',
+    'cards',
+    'game',
+    'set',
+    'expansion',
+    'booster',
+    'japanese',
+    'english',
+]);
+
+export function extractSetNameTokens(setName: string | undefined | null): string[] {
+    if (!setName) return [];
+    const words = setName
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(Boolean);
+    return words.filter((w) => w.length >= 3 && !SET_NAME_STOP_WORDS.has(w));
 }
 
 function inferImageMimeFromUrl(url: string): string {
