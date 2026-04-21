@@ -136,11 +136,11 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
 
                             const GRADE_GROUPS = [
                                 { id: "Raw", label: "Raw", members: ["Raw"] },
-                                { id: "Low", label: "Grades 1–6", members: ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"] },
-                                { id: "Mid", label: "Grades 7–8", members: ["Grade 7", "Grade 8"] },
-                                { id: "High", label: "Grades 9–9.5", members: ["Grade 9", "Grade 9.5"] },
-                                { id: "Ten", label: "Grade 10", members: ["PSA 10", "BGS 10", "CGC 10", "SGC 10", "TAG 10", "ACE 10"] },
                                 { id: "Pristine", label: "Perfect 10", members: ["CGC 10 Prist.", "CGC 10 Pristine", "BGS 10 Black"] },
+                                { id: "Ten", label: "Grade 10", members: ["PSA 10", "BGS 10", "CGC 10", "SGC 10", "TAG 10", "ACE 10"] },
+                                { id: "High", label: "Grades 9–9.5", members: ["Grade 9", "Grade 9.5"] },
+                                { id: "Mid", label: "Grades 7–8", members: ["Grade 7", "Grade 8"] },
+                                { id: "Low", label: "Grades 1–6", members: ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"] },
                             ];
 
                             const summaryPrice = (id: string): number | undefined => {
