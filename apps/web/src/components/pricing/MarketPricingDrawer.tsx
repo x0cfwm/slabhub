@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RefreshCw, ExternalLink, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getOptimizedImageUrl } from "@/lib/image-utils";
 import { ImageZoomDialog, ImageZoomTrigger } from "@/components/common/ImageZoomDialog";
 
@@ -114,60 +115,161 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
                 <div className="space-y-6">
                     <div className="space-y-3">
                         <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Market Estimates</h3>
-                        <div className="flex flex-wrap gap-1.5">
-                            {(() => {
-                                if ((loading || refreshing) && !history?.summary) {
-                                    return (
-                                        <>
-                                            <Skeleton className="h-[38px] flex-1 min-w-0 rounded-lg" />
-                                            <Skeleton className="h-[38px] flex-1 min-w-0 rounded-lg" />
-                                            <Skeleton className="h-[38px] flex-1 min-w-0 rounded-lg" />
-                                            <Skeleton className="h-[38px] flex-1 min-w-0 rounded-lg" />
-                                        </>
-                                    );
+                        {(() => {
+                            if ((loading || refreshing) && !history?.summary) {
+                                return (
+                                    <div className="space-y-3">
+                                        <Skeleton className="h-10 w-full rounded-md" />
+                                        <Skeleton className="h-28 w-full rounded-xl" />
+                                    </div>
+                                );
+                            }
+
+                            const DISPLAY_LABELS: Record<string, string> = {
+                                "Raw": "Raw",
+                                "Grade 7": "PSA 7",
+                                "Grade 8": "PSA 8",
+                                "Grade 9": "PSA 9",
+                                "Grade 9.5": "BGS 9.5",
+                                "PSA 10": "PSA 10",
+                            };
+
+                            const GRADE_GROUPS = [
+                                { id: "Raw", label: "Raw", members: ["Raw"] },
+                                { id: "Low", label: "Grades 1–6", members: ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"] },
+                                { id: "Mid", label: "Grades 7–8", members: ["Grade 7", "Grade 8"] },
+                                { id: "High", label: "Grades 9–9.5", members: ["Grade 9", "Grade 9.5"] },
+                                { id: "Ten", label: "Grade 10", members: ["PSA 10", "BGS 10", "CGC 10", "SGC 10", "TAG 10", "ACE 10"] },
+                                { id: "Pristine", label: "Perfect 10", members: ["CGC 10 Prist.", "CGC 10 Pristine", "BGS 10 Black"] },
+                            ];
+
+                            const summaryPrice = (id: string): number | undefined => {
+                                switch (id) {
+                                    case "Raw": return (history?.updatedRawPrice ?? product.rawPrice) ?? undefined;
+                                    case "Grade 7": return history?.summary?.grade7;
+                                    case "Grade 8": return history?.summary?.grade8;
+                                    case "Grade 9": return history?.summary?.grade9;
+                                    case "Grade 9.5": return history?.summary?.grade95;
+                                    case "PSA 10": return history?.summary?.psa10;
+                                    default: return undefined;
                                 }
+                            };
 
-                                const gradeConfigs = [
-                                    { id: "Raw", displayLabel: "Raw Price", price: history?.updatedRawPrice ?? product.rawPrice },
-                                    { id: "Grade 9", displayLabel: "PSA 9", price: history?.summary?.grade9 },
-                                    { id: "Grade 9.5", displayLabel: "BGS 9.5", price: history?.summary?.grade95 },
-                                    { id: "PSA 10", displayLabel: "PSA 10", price: history?.summary?.psa10 },
-                                    { id: "Grade 8", displayLabel: "PSA 8", price: history?.summary?.grade8 },
-                                    { id: "Grade 7", displayLabel: "PSA 7", price: history?.summary?.grade7 },
-                                ].filter(g => g.price !== undefined);
+                            const salesFor = (id: string) =>
+                                (history?.prices ?? []).filter(p => (p.grade === id) || (!p.grade && id === "Raw"));
 
-                                const sortedGrades = [...gradeConfigs].sort((a, b) => {
-                                    const aHasSales = history?.prices.some(p => (p.grade === a.id) || (!p.grade && a.id === "Raw"));
-                                    const bHasSales = history?.prices.some(p => (p.grade === b.id) || (!p.grade && b.id === "Raw"));
-                                    if (aHasSales && !bHasSales) return -1;
-                                    if (!aHasSales && bHasSales) return 1;
-                                    return 0;
-                                });
+                            const medianSalePrice = (id: string): number | undefined => {
+                                const prices = salesFor(id).map(p => p.price).sort((a, b) => a - b);
+                                if (prices.length === 0) return undefined;
+                                const mid = Math.floor(prices.length / 2);
+                                return prices.length % 2 ? prices[mid] : (prices[mid - 1] + prices[mid]) / 2;
+                            };
 
-                                return sortedGrades.map((g) => {
-                                    const hasSales = (loading || refreshing) ? true : history?.prices.some(p => (p.grade === g.id) || (!p.grade && g.id === "Raw"));
-                                    const isSelected = selectedGrade === g.id;
+                            const formatPrice = (n: number) =>
+                                `$${n < 1 ? n.toFixed(2) : Math.round(n).toLocaleString()}`;
 
-                                    return (
-                                        <div
-                                            key={g.id}
-                                            className={`w-20 sm:w-24 h-11 py-1 px-2 rounded-lg border flex flex-col justify-center transition-all cursor-pointer ${isSelected
-                                                ? "bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/20"
-                                                : "bg-muted/20 border-border/50 hover:bg-muted/30"
-                                                } ${!hasSales ? "opacity-40 grayscale-[0.5] cursor-default pointer-events-none" : ""}`}
-                                            onClick={() => hasSales && setSelectedGrade(g.id)}
-                                        >
-                                            <p className={`text-[7px] uppercase font-bold tracking-wider mb-0 ${isSelected ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"}`}>
-                                                {g.displayLabel}
-                                            </p>
-                                            <p className={`text-xs font-bold ${isSelected ? "text-amber-700 dark:text-amber-400" : ""}`}>
-                                                ${g.price! < 1 ? g.price!.toFixed(2) : Math.round(g.price!).toLocaleString()}
-                                            </p>
+                            const gradeIds = new Set<string>(["Raw", "Grade 7", "Grade 8", "Grade 9", "Grade 9.5", "PSA 10"]);
+                            (history?.prices ?? []).forEach(p => { if (p.grade) gradeIds.add(p.grade); });
+
+                            const gradeConfigs = Array.from(gradeIds)
+                                .map(id => ({
+                                    id,
+                                    displayLabel: DISPLAY_LABELS[id] ?? id,
+                                    price: summaryPrice(id) ?? medianSalePrice(id),
+                                    sales: salesFor(id).length,
+                                }))
+                                .filter(g => g.price !== undefined);
+
+                            const groupsWithData = GRADE_GROUPS
+                                .map(group => ({
+                                    ...group,
+                                    grades: group.members
+                                        .map(id => gradeConfigs.find(g => g.id === id))
+                                        .filter((g): g is typeof gradeConfigs[number] => !!g)
+                                        .sort((a, b) => b.sales - a.sales),
+                                }))
+                                .filter(g => g.grades.length > 0);
+
+                            if (groupsWithData.length === 0) {
+                                return <p className="text-sm text-muted-foreground italic px-1">No price estimates yet.</p>;
+                            }
+
+                            const allGrades = groupsWithData.flatMap(g => g.grades);
+                            const selected = allGrades.find(g => g.id === selectedGrade) ?? allGrades[0];
+
+                            const selectedSales = salesFor(selected.id)
+                                .slice()
+                                .sort((a, b) => a.date.localeCompare(b.date));
+                            const salesPrices = selectedSales.map(s => s.price);
+                            const minP = salesPrices.length ? Math.min(...salesPrices) : selected.price!;
+                            const maxP = salesPrices.length ? Math.max(...salesPrices) : selected.price!;
+                            const showRange = salesPrices.length > 1 && minP !== maxP;
+
+                            return (
+                                <div className="space-y-3">
+                                    <Select value={selected.id} onValueChange={setSelectedGrade}>
+                                        <SelectTrigger className="w-full h-10 bg-card">
+                                            <SelectValue>
+                                                <span className="flex items-center justify-between w-full gap-3 pr-2">
+                                                    <span className="font-semibold text-sm">{selected.displayLabel}</span>
+                                                    <span className="text-xs text-muted-foreground tabular-nums">
+                                                        {formatPrice(selected.price!)}
+                                                        {selected.sales > 0 && <span className="ml-1.5">· {selected.sales} sales</span>}
+                                                    </span>
+                                                </span>
+                                            </SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {groupsWithData.map(group => (
+                                                <SelectGroup key={group.id}>
+                                                    <SelectLabel className="text-[10px] uppercase tracking-wider">{group.label}</SelectLabel>
+                                                    {group.grades.map(g => (
+                                                        <SelectItem key={g.id} value={g.id}>
+                                                            <span className="flex items-center justify-between w-full gap-6 min-w-[220px]">
+                                                                <span className="font-medium">{g.displayLabel}</span>
+                                                                <span className="text-muted-foreground text-xs tabular-nums">
+                                                                    {formatPrice(g.price!)}
+                                                                    {g.sales > 0 && <span className="ml-1.5 opacity-70">· {g.sales}</span>}
+                                                                </span>
+                                                            </span>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+
+                                    <div className="rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-amber-500/[0.03] to-transparent p-5">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest">
+                                                    {selected.displayLabel}
+                                                </p>
+                                                <p className="text-3xl sm:text-4xl font-bold mt-1 tabular-nums leading-none">
+                                                    {formatPrice(selected.price!)}
+                                                </p>
+                                                <p className="text-[10px] text-muted-foreground mt-2">
+                                                    {selected.sales > 0 ? `median of ${selected.sales} recent sale${selected.sales === 1 ? "" : "s"}` : "no recent sales — using catalog estimate"}
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-col items-end justify-between gap-2 min-w-[120px] self-stretch">
+                                                {showRange && (
+                                                    <div className="text-right">
+                                                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Range</p>
+                                                        <p className="text-xs font-semibold tabular-nums mt-0.5">
+                                                            {formatPrice(minP)} – {formatPrice(maxP)}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                {salesPrices.length >= 2 && (
+                                                    <Sparkline data={salesPrices} className="w-28 h-10" />
+                                                )}
+                                            </div>
                                         </div>
-                                    );
-                                });
-                            })()}
-                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
 
 
@@ -304,12 +406,28 @@ export function MarketPricingDrawer({ product, open, onOpenChange }: MarketPrici
 
                 </div>
             </SheetContent>
-            <ImageZoomDialog 
-                imageUrl={zoomedImage} 
-                open={!!zoomedImage} 
-                onOpenChange={(open) => !open && setZoomedImage(null)} 
+            <ImageZoomDialog
+                imageUrl={zoomedImage}
+                open={!!zoomedImage}
+                onOpenChange={(open) => !open && setZoomedImage(null)}
             />
         </Sheet>
+    );
+}
+
+function Sparkline({ data, className }: { data: number[]; className?: string }) {
+    if (data.length < 2) return null;
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const range = max - min || 1;
+    const stepX = 100 / (data.length - 1);
+    const points = data.map((v, i) => `${(i * stepX).toFixed(2)},${(30 - ((v - min) / range) * 28).toFixed(2)}`).join(" ");
+    const up = data[data.length - 1] >= data[0];
+    const stroke = up ? "rgb(16 185 129)" : "rgb(239 68 68)";
+    return (
+        <svg viewBox="0 0 100 30" preserveAspectRatio="none" className={className}>
+            <polyline points={points} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        </svg>
     );
 }
 

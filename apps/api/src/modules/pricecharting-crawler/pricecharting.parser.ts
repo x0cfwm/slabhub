@@ -3,6 +3,29 @@ import * as cheerio from 'cheerio';
 import { ParsedProductDetails, PriceChartingProductType, PriceChartingSaleEntry } from './types';
 import { canonicalizeUrl, distillMarketplaceUrl, extractSlug } from './utils/url';
 
+// Fallback only — parser prefers the dropdown on the product page.
+const DEFAULT_GRADE_CLASS_MAP: Record<string, string> = {
+    'completed-auctions-used': 'Raw',
+    'completed-auctions-manual-only': 'PSA 10',
+    'completed-auctions-box-only': 'Grade 9.5',
+    'completed-auctions-graded': 'Grade 9',
+    'completed-auctions-new': 'Grade 8',
+    'completed-auctions-cib': 'Grade 7',
+    'completed-auctions-loose-and-box': 'BGS 10',
+    'completed-auctions-grade-seventeen': 'CGC 10',
+    'completed-auctions-grade-eighteen': 'SGC 10',
+    'completed-auctions-grade-nineteen': 'CGC 10 Pristine',
+    'completed-auctions-grade-twenty': 'BGS 10 Black',
+    'completed-auctions-grade-twenty-one': 'TAG 10',
+    'completed-auctions-grade-twenty-two': 'ACE 10',
+    'completed-auctions-grade-six': 'Grade 6',
+    'completed-auctions-grade-five': 'Grade 5',
+    'completed-auctions-grade-four': 'Grade 4',
+    'completed-auctions-grade-three': 'Grade 3',
+    'completed-auctions-box-and-manual': 'Grade 2',
+    'completed-auctions-loose-and-manual': 'Grade 1',
+};
+
 @Injectable()
 export class PriceChartingParser {
     private readonly logger = new Logger(PriceChartingParser.name);
@@ -175,27 +198,35 @@ export class PriceChartingParser {
 
     private parseSalesFromPage($: cheerio.CheerioAPI): PriceChartingSaleEntry[] {
         const sales: PriceChartingSaleEntry[] = [];
-        const gradeMappings = [
-            { selector: '#used, .completed-auctions-used', label: 'Raw' },
-            { selector: '#graded-10, .completed-auctions-manual-only', label: 'PSA 10' },
-            { selector: '#graded-9-5, #graded-95, .completed-auctions-box-only', label: 'Grade 9.5' },
-            { selector: '#graded-9, .completed-auctions-graded', label: 'Grade 9' },
-            { selector: '#graded-8, .completed-auctions-new', label: 'Grade 8' },
-            { selector: '#graded-7, .completed-auctions-cib', label: 'Grade 7' },
-        ];
+
+        // Build the class→label map from the page's own dropdown so new grading
+        // companies (TAG, ACE, …) are picked up without a code change.
+        const classToLabel = new Map<string, string>();
+        $('#completed-auctions-condition option').each((_, el) => {
+            const value = $(el).attr('value');
+            if (!value) return;
+            const label = $(el).text().trim().replace(/\s*\(\d+\)\s*$/, '').trim();
+            if (label) classToLabel.set(value, label);
+        });
+
+        if (classToLabel.size === 0) {
+            for (const [k, v] of Object.entries(DEFAULT_GRADE_CLASS_MAP)) {
+                classToLabel.set(k, v);
+            }
+        }
 
         let foundSales = false;
-        for (const mapping of gradeMappings) {
-            const elements = $(mapping.selector);
-            elements.each((_, el) => {
+        for (const [cssClass, rawLabel] of classToLabel) {
+            // Keep legacy label — DB already has millions of rows labelled "Raw".
+            const label = rawLabel === 'Ungraded' ? 'Raw' : rawLabel;
+            $(`div.${cssClass}`).each((_, el) => {
                 const section = $(el);
                 if (section.hasClass('tab')) return;
                 const table = section.find('table.hoverable-rows');
                 const rows = table.length > 0 ? table.find('tbody tr') : section.find('tbody tr');
                 if (rows.length > 0) {
-                    this.processRows($, rows, sales, mapping.label);
+                    this.processRows($, rows, sales, label);
                     foundSales = true;
-                    return false;
                 }
             });
         }
@@ -222,12 +253,9 @@ export class PriceChartingParser {
 
     private processRows($: cheerio.CheerioAPI, rows: cheerio.Cheerio<any>, entries: PriceChartingSaleEntry[], grade: string) {
         rows.each((_, el) => {
-            const gradeSalesCount = entries.filter(e => e.grade === grade).length;
-            if (gradeSalesCount >= 10) return;
-
             const dateTd = $(el).find('td.date');
             const titleTd = $(el).find('td.title');
-            const priceTd = $(el).find('td.price, td.numeric');
+            const priceTd = $(el).find('td.price, td.numeric').first();
 
             const dateStr = dateTd.text().trim();
             const titleLink = titleTd.find('a');
@@ -235,7 +263,7 @@ export class PriceChartingParser {
             const fullTitleCellText = titleTd.text().trim();
             const link = titleLink.attr('href');
 
-            let priceStr = priceTd.find('.js-price').text().trim();
+            let priceStr = priceTd.find('.js-price').first().text().trim();
             if (!priceStr) priceStr = priceTd.text().trim();
 
             if (!dateStr || !titleText || !priceStr) return;

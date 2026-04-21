@@ -26,7 +26,7 @@ export class PriceChartingIngestService {
     async crawlOnePieceCards(options: PriceChartingCrawlOptions = {}) {
         const mappingName = 'pricecharting:crawl:onepiece';
         const entrypoint = 'https://www.pricecharting.com/category/one-piece-cards';
-        this.logger.log(`Starting crawl from ${entrypoint}`);
+        this.logger.log(`Starting crawl from ${entrypoint} with options: ${JSON.stringify(options)}`);
 
         this.visitedUrls.clear();
         let productCount = 0;
@@ -66,18 +66,27 @@ export class PriceChartingIngestService {
             progress = null;
         }
 
-        let resumeSetIndex = progress?.page ? progress.page - 1 : 0; // 0-indexed internally
-        let resumeProductUrl = progress?.cursor;
+        // When targeting a specific set, resume state from a previous full-catalog
+        // crawl would skip the target if it sits earlier in catalog order. Ignore
+        // resume position in that mode and always scan the whole list.
+        const ignoreResume = !!options.onlySetSlug;
+        let resumeSetIndex = (progress?.page && !ignoreResume) ? progress.page - 1 : 0;
+        let resumeProductUrl = ignoreResume ? undefined : progress?.cursor;
         let totalProcessed = progress?.processedItems ?? 0;
         let foundResumeProduct = !resumeProductUrl;
 
-        this.logger.log(`Starting crawl... ${progress ? `(Resuming from set ${resumeSetIndex + 1}${resumeProductUrl ? ', product ' + resumeProductUrl : ''})` : '(Fresh Start)'}`);
+        this.logger.log(`Starting crawl... ${progress && !ignoreResume ? `(Resuming from set ${resumeSetIndex + 1}${resumeProductUrl ? ', product ' + resumeProductUrl : ''})` : '(Fresh Start)'}`);
 
         try {
             const categoryHtml = await this.client.fetch(entrypoint);
             const setUrls = this.parser.parseCategoryPage(categoryHtml, 'https://www.pricecharting.com');
 
             this.logger.log(`Found ${setUrls.length} sets. Crawling sets...`);
+
+            if (options.onlySetSlug) {
+                const matches = setUrls.filter(u => u.includes(options.onlySetSlug!));
+                this.logger.log(`onlySetSlug="${options.onlySetSlug}" matched ${matches.length} set(s)`);
+            }
 
             for (let setIdx = resumeSetIndex; setIdx < setUrls.length; setIdx++) {
                 if (isShuttingDown) break;
@@ -131,7 +140,12 @@ export class PriceChartingIngestService {
                     if (isShuttingDown) break;
                     if (options.maxProducts && productCount >= options.maxProducts) break;
 
-                    const chunk = productsToProcess.slice(i, i + concurrencyLimit);
+                    let chunk = productsToProcess.slice(i, i + concurrencyLimit);
+                    if (options.maxProducts) {
+                        const remaining = options.maxProducts - productCount;
+                        if (remaining <= 0) break;
+                        if (chunk.length > remaining) chunk = chunk.slice(0, remaining);
+                    }
                     await Promise.all(chunk.map(async (productUrl) => {
                         if (isShuttingDown) return;
                         if (options.maxProducts && productCount >= options.maxProducts) return;
@@ -415,10 +429,11 @@ export class PriceChartingIngestService {
 
             for (const sale of data.sales) {
                 const saleDate = new Date(sale.date);
+                const saleCents = Math.round(sale.price * 100);
                 const existing = existingSales.find((e: any) =>
                     e.date.getTime() === saleDate.getTime() &&
                     e.title === sale.title &&
-                    Number(e.price) === sale.price &&
+                    Math.round(Number(e.price) * 100) === saleCents &&
                     e.grade === (sale.grade || null)
                 );
 
