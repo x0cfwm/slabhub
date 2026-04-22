@@ -24,7 +24,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { BlurView } from 'expo-blur';
 import { getVendorPage, trackShopEvent } from '@/lib/api';
 import { addRecentShop } from '@/lib/recent-shops';
-import { VendorItem, VendorProfile } from '@/lib/types';
+import { VendorItem, VendorProfile, WorkflowStatus } from '@/lib/types';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { ImageZoomModal } from '@/components/inventory/ImageZoomModal';
 import { useApp } from '@/contexts/AppContext';
@@ -32,6 +32,63 @@ import Colors from '@/constants/colors';
 
 const c = Colors.dark;
 const SCREEN_WIDTH = Dimensions.get('window').width;
+
+function ShopEmptyState({
+  activeTab,
+  listedStatuses,
+  isOwner,
+}: {
+  activeTab: string;
+  listedStatuses: WorkflowStatus[];
+  isOwner: boolean;
+}) {
+  const activeStatus = listedStatuses.find((s) => s.id === activeTab);
+  const statusNames = listedStatuses.map((s) => s.name);
+  const statusList =
+    statusNames.length === 0
+      ? ''
+      : statusNames.length === 1
+        ? statusNames[0]
+        : statusNames.length === 2
+          ? `${statusNames[0]} or ${statusNames[1]}`
+          : `${statusNames.slice(0, -1).join(', ')}, or ${statusNames[statusNames.length - 1]}`;
+
+  const title = activeStatus
+    ? `No items in ${activeStatus.name}`
+    : isOwner
+      ? 'Your shop is empty'
+      : 'No items listed yet';
+
+  let body: string;
+  if (activeStatus) {
+    body = isOwner
+      ? `Move an inventory item to ${activeStatus.name} to show it here.`
+      : `This seller hasn't added any items to ${activeStatus.name}.`;
+  } else if (isOwner) {
+    body = statusList
+      ? `Items appear here when you move them to a listing status (${statusList}). Update an item's status from your Inventory.`
+      : 'Items appear here when you move them to a listing status. Update an item\'s status from your Inventory.';
+  } else {
+    body = 'Check back soon — this seller will post items here when they\'re ready to sell.';
+  }
+
+  return (
+    <View style={styles.emptyList}>
+      <Ionicons name="cube-outline" size={36} color={c.textTertiary} />
+      <Text style={styles.emptyListTitle}>{title}</Text>
+      <Text style={styles.emptyListBody}>{body}</Text>
+      {isOwner && (
+        <Pressable
+          style={({ pressed }) => [styles.emptyListBtn, { opacity: pressed ? 0.8 : 1 }]}
+          onPress={() => router.push('/(tabs)/inventory' as any)}
+        >
+          <Ionicons name="archive-outline" size={16} color={c.accentText} />
+          <Text style={styles.emptyListBtnText}>Go to Inventory</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
 
 function VendorHeader({ profile }: { profile: VendorProfile }) {
   return (
@@ -914,10 +971,11 @@ export function VendorShopView({
         }
         ListEmptyComponent={
           activeTab !== 'wishlist' ? (
-            <View style={styles.emptyList}>
-              <Ionicons name="cube-outline" size={36} color={c.textTertiary} />
-              <Text style={styles.emptyListText}>No items listed</Text>
-            </View>
+            <ShopEmptyState
+              activeTab={activeTab}
+              listedStatuses={listedStatuses}
+              isOwner={isOwner}
+            />
           ) : null
         }
       />
@@ -1325,11 +1383,35 @@ const styles = StyleSheet.create({
   emptyList: {
     alignItems: 'center',
     paddingVertical: 40,
-    gap: 8,
+    paddingHorizontal: 24,
+    gap: 10,
   },
-  emptyListText: {
-    fontSize: 14,
+  emptyListTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: c.text,
+    marginTop: 4,
+  },
+  emptyListBody: {
+    fontSize: 13,
     color: c.textTertiary,
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+  emptyListBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: c.accent,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 8,
+  },
+  emptyListBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: c.accentText,
   },
   // Modal
   modalContainer: {
