@@ -3,6 +3,27 @@
   publish = "apps/web/out"
 
 [[redirects]]
+  from = "/vendor"
+  query = { handle = ":handle" }
+  to = "/vendor/:handle"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/vendor"
+  query = { name = ":handle" }
+  to = "/vendor/:handle"
+  status = 301
+  force = true
+
+# Serve the single prerendered placeholder for any vendor handle; the
+# client router reads the real handle from the URL and renders.
+[[redirects]]
+  from = "/vendor/*"
+  to = "/vendor/_.html"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

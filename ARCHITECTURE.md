@@ -294,7 +294,7 @@ slabhub/
 |-------|-------|------|
 | `(auth)` | `/login`, `/otp` | No |
 | `(app)` | `/dashboard`, `/inventory`, `/inventory/add`, `/pricing`, `/posting`, `/shop`, `/settings`, `/invites` | Yes |
-| `vendor` | `/vendor?handle=X` — public storefront with listed items, search, contact | No |
+| `vendor` | `/vendor/[handle]` — public storefront with listed items, search, contact | No |
 | Root | `/` (landing), `/onboarding`, `/invite` | No |
 
 **Auth Handling:**

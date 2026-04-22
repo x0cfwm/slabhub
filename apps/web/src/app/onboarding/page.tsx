@@ -74,7 +74,7 @@ export default function OnboardingPage() {
                                 <Label htmlFor="handle">Unique Handle (for URL)</Label>
                                 <div className="flex items-center">
                                     <span className="bg-muted px-3 py-2 border border-r-0 rounded-l-md text-sm text-muted-foreground truncate">
-                                        /vendor?name=
+                                        /vendor/
                                     </span>
                                     <Input
                                         id="handle"

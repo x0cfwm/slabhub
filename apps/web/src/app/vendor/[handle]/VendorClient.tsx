@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { getVendorPage, trackEvent } from "@/lib/api";
 import { InventoryItem, MarketProduct, SellerProfile } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -51,8 +51,8 @@ import { SimpleThemeToggle } from "@/components/common/SimpleThemeToggle";
 import { getOptimizedImageUrl } from "@/lib/image-utils";
 
 export default function VendorClient() {
-    const searchParams = useSearchParams();
-    const handle = searchParams.get("handle") || searchParams.get("name") || "";
+    const params = useParams<{ handle: string }>();
+    const handle = params?.handle || "";
 
     const [profile, setProfile] = useState<SellerProfile | null>(null);
     const [items, setItems] = useState<InventoryItem[]>([]);
@@ -282,7 +282,7 @@ export default function VendorClient() {
                                             className="object-contain w-full h-full transition-all duration-700 group-hover:scale-105"
                                             alt={displayName}
                                         />
-                                        
+
                                         {/* Status Badges - Top Right */}
                                         <div className="absolute top-2 right-2 flex flex-col gap-1 items-end pointer-events-none z-10">
                                             <Badge variant="secondary" className="backdrop-blur-md bg-white/70 dark:bg-black/70 text-[8px] uppercase font-bold border-none">
@@ -295,7 +295,7 @@ export default function VendorClient() {
                                             )}
                                         </div>
                                     </div>
-                                    
+
                                     <CardContent className="p-3 md:p-4 space-y-2.5">
                                         <div className="min-w-0">
                                             <h4 className="font-bold text-[13px] tracking-tight group-hover:text-primary transition-colors leading-[1.2rem] line-clamp-2 min-h-[2.4rem]">{displayName}</h4>
@@ -308,7 +308,7 @@ export default function VendorClient() {
                                             <div className="text-left">
                                                 <span className="text-base font-black tracking-tight leading-none">${Math.round(item.listingPrice || 0).toLocaleString()}</span>
                                             </div>
-                                            
+
                                             {item.quantity > 1 ? (
                                                 <Badge variant="outline" className="text-[9px] h-5 px-1.5 uppercase font-bold border-primary/20 text-primary">
                                                     x{item.quantity} Stock
@@ -765,7 +765,7 @@ export default function VendorClient() {
 
                                     {(() => {
                                         const hasContact = !!(profile.facebookProfileUrl || profile.email);
-                                        
+
                                         if (!hasContact) return null;
 
                                         return (
@@ -853,8 +853,8 @@ export default function VendorClient() {
                                                 trackEvent({ type: 'INQUIRY_COMPLETE', handle: profile.handle, itemId: selectedItem?.id, channel: 'email' });
                                             }
                                             const itemName = selectedItem ? (
-                                                (selectedItem as any).productName || 
-                                                marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name || 
+                                                (selectedItem as any).productName ||
+                                                marketProducts.find(p => p.id === ((selectedItem as any).cardVariantId || (selectedItem as any).cardProfileId || selectedItem.refPriceChartingProductId))?.name ||
                                                 "this item"
                                             ) : "an item";
                                             const price = selectedItem?.listingPrice ? ` ($${selectedItem.listingPrice})` : "";
