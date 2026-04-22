@@ -118,6 +118,12 @@ function RootLayoutNav() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="recent-shops"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

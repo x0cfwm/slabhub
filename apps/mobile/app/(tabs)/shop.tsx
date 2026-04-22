@@ -26,8 +26,17 @@ function ShopSetupEmptyState() {
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
       <View style={styles.header}>
-        <Text style={styles.brand}>SlabHub</Text>
-        <Text style={styles.title}>Shop</Text>
+        <View>
+          <Text style={styles.brand}>SlabHub</Text>
+          <Text style={styles.title}>Shop</Text>
+        </View>
+        <Pressable
+          style={({ pressed }) => [styles.headerBtn, { opacity: pressed ? 0.7 : 1 }]}
+          onPress={() => router.push('/recent-shops' as any)}
+          accessibilityLabel="Recent shops"
+        >
+          <Ionicons name="time-outline" size={20} color={c.accent} />
+        </Pressable>
       </View>
       <View style={styles.emptyState}>
         <Ionicons name="storefront-outline" size={48} color={c.textTertiary} />
@@ -52,8 +61,19 @@ const styles = StyleSheet.create({
     backgroundColor: c.background,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 8,
+  },
+  headerBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: c.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   brand: {
     fontSize: 13,

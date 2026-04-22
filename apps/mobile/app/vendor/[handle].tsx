@@ -23,6 +23,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image as ExpoImage } from 'expo-image';
 import { BlurView } from 'expo-blur';
 import { getVendorPage, trackShopEvent } from '@/lib/api';
+import { addRecentShop } from '@/lib/recent-shops';
 import { VendorItem, VendorProfile } from '@/lib/types';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { ImageZoomModal } from '@/components/inventory/ImageZoomModal';
@@ -630,6 +631,18 @@ export function VendorShopView({
   const items = data?.items || [];
   const listedStatuses = data?.listedStatuses || [];
 
+  // Record this visit in the local "recent shops" history once the
+  // profile is known to be valid. Gate on `!isOwner` so the user's own
+  // shop never shows up in their recent-shops list.
+  React.useEffect(() => {
+    if (!handle || !profile || isOwner) return;
+    addRecentShop({
+      handle,
+      shopName: profile.shopName || handle,
+      avatarUrl: profile.avatarUrl ?? null,
+    });
+  }, [handle, profile, isOwner]);
+
   React.useEffect(() => {
     if (!itemParam || !handle || autoOpenedRef.current === itemParam) return;
     const match = items.find((i) => i.id === itemParam);
@@ -757,6 +770,13 @@ export function VendorShopView({
             <Text style={styles.tabTitle}>Shop</Text>
           </View>
           <View style={styles.navActions}>
+            <Pressable
+              style={({ pressed }) => [styles.navBtn, { opacity: pressed ? 0.7 : 1 }]}
+              onPress={() => router.push('/recent-shops' as any)}
+              accessibilityLabel="Recent shops"
+            >
+              <Ionicons name="time-outline" size={20} color={c.accent} />
+            </Pressable>
             {isOwner && (
               <Pressable
                 style={({ pressed }) => [styles.navBtn, { opacity: pressed ? 0.7 : 1 }]}
