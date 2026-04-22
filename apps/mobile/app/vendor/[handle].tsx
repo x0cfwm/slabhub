@@ -14,10 +14,11 @@ import {
   Dimensions,
   Linking,
   TextInput,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image as ExpoImage } from 'expo-image';
 import { BlurView } from 'expo-blur';
@@ -593,11 +594,31 @@ export function VendorShopView({
   const autoOpenedRef = React.useRef<string | null>(null);
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['vendor-page', handle],
     queryFn: () => getVendorPage(handle!),
     enabled: !!handle,
   });
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    if (!handle) return;
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [handle, refetch]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (handle) {
+        queryClient.invalidateQueries({ queryKey: ['vendor-page', handle] });
+      }
+    }, [handle, queryClient])
+  );
 
   React.useEffect(() => {
     if (handle) {
@@ -843,6 +864,14 @@ export function VendorShopView({
         columnWrapperStyle={styles.gridRow}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            tintColor={c.accent}
+            colors={[c.accent]}
+          />
+        }
         ListHeaderComponent={
           activeTab === 'wishlist' ? (
             isOwner ? (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,11 +11,12 @@ import {
   TouchableWithoutFeedback,
   Linking,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { router, useFocusEffect } from 'expo-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getMarketProducts as apiGetMarketProducts,
   getMarketValueHistory,
@@ -49,20 +50,38 @@ const STAGE_COLORS: Record<string, string> = {
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
-  const { inventory, statuses, isLoading: appLoading, profile } = useApp();
+  const { inventory, statuses, isLoading: appLoading, profile, refreshInventory } = useApp();
   const { signOut, user } = useAuth();
   const [showAccount, setShowAccount] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const queryClient = useQueryClient();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
-  const { data: marketData, isLoading: marketLoading } = useQuery({
+  const { data: marketData, isLoading: marketLoading, refetch: refetchMarket } = useQuery({
     queryKey: ['market-products'],
     queryFn: () => apiGetMarketProducts({ page: 1, limit: 100 }),
   });
 
-  const { data: historyData, isLoading: historyLoading } = useQuery({
+  const { data: historyData, isLoading: historyLoading, refetch: refetchHistory } = useQuery({
     queryKey: ['market-value-history', 90],
     queryFn: () => getMarketValueHistory(90),
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      queryClient.invalidateQueries({ queryKey: ['market-value-history'] });
+      queryClient.invalidateQueries({ queryKey: ['market-products'] });
+    }, [queryClient])
+  );
+
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([refreshInventory(), refetchMarket(), refetchHistory()]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshInventory, refetchMarket, refetchHistory]);
 
   const loading = appLoading || marketLoading || historyLoading;
   const marketProducts = React.useMemo(() => marketData?.items ?? [], [marketData?.items]);
@@ -212,6 +231,14 @@ export default function DashboardScreen() {
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            tintColor={c.accent}
+            colors={[c.accent]}
+          />
+        }
       >
         <MarketValueChart items={inventory} history={historyData || []} />
 
