@@ -621,12 +621,14 @@ const styles = StyleSheet.create({
   },
   cardImage: {
     width: 100,
-    height: 140,
+    alignSelf: 'stretch',
+    minHeight: 140,
     backgroundColor: c.surfaceHighlight,
   },
   cardImagePlaceholder: {
     width: 100,
-    height: 140,
+    alignSelf: 'stretch',
+    minHeight: 140,
     backgroundColor: c.surfaceHighlight,
     alignItems: 'center',
     justifyContent: 'center',
