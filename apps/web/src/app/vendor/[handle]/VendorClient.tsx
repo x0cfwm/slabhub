@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useParams } from "next/navigation";
 import { getVendorPage, trackEvent } from "@/lib/api";
 import { InventoryItem, MarketProduct, SellerProfile } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -51,8 +50,11 @@ import { SimpleThemeToggle } from "@/components/common/SimpleThemeToggle";
 import { getOptimizedImageUrl } from "@/lib/image-utils";
 
 export default function VendorClient() {
-    const params = useParams<{ handle: string }>();
-    const handle = params?.handle || "";
+    // Read handle from the real browser URL rather than useParams(). In
+    // production the static export rewrites /vendor/:handle to the
+    // prerendered /vendor/_.html placeholder, so useParams() would return
+    // "_" instead of the real handle.
+    const [handle, setHandle] = useState("");
 
     const [profile, setProfile] = useState<SellerProfile | null>(null);
     const [items, setItems] = useState<InventoryItem[]>([]);
@@ -63,6 +65,15 @@ export default function VendorClient() {
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [isContactOpen, setIsContactOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<string>("");
+
+    useEffect(() => {
+        const m = window.location.pathname.match(/^\/vendor\/([^/?#]+)/);
+        if (m) {
+            setHandle(decodeURIComponent(m[1]));
+        } else {
+            setLoading(false);
+        }
+    }, []);
 
     // Sync selected item state with URL on initial load and browser navigation
     useEffect(() => {
@@ -159,10 +170,9 @@ export default function VendorClient() {
     };
 
     useEffect(() => {
-        if (!handle) {
-            setLoading(false);
-            return;
-        }
+        // handle is populated from the URL by the mount effect above. While
+        // it's still empty we stay in the loading state and wait.
+        if (!handle) return;
 
         const fetchData = async () => {
             try {
