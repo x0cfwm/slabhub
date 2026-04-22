@@ -79,7 +79,7 @@ export default function VendorClient() {
     useEffect(() => {
         const syncFromUrl = () => {
             const params = new URLSearchParams(window.location.search);
-            const id = params.get("itemId");
+            const id = params.get("item");
             if (items.length > 0) {
                 const item = items.find(i => i.id === id);
                 setSelectedItem(item || null);
@@ -106,12 +106,12 @@ export default function VendorClient() {
         setSelectedItem(item);
         const url = new URL(window.location.href);
         if (item) {
-            url.searchParams.set("itemId", item.id);
+            url.searchParams.set("item", item.id);
             if (profile?.handle) {
                 trackEvent({ type: 'VIEW_ITEM', handle: profile.handle, itemId: item.id });
             }
         } else {
-            url.searchParams.delete("itemId");
+            url.searchParams.delete("item");
         }
         // Update URL without triggering Next.js RSC fetch
         window.history.pushState(null, "", url.toString());
