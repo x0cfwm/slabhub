@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appIDs": ["REPLACE_WITH_APPLE_TEAM_ID.gg.slabhub.crm"],
+        "appIDs": ["7ZA73WA82N.gg.slabhub.crm"],
         "components": [
           {
             "/": "/vendor/*",
