@@ -16,6 +16,9 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "gg.slabhub.crm",
+      "associatedDomains": [
+        "applinks:slabhub.gg"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -27,11 +30,28 @@
       "buildNumber": "35"
     },
     "android": {
-      "package": "com.myapp",
+      "package": "gg.slabhub.crm",
       "adaptiveIcon": {
         "backgroundColor": "#0A0A0C",
         "foregroundImage": "./assets/images/slabhub_android_foreground.png"
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "slabhub.gg",
+              "pathPrefix": "/vendor/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/images/favicon.png"

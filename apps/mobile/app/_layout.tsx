@@ -45,14 +45,17 @@ function RootLayoutNav() {
 
     const inAuthGroup = (segments[0] as string) === "(auth)";
     const onOnboarding = (segments[0] as string) === "onboarding";
+    // Public routes reachable without a session (e.g. universal links to a
+    // vendor storefront should open directly, not bounce through login).
+    const onPublicRoute = (segments[0] as string) === "vendor";
 
-    if (!hasCompletedOnboarding && !onOnboarding && !inAuthGroup) {
+    if (!hasCompletedOnboarding && !onOnboarding && !inAuthGroup && !onPublicRoute) {
       // First launch — show onboarding before anything else.
       router.replace("/onboarding" as any);
     } else if (hasCompletedOnboarding && onOnboarding) {
       // Already completed onboarding — skip it.
       router.replace("/(auth)/login" as any);
-    } else if (hasCompletedOnboarding && !sessionToken && !inAuthGroup && !onOnboarding) {
+    } else if (hasCompletedOnboarding && !sessionToken && !inAuthGroup && !onOnboarding && !onPublicRoute) {
       // Onboarding done, not signed in — go to login.
       router.replace("/(auth)/login" as any);
     } else if (sessionToken && inAuthGroup) {

@@ -1,0 +1,16 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["REPLACE_WITH_APPLE_TEAM_ID.gg.slabhub.crm"],
+        "components": [
+          {
+            "/": "/vendor/*",
+            "comment": "Matches vendor storefront URLs and opens in the SlabHub CRM app"
+          }
+        ]
+      }
+    ]
+  }
+}

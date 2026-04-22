@@ -2,6 +2,15 @@
   command = "pnpm --filter @slabhub/web run build"
   publish = "apps/web/out"
 
+# Apple requires application/json for the AASA file (which has no
+# extension). The file itself lives in apps/web/public/.well-known/ and is
+# copied verbatim to /out by the static export; Netlify serves it as-is
+# because the SPA catchall below only fires when no static file matches.
+[[headers]]
+  for = "/.well-known/apple-app-site-association"
+  [headers.values]
+    Content-Type = "application/json"
+
 [[redirects]]
   from = "/vendor"
   query = { handle = ":handle" }
