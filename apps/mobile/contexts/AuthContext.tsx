@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { apiRequest } from '@/lib/query-client';
+import { apiRequest, registerAuthErrorHandler } from '@/lib/query-client';
 
 const TOKEN_KEY = 'slabhub_session_token';
 const USER_KEY = 'slabhub_user_data';
@@ -29,6 +29,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [sessionToken, setSessionToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    const clearSession = useCallback(async () => {
+        try {
+            if (Platform.OS === 'web') {
+                localStorage.removeItem(TOKEN_KEY);
+                localStorage.removeItem(USER_KEY);
+            } else {
+                await SecureStore.deleteItemAsync(TOKEN_KEY);
+                await SecureStore.deleteItemAsync(USER_KEY);
+            }
+        } catch (e) {
+            console.error('Failed to clear session:', e);
+        } finally {
+            setSessionToken(null);
+            setUser(null);
+        }
+    }, []);
+
+    useEffect(() => {
+        registerAuthErrorHandler(() => {
+            void clearSession();
+        });
+        return () => registerAuthErrorHandler(null);
+    }, [clearSession]);
 
     useEffect(() => {
         loadSession();
@@ -75,8 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             await SecureStore.setItemAsync(USER_KEY, JSON.stringify(freshUser));
                         }
                     }
-                } catch (e) {
+                } catch (e: any) {
                     console.error('Failed to fetch user during session load:', e);
+                    // apiRequest will already fire the 401 handler which clears the
+                    // session; no further work needed here.
                 }
             }
         } catch (e) {

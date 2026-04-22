@@ -6,7 +6,7 @@ import {
     Delete,
     Body,
     Param,
-    NotFoundException,
+    UnauthorizedException,
     ParseArrayPipe,
 } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
@@ -27,7 +27,7 @@ export class InventoryController {
     @ApiResponse({ status: 200, description: 'List of inventory items' })
     async listItems(@CurrentUserId() userId: string | undefined) {
         if (!userId) {
-            throw new NotFoundException('No authenticated user');
+            throw new UnauthorizedException('No authenticated user');
         }
         return this.inventoryService.listItems(userId);
     }
@@ -42,7 +42,7 @@ export class InventoryController {
         @Param('id') id: string,
     ) {
         if (!userId) {
-            throw new NotFoundException('No authenticated user');
+            throw new UnauthorizedException('No authenticated user');
         }
         return this.inventoryService.getItem(userId, id);
     }
@@ -56,7 +56,7 @@ export class InventoryController {
         @Body() dto: CreateInventoryItemDto,
     ) {
         if (!userId) {
-            throw new NotFoundException('No authenticated user');
+            throw new UnauthorizedException('No authenticated user');
         }
         return this.inventoryService.createItem(userId, sellerId, dto);
     }
@@ -69,7 +69,7 @@ export class InventoryController {
         @Body(new ParseArrayPipe({ items: ReorderInventoryItemDto })) items: ReorderInventoryItemDto[],
     ) {
         if (!userId) {
-            throw new NotFoundException('No authenticated user');
+            throw new UnauthorizedException('No authenticated user');
         }
         return this.inventoryService.reorderItems(userId, items);
     }
@@ -84,7 +84,7 @@ export class InventoryController {
         @Body() dto: UpdateInventoryItemDto,
     ) {
         if (!userId) {
-            throw new NotFoundException('No authenticated user');
+            throw new UnauthorizedException('No authenticated user');
         }
         return this.inventoryService.updateItem(userId, id, dto);
     }
@@ -98,7 +98,7 @@ export class InventoryController {
         @Param('id') id: string,
     ) {
         if (!userId) {
-            throw new NotFoundException('No authenticated user');
+            throw new UnauthorizedException('No authenticated user');
         }
         return this.inventoryService.deleteItem(userId, id);
     }
@@ -113,7 +113,7 @@ export class InventoryController {
         @Param('id') id: string,
     ) {
         if (!userId) {
-            throw new NotFoundException('No authenticated user');
+            throw new UnauthorizedException('No authenticated user');
         }
         return this.inventoryService.getItemHistory(userId, id);
     }
@@ -127,7 +127,7 @@ export class InventoryController {
         @Param('days') days?: string,
     ) {
         if (!userId) {
-            throw new NotFoundException('No authenticated user');
+            throw new UnauthorizedException('No authenticated user');
         }
         const period = days ? parseInt(days) : 90;
         return this.inventoryService.getMarketValueHistory(userId, period);

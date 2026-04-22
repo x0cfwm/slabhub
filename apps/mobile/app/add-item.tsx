@@ -11,6 +11,15 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+  Easing,
+  cancelAnimation,
+} from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -116,6 +125,39 @@ export default function AddItemScreen() {
 
   // Recognition state
   const [isRecognizing, setIsRecognizing] = useState(false);
+  const spin = useSharedValue(0);
+  const pulse = useSharedValue(1);
+
+  useEffect(() => {
+    if (isRecognizing) {
+      spin.value = 0;
+      spin.value = withRepeat(
+        withTiming(1, { duration: 1200, easing: Easing.linear }),
+        -1,
+        false,
+      );
+      pulse.value = withRepeat(
+        withSequence(
+          withTiming(0.55, { duration: 900, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 900, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        false,
+      );
+    } else {
+      cancelAnimation(spin);
+      cancelAnimation(pulse);
+      spin.value = 0;
+      pulse.value = 1;
+    }
+  }, [isRecognizing, spin, pulse]);
+
+  const spinnerStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${spin.value * 360}deg` }],
+  }));
+  const sparkleStyle = useAnimatedStyle(() => ({
+    opacity: pulse.value,
+  }));
 
   const runRecognition = async (uri: string) => {
     setIsRecognizing(true);
@@ -354,6 +396,17 @@ export default function AddItemScreen() {
       return;
     }
 
+    if (type === 'graded_card') {
+      if (!gradingCompany) {
+        Alert.alert('Error', 'Please select a grading company');
+        return;
+      }
+      if (!grade.trim()) {
+        Alert.alert('Error', 'Please enter a grade value');
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       let finalImageUri = imageUri;
@@ -412,9 +465,12 @@ export default function AddItemScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
       router.back();
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to save item:', e);
-      Alert.alert('Error', 'Failed to save item. Please try again.');
+      const message = typeof e?.message === 'string' && e.message
+        ? e.message
+        : 'Failed to save item. Please try again.';
+      Alert.alert('Error', message);
     } finally {
       setIsSaving(false);
     }
@@ -426,14 +482,19 @@ export default function AddItemScreen() {
         <View style={styles.modalOverlay}>
           <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
           <View style={styles.recognitionContent}>
-            <ActivityIndicator size="large" color={c.accent} />
+            <View style={styles.recognitionIconWrap}>
+              <Animated.View style={[styles.recognitionSpinner, spinnerStyle]} />
+              <Animated.View style={[styles.recognitionSparkle, sparkleStyle]}>
+                <Ionicons name="sparkles" size={36} color={c.accent} />
+              </Animated.View>
+            </View>
             <Text style={styles.recognitionText}>Recognizing Card...</Text>
-            <Text style={styles.recognitionSubtext}>Extracting details with AI</Text>
+            <Text style={styles.recognitionSubtext}>Using AI to extract details and market prices</Text>
             <Pressable
               style={styles.skipBtn}
               onPress={() => setIsRecognizing(false)}
             >
-              <Text style={styles.skipBtnText}>Skip</Text>
+              <Text style={styles.skipBtnText}>Cancel</Text>
             </Pressable>
           </View>
         </View>
@@ -469,8 +530,12 @@ export default function AddItemScreen() {
             <Image source={{ uri: getOptimizedImageUrl(imageUri, { height: 600 }) }} style={styles.image} contentFit="cover" />
           ) : (
             <View style={styles.imagePlaceholder}>
-              <Ionicons name="camera" size={32} color={c.textTertiary} />
+              <Ionicons name="camera" size={28} color={c.textTertiary} />
               <Text style={styles.imagePlaceholderText}>Add Photo</Text>
+              <View style={styles.recognitionHint}>
+                <Ionicons name="sparkles" size={10} color={c.accent} />
+                <Text style={styles.recognitionHintText}>AI auto-fill</Text>
+              </View>
             </View>
           )}
         </Pressable>
@@ -555,30 +620,6 @@ export default function AddItemScreen() {
                 ))}
               </View>
             )}
-          </View>
-
-          <View style={styles.row}>
-            <View style={[styles.field, { flex: 1 }]}>
-              <Text style={styles.fieldLabel}>Set Code</Text>
-              <TextInput
-                style={styles.input}
-                value={setCode}
-                onChangeText={setSetCode}
-                placeholder="OP05"
-                placeholderTextColor={c.textTertiary}
-                autoCapitalize="characters"
-              />
-            </View>
-            <View style={[styles.field, { flex: 1 }]}>
-              <Text style={styles.fieldLabel}>Card Number</Text>
-              <TextInput
-                style={styles.input}
-                value={cardNumber}
-                onChangeText={setCardNumber}
-                placeholder="119"
-                placeholderTextColor={c.textTertiary}
-              />
-            </View>
           </View>
         </View>
 
@@ -886,13 +927,29 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: c.border,
     borderStyle: 'dashed',
-    gap: 8,
+    gap: 6,
   },
   imagePlaceholderText: {
     fontSize: 14,
     color: c.textTertiary,
     fontWeight: '500' as const,
     textTransform: 'none' as any,
+  },
+  recognitionHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: c.accentDim,
+    marginTop: 2,
+  },
+  recognitionHintText: {
+    fontSize: 10,
+    color: c.accent,
+    fontWeight: '600' as const,
+    letterSpacing: 0.3,
   },
   section: {
     backgroundColor: c.surface,
@@ -1043,14 +1100,37 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
+  recognitionIconWrap: {
+    width: 80,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recognitionSpinner: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: 'transparent',
+    borderTopColor: c.accent,
+    borderRightColor: c.accent,
+    opacity: 0.3,
+  },
+  recognitionSparkle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   recognitionText: {
     fontSize: 18,
-    fontWeight: '600' as const,
+    fontWeight: '700' as const,
     color: c.text,
   },
   recognitionSubtext: {
-    fontSize: 14,
+    fontSize: 13,
     color: c.textTertiary,
+    textAlign: 'center',
+    paddingHorizontal: 8,
   },
   skipBtn: {
     marginTop: 8,

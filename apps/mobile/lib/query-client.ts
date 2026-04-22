@@ -20,6 +20,21 @@ export function getApiUrl(): string {
   return fullUrl.endsWith('/') ? fullUrl : `${fullUrl}/`;
 }
 
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+let onAuthError: (() => void) | null = null;
+
+export function registerAuthErrorHandler(fn: (() => void) | null) {
+  onAuthError = fn;
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = await res.text();
@@ -37,7 +52,11 @@ async function throwIfResNotOk(res: Response) {
       // Not JSON, use fallback text
     }
 
-    throw new Error(errorMessage);
+    if (res.status === 401) {
+      onAuthError?.();
+    }
+
+    throw new ApiError(errorMessage, res.status);
   }
 }
 
