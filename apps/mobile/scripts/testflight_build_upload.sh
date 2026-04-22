@@ -14,7 +14,7 @@ ASC_KEY_ID="${ASC_KEY_ID:-JUV388FGL8}"
 ASC_ISSUER_ID="${ASC_ISSUER_ID:-ac6e6f3b-3b98-46e6-a50f-0a2306a636d6}"
 ASC_KEY_PATH="${ASC_KEY_PATH:-/Users/nikita/Downloads/AuthKey_JUV388FGL8.p8}"
 TEAM_ID="${TEAM_ID:-7ZA73WA82N}"
-EXPO_PUBLIC_DOMAIN="${EXPO_PUBLIC_DOMAIN:-https://slabhub.gg/api/v1}"
+EXPO_PUBLIC_DOMAIN="${EXPO_PUBLIC_DOMAIN:-https://api.slabhub.gg/v1}"
 
 if [[ -z "${FACEBOOK_APP_ID:-}" && -f "$SCRIPT_DIR/../../.env" ]]; then
   FACEBOOK_APP_ID="$(sed -n 's/^FACEBOOK_APP_ID=//p' "$SCRIPT_DIR/../../.env" | head -n1 | tr -d '"')"
