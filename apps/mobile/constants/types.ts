@@ -38,7 +38,7 @@ export interface InventoryItem {
   imageUri: string;
   type: ItemType;
   stage: ItemStage;
-  condition: CardCondition;
+  condition?: CardCondition;
   gradingCompany?: GradingCompany;
   grade?: string;
   certNumber?: string;

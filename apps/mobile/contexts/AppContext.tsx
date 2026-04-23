@@ -68,7 +68,7 @@ const mapApiToUiItem = (item: ApiInventoryItem): InventoryItem => {
     imageUri: (item.photos && item.photos.length > 0) ? item.photos[0] : (item.cardProfile?.imageUrl || ''),
     type: typeMap[item.type] || 'single_card',
     stage: stageMap[item.stage] || 'acquired',
-    condition: conditionMap[(item as any).condition || ''] || 'raw',
+    condition: (item as any).condition && (item as any).condition !== 'RAW' ? conditionMap[(item as any).condition] : undefined,
     gradingCompany: (item as any).gradingCompany as GradingCompany,
     grade: (item as any).grade?.toString(),
     quantity: item.quantity || 1,

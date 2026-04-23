@@ -270,7 +270,9 @@ export default function ItemDetailScreen() {
 
         <View style={styles.detailsSection}>
           <DetailRow label="Type" value={TYPE_LABELS[item.type] || item.type} />
-          <DetailRow label="Condition" value={CONDITION_LABELS[item.condition] || item.condition} />
+          {item.type !== 'graded_card' && item.condition && (
+            <DetailRow label="Condition" value={CONDITION_LABELS[item.condition] || item.condition} />
+          )}
           {item.gradingCompany && <DetailRow label="Grading Company" value={item.gradingCompany} />}
           {item.grade && <DetailRow label="Grade" value={item.grade} />}
           {item.listedPrice !== undefined && item.listedPrice > 0 && (

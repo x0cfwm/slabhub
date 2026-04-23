@@ -71,7 +71,7 @@ export default function AddItemScreen() {
   const [imageUri, setImageUri] = useState(editingItem?.imageUri || '');
   const [type, setType] = useState<ItemType>(editingItem?.type || 'single_card');
   const [stage, setStage] = useState<ItemStage>(editingItem?.stage || 'acquired');
-  const [condition, setCondition] = useState<CardCondition>(editingItem?.condition || 'raw');
+  const [condition, setCondition] = useState<CardCondition | undefined>(editingItem?.condition);
   const [gradingCompany, setGradingCompany] = useState<GradingCompany | undefined>(editingItem?.gradingCompany);
   const [grade, setGrade] = useState(editingItem?.grade || '');
   const [certNumber, setCertNumber] = useState(editingItem?.certNumber || '');
@@ -179,7 +179,7 @@ export default function AddItemScreen() {
         // If it's a graded card, set the type and grading info
         if (d.grader) {
           setType('graded_card');
-          setCondition('raw'); // Graded is usually not raw choice
+          setCondition(undefined);
 
           let grader = d.grader.toUpperCase();
           if (grader === 'BECKETT') grader = 'BGS';
@@ -431,7 +431,7 @@ export default function AddItemScreen() {
         imageUri: finalImageUri,
         type,
         stage,
-        condition,
+        condition: type === 'graded_card' ? undefined : condition,
         gradingCompany: type === 'graded_card' ? gradingCompany : undefined,
         grade: type === 'graded_card' ? grade : undefined,
         certNumber: type === 'graded_card' ? certNumber : undefined,
@@ -716,22 +716,24 @@ export default function AddItemScreen() {
           </View>
         )}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Condition</Text>
-          <View style={styles.chipGrid}>
-            {(['raw', 'near_mint', 'lightly_played', 'moderately_played', 'heavily_played', 'damaged'] as CardCondition[]).map((cond) => (
-              <Pressable
-                key={cond}
-                style={[styles.chip, condition === cond && styles.chipActive]}
-                onPress={() => setCondition(cond)}
-              >
-                <Text style={[styles.chipText, condition === cond && styles.chipTextActive]}>
-                  {CONDITION_LABELS[cond]}
-                </Text>
-              </Pressable>
-            ))}
+        {type !== 'graded_card' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Condition</Text>
+            <View style={styles.chipGrid}>
+              {(['near_mint', 'lightly_played', 'moderately_played', 'heavily_played', 'damaged'] as CardCondition[]).map((cond) => (
+                <Pressable
+                  key={cond}
+                  style={[styles.chip, condition === cond && styles.chipActive]}
+                  onPress={() => setCondition(cond)}
+                >
+                  <Text style={[styles.chipText, condition === cond && styles.chipTextActive]}>
+                    {CONDITION_LABELS[cond]}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
         {type === 'sealed_product' && (
           <View style={styles.section}>
