@@ -354,6 +354,7 @@ export default function DashboardScreen() {
                 </Pressable>
                 <Text style={styles.accountVersion}>
                   Version {Constants.nativeAppVersion ?? Constants.expoConfig?.version ?? 'unknown'}
+                  {' '}({Constants.nativeBuildVersion ?? Constants.expoConfig?.ios?.buildNumber ?? Constants.expoConfig?.android?.versionCode ?? '?'})
                 </Text>
               </View>
             </TouchableWithoutFeedback>

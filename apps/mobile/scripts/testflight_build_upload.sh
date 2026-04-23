@@ -24,6 +24,11 @@ EXPO_PUBLIC_FACEBOOK_APP_ID="${EXPO_PUBLIC_FACEBOOK_APP_ID:-${FACEBOOK_APP_ID:-}
 export EXPO_PUBLIC_DOMAIN
 export EXPO_PUBLIC_FACEBOOK_APP_ID
 
+# CocoaPods 1.16+ on Ruby 3.2 crashes with Encoding::CompatibilityError unless
+# locale is explicitly UTF-8. Force it here so `expo prebuild`'s pod install works.
+export LANG="${LANG:-en_US.UTF-8}"
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+
 LAST_BUILD_NUMBER=0
 if [[ -f "$BUILD_NUMBER_COUNTER_FILE" ]]; then
   COUNTER_VALUE="$(tr -d '[:space:]' < "$BUILD_NUMBER_COUNTER_FILE")"
@@ -56,6 +61,18 @@ npx expo prebuild --platform ios
 
 if [[ ! -d "$IOS_DIR" ]]; then
   echo "Error: iOS directory not found: $IOS_DIR" >&2
+  exit 1
+fi
+
+# expo prebuild sometimes skips `pod install` silently (e.g. if it thinks the
+# project is already bootstrapped). If the workspace is missing, run it manually.
+if [[ ! -d "$IOS_DIR/SlabHubCRM.xcworkspace" ]]; then
+  echo "==> Workspace missing — running pod install manually..."
+  ( cd "$IOS_DIR" && pod install )
+fi
+
+if [[ ! -d "$IOS_DIR/SlabHubCRM.xcworkspace" ]]; then
+  echo "Error: SlabHubCRM.xcworkspace was not generated. Check pod install output above." >&2
   exit 1
 fi
 
