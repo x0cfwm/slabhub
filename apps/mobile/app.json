@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/images/slabhub_splash_icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0A0A0C"
+      "backgroundColor": "#28313E"
     },
     "ios": {
       "supportsTablet": false,
@@ -27,12 +27,12 @@
           "Default"
         ]
       },
-      "buildNumber": "38"
+      "buildNumber": "41"
     },
     "android": {
       "package": "gg.slabhub.crm",
       "adaptiveIcon": {
-        "backgroundColor": "#0A0A0C",
+        "backgroundColor": "#28313E",
         "foregroundImage": "./assets/images/slabhub_android_foreground.png"
       },
       "intentFilters": [
@@ -60,7 +60,14 @@
       "expo-router",
       "expo-font",
       "expo-web-browser",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "SlabHub needs access to your camera to scan cards and slabs.",
+          "enableMicrophonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

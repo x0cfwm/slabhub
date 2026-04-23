@@ -28,6 +28,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
+import CardScannerCamera from '@/components/CardScannerCamera';
 import { useApp } from '@/contexts/AppContext';
 import * as api from '@/lib/api';
 import { MarketProduct } from '@/lib/types';
@@ -273,23 +274,17 @@ export default function AddItemScreen() {
     }
   };
 
-  const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'We need camera permissions to take a photo.');
-      return;
-    }
+  const [scannerOpen, setScannerOpen] = useState(false);
 
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: false,
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      const uri = result.assets[0].uri;
-      setImageUri(uri);
-      startBackgroundUpload(uri);
-      runRecognition(uri);
-    }
+  const takePhoto = () => {
+    setScannerOpen(true);
+  };
+
+  const handleScannerCapture = (uri: string) => {
+    setScannerOpen(false);
+    setImageUri(uri);
+    startBackgroundUpload(uri);
+    runRecognition(uri);
   };
 
   const handleNameChange = async (text: string) => {
@@ -478,6 +473,22 @@ export default function AddItemScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
+      {Platform.OS !== 'web' && (
+        <Modal
+          visible={scannerOpen}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={() => setScannerOpen(false)}
+          statusBarTranslucent
+        >
+          <CardScannerCamera
+            onCapture={handleScannerCapture}
+            onClose={() => setScannerOpen(false)}
+            aspect={type === 'graded_card' ? 'slab' : 'card'}
+          />
+        </Modal>
+      )}
+
       <Modal transparent visible={isRecognizing} animationType="fade">
         <View style={styles.modalOverlay}>
           <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
