@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { requestOtp } from "@/lib/api";
-import Link from "next/link";
 import { Logo } from "@/components/common/Logo";
 
 function LoginForm() {
@@ -151,13 +150,13 @@ function LoginForm() {
                 <CardFooter>
                     <p className="px-8 text-center text-xs leading-relaxed text-muted-foreground">
                         By clicking continue, you agree to our{" "}
-                        <Link href="/terms.txt" className="underline underline-offset-4 hover:text-primary">
+                        <a href="/terms.txt" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 hover:text-primary">
                             Terms of Service
-                        </Link>{" "}
+                        </a>{" "}
                         and{" "}
-                        <Link href="/privacy.txt" className="underline underline-offset-4 hover:text-primary">
+                        <a href="/privacy.txt" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 hover:text-primary">
                             Privacy Policy
-                        </Link>
+                        </a>
                         .
                     </p>
                 </CardFooter>
