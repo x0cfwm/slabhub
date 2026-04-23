@@ -189,7 +189,17 @@ export interface GradingRecognitionResult {
         language?: string;
         year?: string;
         refPriceChartingProductId?: string;
+        productName?: string;
+        productSet?: string;
+        productNumber?: string;
+        productImageUrl?: string;
         marketPrice?: number;
+        grade7Price?: number | null;
+        grade8Price?: number | null;
+        grade9Price?: number | null;
+        grade95Price?: number | null;
+        grade10Price?: number | null;
+        sealedPrice?: number | null;
     };
     durationMs?: number;
     error?: string;

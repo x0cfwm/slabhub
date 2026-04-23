@@ -170,10 +170,10 @@ export default function AddItemScreen() {
 
       if (result.success && result.data) {
         const d = result.data;
-        if (d.cardName) setName(d.cardName);
-        if (d.setName) setSetName2(d.setName);
-        if (d.setCode) setSetCode(d.setCode);
-        if (d.cardNumber) setCardNumber(d.cardNumber);
+        setName(d.productName || d.cardName || '');
+        setSetName2(d.productSet || d.setName || '');
+        setSetCode(d.setCode || '');
+        setCardNumber(d.productNumber || d.cardNumber || '');
 
         // If it's a graded card, set the type and grading info
         if (d.grader) {
@@ -196,7 +196,17 @@ export default function AddItemScreen() {
 
         if (d.language) setLanguage(d.language);
         if (d.refPriceChartingProductId) setRefPriceChartingProductId(d.refPriceChartingProductId);
-        if (d.marketPrice) setMarketPrice(d.marketPrice.toString());
+        
+        // Select the most accurate market price based on grade
+        const numericGrade = d.gradeValue ? parseFloat(d.gradeValue.toString().replace(/[^\d.]/g, '')) : null;
+        let priceToSet = d.marketPrice;
+        if (numericGrade === 10 && d.grade10Price) priceToSet = d.grade10Price;
+        else if (numericGrade === 9.5 && d.grade95Price) priceToSet = d.grade95Price;
+        else if (numericGrade === 9 && d.grade9Price) priceToSet = d.grade9Price;
+        else if (numericGrade === 8 && d.grade8Price) priceToSet = d.grade8Price;
+        else if (numericGrade === 7 && d.grade7Price) priceToSet = d.grade7Price;
+        
+        if (priceToSet) setMarketPrice(priceToSet.toString());
 
         // Update selected product if ID is returned
         if (d.refPriceChartingProductId) {
