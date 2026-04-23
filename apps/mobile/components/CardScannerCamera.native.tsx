@@ -84,10 +84,15 @@ export default function CardScannerCamera({ onCapture, onClose, aspect = 'card' 
         ? photo.path
         : `file://${photo.path}`;
 
-      // The preview uses "cover" fit, so the photo is cropped symmetrically to
-      // fill the screen. Map the on-screen frame to photo pixel coordinates.
-      const photoW = photo.width;
-      const photoH = photo.height;
+      // Vision Camera reports dimensions in the sensor-native orientation,
+      // while ImageManipulator applies the EXIF rotation on load. Re-encode
+      // the photo with no ops first so the reported width/height match the
+      // visual pixels we're about to crop.
+      const normalized = await ImageManipulator.manipulateAsync(photoUri, [], {
+        format: ImageManipulator.SaveFormat.JPEG,
+      });
+      const photoW = normalized.width;
+      const photoH = normalized.height;
       const photoAspect = photoW / photoH;
       const screenAspect = W / H;
 
@@ -117,7 +122,7 @@ export default function CardScannerCamera({ onCapture, onClose, aspect = 'card' 
       const cropH = Math.min(photoH - cropY, Math.round(frame.height * scaleY));
 
       const manipulated = await ImageManipulator.manipulateAsync(
-        photoUri,
+        normalized.uri,
         [{ crop: { originX: cropX, originY: cropY, width: cropW, height: cropH } }],
         { compress: 0.9, format: ImageManipulator.SaveFormat.JPEG },
       );
