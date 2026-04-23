@@ -722,7 +722,13 @@ export class InventoryService {
             return sum / last3.length;
         };
 
-        if (item.itemType === 'SINGLE_CARD_GRADED') {
+        // Treat RAW items with a populated grade as graded for pricing — AI scans
+        // and imports can leave a BGS/PSA item classified as RAW, and the user
+        // expects the market price to reflect the visible grade.
+        const hasGrade = !!(item.gradeProvider && item.gradeValue);
+        const useGradedPricing = item.itemType === 'SINGLE_CARD_GRADED' || (item.itemType === 'SINGLE_CARD_RAW' && hasGrade);
+
+        if (useGradedPricing) {
             const gradeStr = String(item.gradeValue || '').toLowerCase();
             const numericGrade = gradeStr.match(/\d+(\.\d+)?/)?.[0];
 
@@ -849,6 +855,17 @@ export class InventoryService {
             backMediaUrl: item.backMedia
                 ? this.mediaService.getPublicUrl(item.backMedia, { preferCdn: true })
                 : null,
+            // Grading fields surface on any item that has them — AI scans and manual
+            // entry can populate them even when the user saved the item as RAW.
+            gradingCompany: item.gradeProvider || null,
+            grade: item.gradeValue || null,
+            gradeProvider: item.gradeProvider || null,
+            gradeValue: item.gradeValue || null,
+            certNumber: item.certNumber || null,
+            gradingCost: item.gradingCost ? Number(item.gradingCost) : null,
+            slabImages: item.slabImages || {},
+            gradingMeta: item.gradingMeta || null,
+            previousCertNumbers: item.previousCertNumbers || [],
         };
 
         if (item.itemType === 'SINGLE_CARD_RAW') {
@@ -867,15 +884,6 @@ export class InventoryService {
                 type: 'SINGLE_CARD_GRADED',
                 cardVariantId: item.cardVariantId,
                 refPriceChartingProductId: item.refPriceChartingProductId,
-                gradingCompany: item.gradeProvider,
-                grade: item.gradeValue,
-                gradeProvider: item.gradeProvider,
-                gradeValue: item.gradeValue,
-                certNumber: item.certNumber,
-                gradingCost: item.gradingCost ? Number(item.gradingCost) : null,
-                slabImages: item.slabImages || {},
-                gradingMeta: item.gradingMeta || {},
-                previousCertNumbers: item.previousCertNumbers || [],
                 cardProfile,
             };
         } else if (item.itemType === 'SEALED_PRODUCT') {

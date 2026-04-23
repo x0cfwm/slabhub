@@ -42,6 +42,16 @@ export interface InventoryItem {
   gradingCompany?: GradingCompany;
   grade?: string;
   certNumber?: string;
+  gradingMeta?: {
+    subgrades?: {
+      centering?: number | string;
+      corners?: number | string;
+      edges?: number | string;
+      surface?: number | string;
+    };
+    gradeLabel?: string;
+    [key: string]: any;
+  } | null;
   quantity: number;
   acquisitionPrice: number;
   acquisitionDate?: string;

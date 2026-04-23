@@ -271,13 +271,13 @@ export default function ItemDetailScreen() {
         <View style={styles.detailsSection}>
           <DetailRow label="Type" value={TYPE_LABELS[item.type] || item.type} />
           <DetailRow label="Condition" value={CONDITION_LABELS[item.condition] || item.condition} />
-          {item.gradingCompany && <DetailRow label="Grading Company" value={item.gradingCompany} />}
-          {item.grade && <DetailRow label="Grade" value={item.grade} />}
           {item.listedPrice !== undefined && item.listedPrice > 0 && (
             <DetailRow label="Cost" value={`$${(Number(item.acquisitionPrice) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`} />
           )}
           <DetailRow label="Added" value={item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'} />
         </View>
+
+        <GradingSection item={item} />
 
         {(item.sellingDescription || item.stage === 'listed') ? (
           <View style={styles.notesSection}>
@@ -362,6 +362,48 @@ function DetailRow({ label, value }: { label: string; value: string }) {
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={styles.detailValue}>{value}</Text>
+    </View>
+  );
+}
+
+function GradingSection({ item }: { item: any }) {
+  const subgrades = item.gradingMeta?.subgrades;
+  const hasSubgrades = subgrades && Object.values(subgrades).some((v) => v !== null && v !== undefined && v !== '');
+  const hasGradingInfo = item.gradingCompany || item.grade || item.certNumber || hasSubgrades;
+
+  if (!hasGradingInfo) return null;
+
+  const headline = [item.gradingCompany, item.gradingMeta?.gradeLabel || item.grade]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <View style={styles.gradingSection}>
+      <View style={styles.gradingHeaderRow}>
+        <MaterialCommunityIcons name="shield-check-outline" size={18} color={c.accent} />
+        <Text style={styles.gradingSectionTitle}>Grading</Text>
+      </View>
+      {headline ? <Text style={styles.gradingHeadline}>{headline}</Text> : null}
+      {item.gradingCompany ? (
+        <DetailRow label="Grading Company" value={item.gradingCompany} />
+      ) : null}
+      {item.grade ? <DetailRow label="Grade" value={String(item.grade)} /> : null}
+      {item.certNumber ? <DetailRow label="Cert Number" value={String(item.certNumber)} /> : null}
+      {hasSubgrades ? (
+        <View style={styles.subgradesBlock}>
+          <Text style={styles.subgradesLabel}>Subgrades</Text>
+          <View style={styles.subgradesGrid}>
+            {(['centering', 'corners', 'edges', 'surface'] as const).map((key) =>
+              subgrades[key] !== undefined && subgrades[key] !== null && subgrades[key] !== '' ? (
+                <View key={key} style={styles.subgradeChip}>
+                  <Text style={styles.subgradeChipLabel}>{key.charAt(0).toUpperCase() + key.slice(1)}</Text>
+                  <Text style={styles.subgradeChipValue}>{String(subgrades[key])}</Text>
+                </View>
+              ) : null,
+            )}
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -543,6 +585,64 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: c.borderLight,
     gap: 10,
+  },
+  gradingSection: {
+    marginHorizontal: 20,
+    backgroundColor: c.surface,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+    gap: 10,
+  },
+  gradingHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  gradingSectionTitle: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: c.text,
+  },
+  gradingHeadline: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: c.accent,
+  },
+  subgradesBlock: {
+    gap: 8,
+    marginTop: 4,
+  },
+  subgradesLabel: {
+    fontSize: 12,
+    color: c.textTertiary,
+    fontWeight: '500' as const,
+  },
+  subgradesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  subgradeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: c.surfaceHighlight,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+  },
+  subgradeChipLabel: {
+    fontSize: 12,
+    color: c.textSecondary,
+  },
+  subgradeChipValue: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: c.text,
   },
   detailRow: {
     flexDirection: 'row',

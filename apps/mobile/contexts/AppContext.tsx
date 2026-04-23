@@ -71,6 +71,8 @@ const mapApiToUiItem = (item: ApiInventoryItem): InventoryItem => {
     condition: conditionMap[(item as any).condition || ''] || 'raw',
     gradingCompany: (item as any).gradingCompany as GradingCompany,
     grade: (item as any).grade?.toString(),
+    certNumber: (item as any).certNumber || undefined,
+    gradingMeta: (item as any).gradingMeta || undefined,
     quantity: item.quantity || 1,
     acquisitionPrice: Number(item.acquisitionPrice) || 0,
     marketPrice: Number(item.marketPrice) || 0,

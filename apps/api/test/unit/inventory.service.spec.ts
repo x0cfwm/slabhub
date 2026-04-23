@@ -140,6 +140,41 @@ describe('InventoryService', () => {
     ).toBe(3100);
   });
 
+  it('getMarketPrice uses graded pricing when a RAW item has a populated grade', () => {
+    // SH-50 follow-up: AI scans and imports sometimes leave graded slabs classified
+    // as SINGLE_CARD_RAW. When gradeProvider + gradeValue are set, surface the grade
+    // price so the number matches the Grading section and Market screen.
+    expect(
+      service.getMarketPrice({
+        itemType: 'SINGLE_CARD_RAW',
+        gradeProvider: 'BGS',
+        gradeValue: '9.5',
+        refPriceChartingProduct: {
+          id: 'p5',
+          grade95Price: 8470,
+          rawPrice: 3099,
+          sales: [],
+        },
+      }),
+    ).toBe(8470);
+  });
+
+  it('getMarketPrice keeps raw pricing when a RAW item has no grade set', () => {
+    expect(
+      service.getMarketPrice({
+        itemType: 'SINGLE_CARD_RAW',
+        gradeProvider: null,
+        gradeValue: null,
+        refPriceChartingProduct: {
+          id: 'p6',
+          grade95Price: 8470,
+          rawPrice: 500,
+          sales: [],
+        },
+      }),
+    ).toBe(500);
+  });
+
   it('transformItem returns graded payload', () => {
     const out = service.transformItem({
       id: 'i1',
