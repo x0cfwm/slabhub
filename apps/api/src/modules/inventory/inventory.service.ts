@@ -724,8 +724,22 @@ export class InventoryService {
 
         if (item.itemType === 'SINGLE_CARD_GRADED') {
             const gradeStr = String(item.gradeValue || '').toLowerCase();
+            const numericGrade = gradeStr.match(/\d+(\.\d+)?/)?.[0];
 
-            // 1. Try to find sales for this specific grade
+            // 1. Prefer PriceCharting summary grade price so inventory matches the Market screen.
+            let summaryPrice: number | null = null;
+            if (numericGrade === '10' && ref.grade10Price) summaryPrice = Number(ref.grade10Price);
+            else if (numericGrade === '9.5' && ref.grade95Price) summaryPrice = Number(ref.grade95Price);
+            else if (numericGrade === '9' && ref.grade9Price) summaryPrice = Number(ref.grade9Price);
+            else if (numericGrade === '8' && ref.grade8Price) summaryPrice = Number(ref.grade8Price);
+            else if (numericGrade === '7' && ref.grade7Price) summaryPrice = Number(ref.grade7Price);
+
+            if (summaryPrice !== null) {
+                this.marketPriceCache.set(cacheKey, summaryPrice);
+                return summaryPrice;
+            }
+
+            // 2. Fallback to average of last 3 recent sales matching this grade.
             const gradedSales = sales.filter((s: any) => s.grade?.toLowerCase().includes(gradeStr));
             const gradedAvg = getAverageOf3(gradedSales);
             if (gradedAvg !== null) {
@@ -733,22 +747,7 @@ export class InventoryService {
                 return gradedAvg;
             }
 
-            // 2. Fallback to summary grade price if available (from PriceCharting elements)
-            const numericGrade = gradeStr.match(/\d+(\.\d+)?/)?.[0];
-            let fallbackPrice: number | null = null;
-
-            if (numericGrade === '10' && ref.grade10Price) fallbackPrice = Number(ref.grade10Price);
-            else if (numericGrade === '9.5' && ref.grade95Price) fallbackPrice = Number(ref.grade95Price);
-            else if (numericGrade === '9' && ref.grade9Price) fallbackPrice = Number(ref.grade9Price);
-            else if (numericGrade === '8' && ref.grade8Price) fallbackPrice = Number(ref.grade8Price);
-            else if (numericGrade === '7' && ref.grade7Price) fallbackPrice = Number(ref.grade7Price);
-
-            if (fallbackPrice !== null) {
-                this.marketPriceCache.set(cacheKey, fallbackPrice);
-                return fallbackPrice;
-            }
-
-            // 3. Fallback to Raw sales average
+            // 3. Last resort: Raw sales average or rawPrice.
             const rawSales = sales.filter((s: any) =>
                 !s.grade ||
                 s.grade.toLowerCase().includes('ungraded') ||
@@ -827,7 +826,9 @@ export class InventoryService {
             marketPriceSnapshot: item.marketPriceSnapshot
                 ? Number(item.marketPriceSnapshot)
                 : null,
-            marketPrice: item.marketPriceSnapshot ? Number(item.marketPriceSnapshot) : null,
+            marketPrice: item.refPriceChartingProduct
+                ? (this.getMarketPrice(item) ?? (item.marketPriceSnapshot ? Number(item.marketPriceSnapshot) : null))
+                : (item.marketPriceSnapshot ? Number(item.marketPriceSnapshot) : null),
             acquisitionDate: item.acquisitionDate?.toISOString?.() || null,
             acquisitionSource: item.acquisitionSource,
             storageLocation: item.storageLocation,

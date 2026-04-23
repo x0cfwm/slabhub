@@ -101,6 +101,45 @@ describe('InventoryService', () => {
     ).toBe(4);
   });
 
+  it('getMarketPrice prefers PriceCharting summary grade price over recent sales average', () => {
+    // Regression for SH-50: inventory market price must match what the Market screen shows.
+    // With a populated grade95Price, avoid averaging noisy recent sales that can skew lower.
+    expect(
+      service.getMarketPrice({
+        itemType: 'SINGLE_CARD_GRADED',
+        gradeValue: '9.5',
+        refPriceChartingProduct: {
+          id: 'p3',
+          grade95Price: 8470,
+          rawPrice: 500,
+          sales: [
+            { grade: 'PSA 9.5', price: 3000 },
+            { grade: 'BGS 9.5', price: 3100 },
+            { grade: 'CGC 9.5', price: 3200 },
+          ],
+        },
+      }),
+    ).toBe(8470);
+  });
+
+  it('getMarketPrice falls back to graded sales average when summary is missing', () => {
+    expect(
+      service.getMarketPrice({
+        itemType: 'SINGLE_CARD_GRADED',
+        gradeValue: '9.5',
+        refPriceChartingProduct: {
+          id: 'p4',
+          grade95Price: null,
+          rawPrice: 500,
+          sales: [
+            { grade: 'PSA 9.5', price: 3000 },
+            { grade: 'BGS 9.5', price: 3200 },
+          ],
+        },
+      }),
+    ).toBe(3100);
+  });
+
   it('transformItem returns graded payload', () => {
     const out = service.transformItem({
       id: 'i1',
