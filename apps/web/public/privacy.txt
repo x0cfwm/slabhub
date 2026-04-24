@@ -17,6 +17,7 @@ We use your information to:
 - Provide customer support.
 - Monitor usage and improve the Service.
 - Detect, prevent, and address technical issues.
+- Conduct market research based on user-generated data excluding personal information such as email, name, nickname, and other identity-related data points.
 
 4. DATA SECURITY
 We implement appropriate technical and organizational measures to protect your personal data against unauthorized access, alteration, disclosure, or destruction.

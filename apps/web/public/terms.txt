@@ -1,6 +1,6 @@
 TERMS OF SERVICE
 
-Last Updated: February 20, 2026
+Last Updated: April 24, 2026
 
 1. ACCEPTANCE OF TERMS
 By accessing and using Slabhub (the "Service"), provided by LLC Slabhub ("Company," "we," "us," or "our"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service.
@@ -16,10 +16,16 @@ You agree not to:
 - Use the Service for any illegal purpose.
 - Interfere with or disrupt the Service or servers.
 - Attempt to gain unauthorized access to any part of the Service.
-- Post or transmit any content that is infringing, libelous, defamatory, or obscene.
+- Post or transmit any content that is infringing, libelous, defamatory, pornographic or obscene.
+- Attempt to engage in fraudulent behavior of any kind.
 
 5. INTELLECTUAL PROPERTY
 All content and materials available on Slabhub, including but not limited to text, graphics, website name, code, images, and logos are the intellectual property of LLC Slabhub and are protected by applicable intellectual property law.
+By adding any content such as images, videos, text and other forms of content you give Slabhub a full consent to access this content for analytics and other purposes.
+By using Slabhub you confirm that you own or have rights to what you upload and your uploaded content does not infringe other parties IP.
+By uploading any content you license Slabhub to host, display, reproduce, and distribute that content as needed to run the app (worldwide, non-exclusive, royalty-free, sublicensable, transferable, for the purpose of operating and improving the service).
+By uploading any content you consent to your user-generated content to appear in Slabhub public profiles, feeds, marketing including but not limited to Instagram, Tik Tok and other social media accounts.
+Slabhub reserves the right to utilize user-generated content and analytics for market research purposes.
 
 6. LIMITATION OF LIABILITY
 LLC Slabhub shall not be liable for any direct, indirect, incidental, special, or consequential damages resulting from the use or the inability to use the Service.
