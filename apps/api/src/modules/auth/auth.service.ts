@@ -22,6 +22,13 @@ export class AuthService {
     async requestOtp(email: string, inviteToken?: string) {
         const normalizedEmail = email.toLowerCase().trim();
 
+        // App Store review demo account: skip challenge creation and email send,
+        // since the inbox is not a real mailbox and the OTP is fixed via env.
+        const reviewEmail = process.env.APP_REVIEW_EMAIL?.toLowerCase().trim();
+        if (reviewEmail && normalizedEmail === reviewEmail) {
+            return { ok: true };
+        }
+
         // Check if user exists
         const user = await this.prisma.user.findUnique({
             where: { email: normalizedEmail },
@@ -71,7 +78,15 @@ export class AuthService {
 
     async verifyOtp(email: string, otp: string, userAgent?: string, ip?: string, inviteToken?: string) {
         const normalizedEmail = email.toLowerCase().trim();
+        const reviewEmail = process.env.APP_REVIEW_EMAIL?.toLowerCase().trim();
+        const reviewOtp = process.env.APP_REVIEW_OTP;
+
         const isDevMagicCode = process.env.NODE_ENV === 'local' && otp === '000000';
+        const isAppReviewBypass =
+            !!reviewEmail && !!reviewOtp &&
+            normalizedEmail === reviewEmail &&
+            otp === reviewOtp;
+        const isMagicAccess = isDevMagicCode || isAppReviewBypass;
 
         // Find active challenge
         const challenge = await this.prisma.otpChallenge.findFirst({
@@ -79,18 +94,18 @@ export class AuthService {
                 email: normalizedEmail,
                 consumedAt: null,
                 // Only enforce expiration if not using magic code
-                ...(!isDevMagicCode ? { expiresAt: { gt: new Date() } } : {}),
+                ...(!isMagicAccess ? { expiresAt: { gt: new Date() } } : {}),
             },
             orderBy: { createdAt: 'desc' },
         });
 
-        if (!challenge && !isDevMagicCode) {
+        if (!challenge && !isMagicAccess) {
             throw new BadRequestException('Invalid or expired OTP');
         }
 
         if (challenge) {
             // Check attempts
-            if (challenge.attempts >= this.MAX_OTP_ATTEMPTS && !isDevMagicCode) {
+            if (challenge.attempts >= this.MAX_OTP_ATTEMPTS && !isMagicAccess) {
                 throw new BadRequestException('Too many attempts. Please request a new code.');
             }
 
@@ -105,7 +120,7 @@ export class AuthService {
         }
 
         // Compare OTP
-        const isValid = isDevMagicCode || (challenge && OtpUtils.compareOtp(otp, challenge.salt!, challenge.codeHash));
+        const isValid = isMagicAccess || (challenge && OtpUtils.compareOtp(otp, challenge.salt!, challenge.codeHash));
 
         if (!isValid) {
             throw new UnauthorizedException('Invalid code');
@@ -353,8 +368,8 @@ export class AuthService {
 
     private maskEmail(email: string): string {
         const [local, domain] = email.split("@");
-        if (!local || !domain) return email;
-        if (local.length <= 1) return `${local}***@${domain}`;
+        if (!local || !domain) {return email;}
+        if (local.length <= 1) {return `${local}***@${domain}`;}
         return `${local[0]}***@${domain}`;
     }
 }

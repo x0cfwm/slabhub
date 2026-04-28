@@ -45,6 +45,20 @@ describe('AuthService', () => {
 
       await expect(service.requestOtp('new@user.com', 'bad-token')).rejects.toBeInstanceOf(BadRequestException);
     });
+
+    it('bypasses challenge and mailer for the App Store review email', async () => {
+      process.env.APP_REVIEW_EMAIL = 'demo@slabhub.gg';
+      process.env.APP_REVIEW_OTP = '000000';
+
+      const result = await service.requestOtp('Demo@SlabHub.GG ');
+
+      expect(result).toEqual({ ok: true });
+      expect(prisma.otpChallenge.create).not.toHaveBeenCalled();
+      expect(mailer.sendOtp).not.toHaveBeenCalled();
+
+      delete process.env.APP_REVIEW_EMAIL;
+      delete process.env.APP_REVIEW_OTP;
+    });
   });
 
   describe('verifyOtp', () => {
@@ -92,6 +106,36 @@ describe('AuthService', () => {
 
       expect(out.user.id).toBe('u1');
       expect(typeof out.sessionToken).toBe('string');
+    });
+
+    it('accepts App Store review credentials in production', async () => {
+      process.env.NODE_ENV = 'production';
+      process.env.APP_REVIEW_EMAIL = 'demo@slabhub.gg';
+      process.env.APP_REVIEW_OTP = '000000';
+      prisma.otpChallenge.findFirst.mockResolvedValue(null);
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.upsert.mockResolvedValue({ id: 'u-demo', email: 'demo@slabhub.gg' });
+      prisma.session.create.mockResolvedValue({});
+
+      const out = await service.verifyOtp('Demo@SlabHub.GG', '000000', 'ua', '1.1.1.1');
+
+      expect(out.user.id).toBe('u-demo');
+      expect(typeof out.sessionToken).toBe('string');
+
+      delete process.env.APP_REVIEW_EMAIL;
+      delete process.env.APP_REVIEW_OTP;
+    });
+
+    it('rejects wrong otp for the App Store review email', async () => {
+      process.env.NODE_ENV = 'production';
+      process.env.APP_REVIEW_EMAIL = 'demo@slabhub.gg';
+      process.env.APP_REVIEW_OTP = '000000';
+      prisma.otpChallenge.findFirst.mockResolvedValue(null);
+
+      await expect(service.verifyOtp('demo@slabhub.gg', '111111')).rejects.toBeInstanceOf(BadRequestException);
+
+      delete process.env.APP_REVIEW_EMAIL;
+      delete process.env.APP_REVIEW_OTP;
     });
 
     it('records invite acceptance for new invited user', async () => {
