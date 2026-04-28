@@ -14,6 +14,7 @@ import {
 import * as api from '@/lib/api';
 import { InventoryItem as ApiInventoryItem } from '@/lib/types';
 import { queryClient } from '@/lib/query-client';
+import { useAuth } from '@/contexts/AuthContext';
 
 import { AppState, AppStateStatus } from 'react-native';
 
@@ -172,14 +173,24 @@ interface AppContextValue {
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [statuses, setStatuses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!userId) {
+      setInventory([]);
+      setProfile(DEFAULT_PROFILE);
+      setStatuses([]);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
     loadData();
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
