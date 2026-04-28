@@ -3,10 +3,25 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { apiRequest, registerAuthErrorHandler } from '@/lib/query-client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiRequest, queryClient, registerAuthErrorHandler } from '@/lib/query-client';
 
 const TOKEN_KEY = 'slabhub_session_token';
 const USER_KEY = 'slabhub_user_data';
+const CACHED_USER_DATA_KEYS = ['@slabhub_profile', '@slabhub/recent_shops_v1'];
+
+async function clearLocalCaches() {
+    try {
+        queryClient.clear();
+    } catch (e) {
+        console.error('Failed to clear React Query cache:', e);
+    }
+    try {
+        await AsyncStorage.multiRemove(CACHED_USER_DATA_KEYS);
+    } catch (e) {
+        console.error('Failed to clear cached app data:', e);
+    }
+}
 
 interface User {
     id: string;
@@ -42,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (e) {
             console.error('Failed to clear session:', e);
         } finally {
+            await clearLocalCaches();
             setSessionToken(null);
             setUser(null);
         }
@@ -209,6 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 await SecureStore.deleteItemAsync(TOKEN_KEY);
                 await SecureStore.deleteItemAsync(USER_KEY);
             }
+            await clearLocalCaches();
             setSessionToken(null);
             setUser(null);
         }
