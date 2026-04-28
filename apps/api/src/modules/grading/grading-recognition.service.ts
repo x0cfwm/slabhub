@@ -87,8 +87,10 @@ export class GradingRecognitionService {
             throw new BadRequestException('Image recognition is not configured (missing GEMINI_API_KEY)');
         }
 
-        const modelNames = ['gemini-2.5-flash-lite'];
-        const disambiguationModelName = 'gemini-2.5-flash-lite';
+        const recognitionModel =
+            this.configService.get<string>('GEMINI_RECOGNITION_MODEL') ?? 'gemini-2.5-flash-lite';
+        const modelNames = [recognitionModel];
+        const disambiguationModelName = recognitionModel;
 
         let lastError: Error | null = null;
         const startTime = Date.now();
