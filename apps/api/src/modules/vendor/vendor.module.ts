@@ -4,9 +4,10 @@ import { VendorService } from './vendor.service';
 
 import { MediaModule } from '../media/media.module';
 import { InventoryModule } from '../inventory/inventory.module';
+import { ModerationModule } from '../moderation/moderation.module';
 
 @Module({
-    imports: [MediaModule, InventoryModule],
+    imports: [MediaModule, InventoryModule, ModerationModule],
     controllers: [VendorController],
     providers: [VendorService],
     exports: [VendorService],

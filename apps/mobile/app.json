@@ -2,7 +2,7 @@
   "expo": {
     "name": "SlabHub CRM",
     "slug": "slabhub-crm",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/slabhub_s_icon.png",
     "scheme": "myapp",
@@ -20,14 +20,17 @@
         "applinks:slabhub.gg"
       ],
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "SlabHub needs access to your photos so you can attach card images to your inventory and shop avatar.",
+        "NSLocationWhenInUseUsageDescription": "SlabHub does not use your location. This description is required because a bundled library references location APIs; the app never requests location access.",
+        "NSMicrophoneUsageDescription": "SlabHub does not record audio. This description is required because the camera framework references microphone APIs; the app never records from the microphone."
       },
       "entitlements": {
         "com.apple.developer.applesignin": [
           "Default"
         ]
       },
-      "buildNumber": "41"
+      "buildNumber": "4"
     },
     "android": {
       "package": "gg.slabhub.crm",

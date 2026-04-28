@@ -145,5 +145,14 @@ export function createPrismaMock() {
       findMany: jest.fn(),
       create: jest.fn(),
     },
+    abuseReport: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+    },
+    userBlock: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+      deleteMany: jest.fn(),
+    },
   } as any;
 }

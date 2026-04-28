@@ -60,7 +60,7 @@ function RootLayoutNav() {
       router.replace("/(auth)/login" as any);
     } else if (sessionToken && inAuthGroup) {
       // Signed in — go to main app.
-      router.replace("/(tabs)/inventory");
+      router.replace("/(tabs)");
     }
   }, [sessionToken, isLoading, segments, hasCompletedOnboarding]);
 
@@ -120,6 +120,12 @@ function RootLayoutNav() {
       />
       <Stack.Screen
         name="recent-shops"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="blocked-users"
         options={{
           headerShown: false,
         }}

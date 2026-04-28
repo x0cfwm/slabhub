@@ -538,7 +538,7 @@ export default function AddItemScreen() {
       >
         <Pressable style={styles.imageSection} onPress={handleImageAction}>
           {imageUri ? (
-            <Image source={{ uri: getOptimizedImageUrl(imageUri, { height: 600 }) }} style={styles.image} contentFit="cover" />
+            <Image source={{ uri: getOptimizedImageUrl(imageUri, { height: 600 }) }} style={styles.image} contentFit="contain" />
           ) : (
             <View style={styles.imagePlaceholder}>
               <Ionicons name="camera" size={28} color={c.textTertiary} />

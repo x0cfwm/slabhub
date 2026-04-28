@@ -10,12 +10,14 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Linking,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/colors';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as AppleAuthentication from 'expo-apple-authentication';
 
@@ -95,13 +97,17 @@ export default function LoginScreen() {
           {/* Logo & Branding */}
           <View style={styles.brandArea}>
             <View style={styles.logoContainer}>
-              <MaterialCommunityIcons name="cards-playing-outline" size={44} color={c.accent} />
+              <Image
+                source={require('@/assets/images/slabhub_s_icon.png')}
+                style={styles.logoImage}
+                resizeMode="cover"
+              />
               <View style={styles.logoRing} />
             </View>
 
             <Text style={styles.title}>Sign In to{'\n'}SlabHub</Text>
             <Text style={styles.subtitle}>
-              The ultimate tool for slab collectors
+              The ultimate tool for TCG collectors
             </Text>
           </View>
 
@@ -179,7 +185,7 @@ export default function LoginScreen() {
             {(appleAuthAvailable || Platform.OS === 'ios') && (
               <AppleAuthentication.AppleAuthenticationButton
                 buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
                 cornerRadius={14}
                 style={styles.appleButton}
                 onPress={handleAppleSignIn}
@@ -188,7 +194,25 @@ export default function LoginScreen() {
           </View>
 
           {/* Footer */}
-          <View style={{ height: 40 }} />
+          <View style={styles.legalFooter}>
+            <Text style={styles.legalText}>
+              By continuing, you agree to our{' '}
+              <Text
+                style={styles.legalLink}
+                onPress={() => Linking.openURL('https://slabhub.gg/terms.txt')}
+              >
+                Terms
+              </Text>
+              {' '}and{' '}
+              <Text
+                style={styles.legalLink}
+                onPress={() => Linking.openURL('https://slabhub.gg/privacy.txt')}
+              >
+                Privacy Policy
+              </Text>
+              .
+            </Text>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -219,17 +243,21 @@ const styles = StyleSheet.create({
   logoContainer: {
     width: 88,
     height: 88,
-    borderRadius: 44,
-    backgroundColor: c.accentDim,
+    borderRadius: 20,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
   },
   logoRing: {
     position: 'absolute',
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: 24,
     borderWidth: 2,
     borderColor: c.accent + '20',
   },
@@ -353,5 +381,19 @@ const styles = StyleSheet.create({
   appleButton: {
     width: '100%',
     height: 52,
+  },
+  legalFooter: {
+    marginTop: 32,
+    paddingHorizontal: 16,
+  },
+  legalText: {
+    fontSize: 12,
+    color: c.textTertiary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  legalLink: {
+    color: c.textSecondary,
+    textDecorationLine: 'underline',
   },
 });

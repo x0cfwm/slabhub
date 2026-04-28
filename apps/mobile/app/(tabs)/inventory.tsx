@@ -215,8 +215,17 @@ export default function InventoryScreen() {
                 {tab.stage === 'all' ? 'No items yet' : `No ${STAGE_LABELS[tab.stage as ItemStage]} items`}
               </Text>
               <Text style={styles.emptyText}>
-                {tab.stage === 'all' ? 'Tap + to add your first item' : 'Items will appear here when moved to this stage'}
+                {tab.stage === 'all' ? 'Start building your collection by adding your first card.' : 'Items will appear here when moved to this stage'}
               </Text>
+              {tab.stage === 'all' && (
+                <Pressable
+                  style={({ pressed }) => [styles.emptyActionBtn, { opacity: pressed ? 0.8 : 1 }]}
+                  onPress={() => router.push('/add-item')}
+                >
+                  <Ionicons name="add" size={18} color={c.accentText} />
+                  <Text style={styles.emptyActionBtnText}>Add first card</Text>
+                </Pressable>
+              )}
             </View>
           }
         />
@@ -437,7 +446,7 @@ function InventoryCard({ item, onMove, onPress }: {
     >
       <View style={styles.cardContent}>
         {item.imageUri ? (
-          <Image source={{ uri: getOptimizedImageUrl(item.imageUri, { height: 300 }) }} style={styles.cardImage} contentFit="cover" />
+          <Image source={{ uri: getOptimizedImageUrl(item.imageUri, { height: 300 }) }} style={styles.cardImage} contentFit="contain" />
         ) : (
           <View style={styles.cardImagePlaceholder}>
             <MaterialCommunityIcons name="cards-playing-outline" size={28} color={c.textTertiary} />
@@ -722,6 +731,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: c.textSecondary,
     textAlign: 'center' as const,
+  },
+  emptyActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: c.accent,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 12,
+  },
+  emptyActionBtnText: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: c.accentText,
   },
   modalOverlay: {
     flex: 1,

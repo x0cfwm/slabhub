@@ -20,7 +20,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getMarketProducts as apiGetMarketProducts,
   getMarketValueHistory,
+  deleteAccount,
 } from '@/lib/api';
+import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { MarketValueChart } from '@/components/MarketValueChart';
@@ -54,6 +56,62 @@ export default function DashboardScreen() {
   const { signOut, user } = useAuth();
   const [showAccount, setShowAccount] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = useCallback(() => {
+    if (deleting) return;
+    const runDeletion = async () => {
+      setDeleting(true);
+      try {
+        if (Platform.OS !== 'web') {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        }
+        await deleteAccount();
+        await signOut();
+      } catch (e: any) {
+        setDeleting(false);
+        const msg = e?.message || 'Could not delete your account. Please try again.';
+        if (Platform.OS === 'web') {
+          window.alert(msg);
+        } else {
+          Alert.alert('Deletion Failed', msg);
+        }
+      }
+    };
+
+    const confirmSecond = () => {
+      if (Platform.OS === 'web') {
+        if (window.confirm('FINAL CONFIRMATION: Permanently delete your account and all data? This cannot be undone.')) {
+          void runDeletion();
+        }
+        return;
+      }
+      Alert.alert(
+        'Are you absolutely sure?',
+        'Your account and all associated data will be permanently deleted. You cannot recover this information.',
+        [
+          { text: 'Keep Account', style: 'cancel' },
+          { text: 'Permanently Delete', style: 'destructive', onPress: runDeletion },
+        ],
+      );
+    };
+
+    setShowAccount(false);
+    if (Platform.OS === 'web') {
+      if (window.confirm('Delete your account? This will permanently remove your profile, shop and inventory.')) {
+        confirmSecond();
+      }
+      return;
+    }
+    Alert.alert(
+      'Delete Account?',
+      'This will permanently delete your profile, shop and inventory. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: confirmSecond },
+      ],
+    );
+  }, [deleting, signOut]);
   const queryClient = useQueryClient();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
@@ -208,7 +266,7 @@ export default function DashboardScreen() {
             onPress={() => setShowAccount(true)}
           >
             <Text style={styles.avatarBtnText}>
-              {(profile.username || user?.email || 'U')[0].toUpperCase()}
+              {(user?.email || 'U')[0].toUpperCase()}
             </Text>
           </Pressable>
           <View>
@@ -305,57 +363,110 @@ export default function DashboardScreen() {
                 <View style={styles.accountHeader}>
                   <View style={styles.accountAvatar}>
                     <Text style={styles.accountAvatarText}>
-                      {(profile.username || user?.email || 'U')[0].toUpperCase()}
+                      {(user?.email || 'U')[0].toUpperCase()}
                     </Text>
                   </View>
                   <View style={styles.accountInfo}>
-                    <Text style={styles.accountName} numberOfLines={1}>
-                      {profile.username || 'My Shop'}
-                    </Text>
+                    <Text style={styles.accountLabel}>Signed in as</Text>
                     <Text style={styles.accountEmail} numberOfLines={1}>
                       {user?.email || ''}
                     </Text>
                   </View>
                 </View>
-                <View style={styles.accountDivider} />
-                <Pressable
-                  style={({ pressed }) => [styles.accountRow, { opacity: pressed ? 0.7 : 1 }]}
-                  onPress={async () => {
-                    setShowAccount(false);
-                    try { await Linking.openURL('https://slabhub.gg'); } catch {}
-                  }}
-                >
-                  <Ionicons name="globe-outline" size={18} color={c.accent} />
-                  <Text style={styles.accountRowText}>Open SlabHub.gg</Text>
-                </Pressable>
-                <View style={styles.accountDivider} />
-                <Pressable
-                  style={({ pressed }) => [styles.accountRow, { opacity: pressed ? 0.7 : 1 }]}
-                  onPress={() => {
-                    setShowAccount(false);
-                    if (Platform.OS === 'web') {
-                      if (window.confirm('Are you sure you want to log out?')) {
-                        signOut();
+
+                <View style={styles.accountGroup}>
+                  <Pressable
+                    style={({ pressed }) => [styles.accountRow, pressed && styles.accountRowPressed]}
+                    onPress={async () => {
+                      setShowAccount(false);
+                      try { await Linking.openURL('https://slabhub.gg'); } catch {}
+                    }}
+                  >
+                    <Ionicons name="globe-outline" size={18} color={c.accent} />
+                    <Text style={styles.accountRowText}>Open SlabHub.gg</Text>
+                    <Ionicons name="open-outline" size={14} color={c.textTertiary} style={styles.accountRowTrailing} />
+                  </Pressable>
+                  <View style={styles.accountGroupDivider} />
+                  <Pressable
+                    style={({ pressed }) => [styles.accountRow, pressed && styles.accountRowPressed]}
+                    onPress={async () => {
+                      setShowAccount(false);
+                      try { await Linking.openURL('https://slabhub.gg/privacy.txt'); } catch {}
+                    }}
+                  >
+                    <Ionicons name="shield-checkmark-outline" size={18} color={c.textSecondary} />
+                    <Text style={styles.accountRowText}>Privacy Policy</Text>
+                    <Ionicons name="open-outline" size={14} color={c.textTertiary} style={styles.accountRowTrailing} />
+                  </Pressable>
+                  <View style={styles.accountGroupDivider} />
+                  <Pressable
+                    style={({ pressed }) => [styles.accountRow, pressed && styles.accountRowPressed]}
+                    onPress={async () => {
+                      setShowAccount(false);
+                      try { await Linking.openURL('https://slabhub.gg/terms.txt'); } catch {}
+                    }}
+                  >
+                    <Ionicons name="document-text-outline" size={18} color={c.textSecondary} />
+                    <Text style={styles.accountRowText}>Terms of Service</Text>
+                    <Ionicons name="open-outline" size={14} color={c.textTertiary} style={styles.accountRowTrailing} />
+                  </Pressable>
+                  <View style={styles.accountGroupDivider} />
+                  <Pressable
+                    style={({ pressed }) => [styles.accountRow, pressed && styles.accountRowPressed]}
+                    onPress={() => {
+                      setShowAccount(false);
+                      router.push('/blocked-users' as any);
+                    }}
+                  >
+                    <Ionicons name="shield-outline" size={18} color={c.textSecondary} />
+                    <Text style={styles.accountRowText}>Blocked users</Text>
+                    <Ionicons name="chevron-forward" size={14} color={c.textTertiary} style={styles.accountRowTrailing} />
+                  </Pressable>
+                </View>
+
+                <View style={styles.accountGroup}>
+                  <Pressable
+                    style={({ pressed }) => [styles.accountRow, pressed && styles.accountRowPressed]}
+                    onPress={() => {
+                      setShowAccount(false);
+                      if (Platform.OS === 'web') {
+                        if (window.confirm('Are you sure you want to log out?')) {
+                          signOut();
+                        }
+                      } else {
+                        Alert.alert(
+                          'Logout',
+                          'Are you sure you want to log out?',
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Logout', style: 'destructive', onPress: signOut },
+                          ]
+                        );
                       }
-                    } else {
-                      Alert.alert(
-                        'Logout',
-                        'Are you sure you want to log out?',
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          { text: 'Logout', style: 'destructive', onPress: signOut },
-                        ]
-                      );
-                    }
-                  }}
-                >
-                  <Ionicons name="log-out-outline" size={18} color={c.error} />
-                  <Text style={[styles.accountRowText, { color: c.error }]}>Log Out</Text>
-                </Pressable>
+                    }}
+                  >
+                    <Ionicons name="log-out-outline" size={18} color={c.error} />
+                    <Text style={[styles.accountRowText, { color: c.error }]}>Log Out</Text>
+                  </Pressable>
+                </View>
+
                 <Text style={styles.accountVersion}>
                   Version {Constants.nativeAppVersion ?? Constants.expoConfig?.version ?? 'unknown'}
                   {' '}({Constants.nativeBuildVersion ?? Constants.expoConfig?.ios?.buildNumber ?? Constants.expoConfig?.android?.versionCode ?? '?'})
                 </Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.deleteAccountLink,
+                    { opacity: pressed && !deleting ? 0.6 : 1 },
+                  ]}
+                  onPress={handleDeleteAccount}
+                  disabled={deleting}
+                  hitSlop={8}
+                >
+                  <Text style={styles.deleteAccountText}>
+                    {deleting ? 'Deleting…' : 'Delete account'}
+                  </Text>
+                </Pressable>
               </View>
             </TouchableWithoutFeedback>
           </View>
@@ -626,7 +737,8 @@ const styles = StyleSheet.create({
     backgroundColor: c.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 40,
   },
   accountSheetHandle: {
@@ -635,18 +747,19 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: c.border,
     alignSelf: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   accountHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
+    gap: 14,
+    paddingHorizontal: 4,
+    marginBottom: 24,
   },
   accountAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: c.surfaceHighlight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -654,43 +767,71 @@ const styles = StyleSheet.create({
     borderColor: c.accent,
   },
   accountAvatarText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700' as const,
     color: c.accent,
   },
   accountInfo: {
     flex: 1,
   },
-  accountName: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: c.text,
+  accountLabel: {
+    fontSize: 11,
+    fontWeight: '500' as const,
+    color: c.textTertiary,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.6,
+    marginBottom: 2,
   },
   accountEmail: {
-    fontSize: 13,
-    color: c.textSecondary,
-    marginTop: 2,
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: c.text,
   },
-  accountDivider: {
+  accountGroup: {
+    backgroundColor: c.surfaceElevated,
+    borderRadius: 14,
+    overflow: 'hidden' as const,
+    marginBottom: 12,
+  },
+  accountGroupDivider: {
     height: 1,
     backgroundColor: c.borderLight,
-    marginVertical: 4,
+    marginLeft: 48,
   },
   accountRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
     paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  accountRowPressed: {
+    backgroundColor: c.surfaceHighlight,
   },
   accountRowText: {
     fontSize: 15,
     fontWeight: '500' as const,
     color: c.text,
   },
+  accountRowTrailing: {
+    marginLeft: 'auto' as const,
+  },
   accountVersion: {
     fontSize: 12,
     color: c.textTertiary,
     textAlign: 'center' as const,
-    marginTop: 16,
+    marginTop: 20,
+  },
+  deleteAccountLink: {
+    alignSelf: 'center',
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  deleteAccountText: {
+    fontSize: 11,
+    color: c.textTertiary,
+    textDecorationLine: 'underline',
+    textDecorationColor: c.textTertiary,
   },
 });

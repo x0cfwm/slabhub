@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MediaService } from '../media/media.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { ModerationService } from '../moderation/moderation.service';
 
 @Injectable()
 export class VendorService {
@@ -9,11 +10,14 @@ export class VendorService {
         private readonly prisma: PrismaService,
         private readonly mediaService: MediaService,
         private readonly inventoryService: InventoryService,
+        private readonly moderationService: ModerationService,
     ) { }
 
-    async listVendors(params: { search?: string; page: number; limit: number }) {
-        const { search, page, limit } = params;
+    async listVendors(params: { search?: string; page: number; limit: number; viewerUserId?: string }) {
+        const { search, page, limit, viewerUserId } = params;
         const skip = (page - 1) * limit;
+
+        const blockedUserIds = await this.moderationService.getBlockedUserIds(viewerUserId);
 
         const where: any = {
             isActive: true,
@@ -28,6 +32,15 @@ export class VendorService {
                 }
             ]
         };
+
+        if (blockedUserIds.length > 0) {
+            where.AND.push({
+                OR: [
+                    { userId: null },
+                    { userId: { notIn: blockedUserIds } },
+                ],
+            });
+        }
 
         if (search) {
             where.AND.push({
@@ -81,9 +94,9 @@ export class VendorService {
 
                 const previewImages = (previewItems as any[])
                     .map((item: any) => {
-                        if (item.photos?.length > 0) return item.photos[0];
-                        if (item.frontMedia) return this.mediaService.getPublicUrl(item.frontMedia, { preferCdn: true });
-                        if (item.cardVariant?.card?.imageUrl) return item.cardVariant.card.imageUrl;
+                        if (item.photos?.length > 0) {return item.photos[0];}
+                        if (item.frontMedia) {return this.mediaService.getPublicUrl(item.frontMedia, { preferCdn: true });}
+                        if (item.cardVariant?.card?.imageUrl) {return item.cardVariant.card.imageUrl;}
                         return null;
                     })
                     .filter(Boolean);
@@ -114,7 +127,7 @@ export class VendorService {
         return { vendors, total, page };
     }
 
-    async getVendorPage(handle: string) {
+    async getVendorPage(handle: string, viewerUserId?: string) {
         // Get seller profile by handle
         const seller: any = await this.prisma.sellerProfile.findUnique({
             where: { handle },
@@ -126,6 +139,14 @@ export class VendorService {
 
         if (!seller) {
             throw new NotFoundException(`Vendor with handle "${handle}" not found`);
+        }
+
+        // Hide blocked vendors from the viewer (same shape as not-found)
+        if (viewerUserId && seller.userId) {
+            const blockedUserIds = await this.moderationService.getBlockedUserIds(viewerUserId);
+            if (blockedUserIds.includes(seller.userId)) {
+                throw new NotFoundException(`Vendor with handle "${handle}" not found`);
+            }
         }
 
         // Get items that are LISTED (for sale)

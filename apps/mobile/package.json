@@ -1,7 +1,7 @@
 {
   "name": "@slabhub/mobile",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "postinstall": "patch-package",
     "dev": "expo start",
@@ -36,7 +36,6 @@
     "expo-image-picker": "~17.0.9",
     "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.10",
-    "expo-location": "~19.0.8",
     "expo-router": "~6.0.17",
     "expo-secure-store": "~15.0.8",
     "expo-sharing": "~14.0.8",

@@ -348,7 +348,7 @@ export default function PostingScreen() {
                       onPress={() => toggleItem(item.id)}
                     >
                       {item.imageUri ? (
-                        <Image source={{ uri: item.imageUri }} style={styles.manualThumb} contentFit="cover" />
+                        <Image source={{ uri: item.imageUri }} style={styles.manualThumb} contentFit="contain" />
                       ) : (
                         <View style={styles.manualThumbPlaceholder}>
                           <Ionicons name="image-outline" size={18} color={c.textTertiary} />

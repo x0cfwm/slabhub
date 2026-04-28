@@ -15,6 +15,8 @@ import {
   Linking,
   TextInput,
   RefreshControl,
+  Alert,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -22,11 +24,12 @@ import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image as ExpoImage } from 'expo-image';
 import { BlurView } from 'expo-blur';
-import { getVendorPage, trackShopEvent } from '@/lib/api';
+import { getVendorPage, trackShopEvent, blockUser } from '@/lib/api';
 import { addRecentShop } from '@/lib/recent-shops';
 import { VendorItem, VendorProfile, WorkflowStatus } from '@/lib/types';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { ImageZoomModal } from '@/components/inventory/ImageZoomModal';
+import { ReportModal } from '@/components/moderation/ReportModal';
 import { useApp } from '@/contexts/AppContext';
 import Colors from '@/constants/colors';
 
@@ -287,11 +290,15 @@ function ItemDetailModal({
   profile,
   visible,
   onClose,
+  onReport,
+  canReport,
 }: {
   item: VendorItem | null;
   profile: VendorProfile | null;
   visible: boolean;
   onClose: () => void;
+  onReport?: (item: VendorItem) => void;
+  canReport?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
@@ -362,6 +369,16 @@ function ItemDetailModal({
         <View style={styles.modalHeader}>
           <View style={styles.modalDragHandle} />
           <View style={styles.modalHeaderActions}>
+            {canReport && onReport ? (
+              <Pressable
+                style={({ pressed }) => [styles.modalIconBtn, { opacity: pressed ? 0.7 : 1 }]}
+                onPress={() => onReport(item)}
+                accessibilityLabel="Report item"
+                hitSlop={4}
+              >
+                <Ionicons name="flag-outline" size={18} color={c.textSecondary} />
+              </Pressable>
+            ) : null}
             <Pressable
               style={({ pressed }) => [styles.modalIconBtn, { opacity: pressed ? 0.7 : 1 }]}
               onPress={handleShareItem}
@@ -647,8 +664,15 @@ export function VendorShopView({
   const { profile: myProfile, updateProfile } = useApp();
   const queryClient = useQueryClient();
   const isOwner = !!myProfile?.handle && myProfile.handle === handle;
+  const isAuthenticated = !!myProfile?.handle;
   const [activeTab, setActiveTab] = useState<string>('all');
   const [selectedItem, setSelectedItem] = useState<VendorItem | null>(null);
+  const [vendorMenuVisible, setVendorMenuVisible] = useState(false);
+  const [reportModal, setReportModal] = useState<
+    | { type: 'VENDOR'; id: string; label: string }
+    | { type: 'ITEM'; id: string; label: string }
+    | null
+  >(null);
   const autoOpenedRef = React.useRef<string | null>(null);
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
 
@@ -747,6 +771,59 @@ export function VendorShopView({
     setSelectedItem(item);
     trackShopEvent({ type: 'VIEW_ITEM', handle: handle!, itemId: item.id });
   }, [handle]);
+
+  const handleReportItem = useCallback((item: VendorItem) => {
+    const name = item.cardProfile?.name || item.productName || 'item';
+    setReportModal({ type: 'ITEM', id: item.id, label: name });
+  }, []);
+
+  const handleReportVendor = useCallback(() => {
+    if (!handle || !profile) return;
+    setVendorMenuVisible(false);
+    setReportModal({
+      type: 'VENDOR',
+      id: handle,
+      label: profile.shopName || `@${handle}`,
+    });
+  }, [handle, profile]);
+
+  const handleBlockVendor = useCallback(() => {
+    if (!handle || !profile) return;
+    setVendorMenuVisible(false);
+    const confirmMessage = `Block @${handle}? You won't see this vendor or their items anymore. You can unblock them from Settings → Blocked users.`;
+
+    const performBlock = async () => {
+      try {
+        await blockUser({ handle });
+        queryClient.invalidateQueries({ queryKey: ['vendor-page', handle] });
+        if (Platform.OS === 'web') {
+          alert(`@${handle} has been blocked.`);
+          router.back();
+        } else {
+          Alert.alert('Vendor blocked', `@${handle} has been blocked.`, [
+            { text: 'OK', onPress: () => router.back() },
+          ]);
+        }
+      } catch (e: any) {
+        const msg = e?.message?.includes('already blocked')
+          ? 'This vendor is already blocked.'
+          : e?.message || 'Could not block vendor. Try again.';
+        if (Platform.OS === 'web') alert(msg);
+        else Alert.alert('Error', msg);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(confirmMessage)) {
+        performBlock();
+      }
+    } else {
+      Alert.alert('Block vendor', confirmMessage, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Block', style: 'destructive', onPress: performBlock },
+      ]);
+    }
+  }, [handle, profile, queryClient]);
 
   if (isLoading) {
     return (
@@ -849,6 +926,15 @@ export function VendorShopView({
             >
               <Ionicons name="share-outline" size={20} color={c.accent} />
             </Pressable>
+            {!isOwner && isAuthenticated && (
+              <Pressable
+                style={({ pressed }) => [styles.navBtn, { opacity: pressed ? 0.7 : 1 }]}
+                onPress={() => setVendorMenuVisible(true)}
+                accessibilityLabel="More options"
+              >
+                <Ionicons name="ellipsis-horizontal" size={20} color={c.text} />
+              </Pressable>
+            )}
           </View>
         </View>
       ) : (
@@ -879,6 +965,15 @@ export function VendorShopView({
             >
               <Ionicons name="share-outline" size={20} color={c.accent} />
             </Pressable>
+            {!isOwner && isAuthenticated && (
+              <Pressable
+                style={({ pressed }) => [styles.navBtn, { opacity: pressed ? 0.7 : 1 }]}
+                onPress={() => setVendorMenuVisible(true)}
+                accessibilityLabel="More options"
+              >
+                <Ionicons name="ellipsis-horizontal" size={20} color={c.text} />
+              </Pressable>
+            )}
           </View>
         </View>
       )}
@@ -985,7 +1080,64 @@ export function VendorShopView({
         profile={profile}
         visible={!!selectedItem}
         onClose={() => setSelectedItem(null)}
+        onReport={handleReportItem}
+        canReport={!isOwner && isAuthenticated}
       />
+
+      {/* Vendor actions menu (Report / Block) */}
+      <Modal
+        visible={vendorMenuVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setVendorMenuVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setVendorMenuVisible(false)}>
+          <View style={styles.menuBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.menuSheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+                <View style={styles.menuHandle} />
+                <Text style={styles.menuTitle}>{profile?.shopName || `@${handle}`}</Text>
+                <Pressable
+                  style={({ pressed }) => [styles.menuRow, { opacity: pressed ? 0.7 : 1 }]}
+                  onPress={handleReportVendor}
+                >
+                  <Ionicons name="flag-outline" size={20} color={c.text} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.menuRowLabel}>Report vendor</Text>
+                    <Text style={styles.menuRowSub}>Notify our moderation team</Text>
+                  </View>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.menuRow, { opacity: pressed ? 0.7 : 1 }]}
+                  onPress={handleBlockVendor}
+                >
+                  <Ionicons name="person-remove-outline" size={20} color={c.error} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.menuRowLabel, { color: c.error }]}>Block vendor</Text>
+                    <Text style={styles.menuRowSub}>Hide all items from this vendor</Text>
+                  </View>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.menuCancel, { opacity: pressed ? 0.7 : 1 }]}
+                  onPress={() => setVendorMenuVisible(false)}
+                >
+                  <Text style={styles.menuCancelText}>Cancel</Text>
+                </Pressable>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {reportModal ? (
+        <ReportModal
+          visible={!!reportModal}
+          onClose={() => setReportModal(null)}
+          targetType={reportModal.type}
+          targetId={reportModal.id}
+          targetLabel={reportModal.label}
+        />
+      ) : null}
     </View>
   );
 }
@@ -1759,5 +1911,64 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#fff',
+  },
+  // Vendor action menu
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
+  },
+  menuSheet: {
+    backgroundColor: c.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  menuHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: c.border,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  menuTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.textSecondary,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: c.borderLight,
+  },
+  menuRowLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: c.text,
+  },
+  menuRowSub: {
+    fontSize: 12,
+    color: c.textTertiary,
+    marginTop: 2,
+  },
+  menuCancel: {
+    marginTop: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderRadius: 12,
+    backgroundColor: c.surfaceElevated,
+  },
+  menuCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: c.textSecondary,
   },
 });

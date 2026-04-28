@@ -24,6 +24,9 @@ model User {
   sellerProfile      SellerProfile?
   sessions           Session[]
   workflowStatuses   WorkflowStatus[]
+  abuseReports       AbuseReport[]      @relation("AbuseReporter")
+  blocksAsBlocker    UserBlock[]        @relation("UserBlockBlocker")
+  blocksAsBlocked    UserBlock[]        @relation("UserBlockBlocked")
 }
 
 /// OTP codes for email verification
@@ -586,4 +589,57 @@ model GradingRecognitionTrace {
   @@index([userId, createdAt])
   @@index([matchedProductId])
   @@index([decisionReason])
+}
+
+/// User-submitted report about abusive content on a vendor storefront or an item listing.
+/// Required for App Store compliance (Guideline 1.2 — UGC moderation).
+model AbuseReport {
+  id         String              @id @default(cuid())
+  reporterId String
+  targetType AbuseReportTarget
+  targetId   String
+  reason     AbuseReportReason
+  details    String?
+  status     AbuseReportStatus   @default(PENDING)
+  createdAt  DateTime            @default(now())
+  resolvedAt DateTime?
+  reporter   User                @relation("AbuseReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId])
+  @@index([targetType, targetId])
+  @@index([status, createdAt])
+}
+
+enum AbuseReportTarget {
+  VENDOR
+  ITEM
+}
+
+enum AbuseReportReason {
+  SPAM
+  INAPPROPRIATE
+  HARASSMENT
+  SCAM
+  OTHER
+}
+
+enum AbuseReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+/// One user blocking another. Blocked users' storefronts and items are hidden
+/// from the blocker. Required for App Store compliance (Guideline 1.2).
+model UserBlock {
+  id             String   @id @default(cuid())
+  blockerId      String
+  blockedUserId  String
+  createdAt      DateTime @default(now())
+  blocker        User     @relation("UserBlockBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUser    User     @relation("UserBlockBlocked", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedUserId])
+  @@index([blockerId])
+  @@index([blockedUserId])
 }

@@ -27,6 +27,7 @@ import { SentryInterceptor } from './common/interceptors/sentry.interceptor';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { PostingModule } from './modules/posting/posting.module';
+import { ModerationModule } from './modules/moderation/moderation.module';
 
 @Module({
     imports: [
@@ -106,6 +107,7 @@ import { PostingModule } from './modules/posting/posting.module';
         WorkflowModule,
         AnalyticsModule,
         PostingModule,
+        ModerationModule,
     ],
     providers: [
         {

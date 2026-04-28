@@ -44,7 +44,7 @@ export default function OtpScreen() {
       }
       const { ok } = await verifyOtp(email, otp);
       if (ok) {
-        router.replace('/(tabs)/inventory');
+        router.replace('/(tabs)');
       } else {
         setError('Invalid verification code');
       }

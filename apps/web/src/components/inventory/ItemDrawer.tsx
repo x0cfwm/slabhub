@@ -164,7 +164,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                                 <img
                                     src={getOptimizedImageUrl(photos[0] || finalProfile?.imageUrl || `https://placehold.co/200x300?text=${isSealed ? 'Sealed' : 'Card'}`, { height: 300 })}
                                     alt={displayName}
-                                    className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                    className="w-full h-full object-contain transition-transform group-hover:scale-110"
                                 />
                                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <Maximize2 className="h-4 w-4 text-white" />
@@ -427,7 +427,7 @@ export function ItemDrawer({ item, profile, isOpen, onClose, onUpdate, statuses 
                                                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                                 ) : (formData as any).photos?.[idx] ? (
                                                     <div className="absolute inset-0 w-full h-full group/img">
-                                                        <img src={getOptimizedImageUrl((formData as any).photos[idx], { width: 400, height: 400, fit: 'cover' })} className="w-full h-full object-cover" alt={label} />
+                                                        <img src={getOptimizedImageUrl((formData as any).photos[idx], { width: 400, height: 400 })} className="w-full h-full object-contain" alt={label} />
                                                         <div
                                                             className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                                             onClick={(e) => {

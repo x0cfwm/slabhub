@@ -94,6 +94,11 @@ export async function getMe(): Promise<{ profile: SellerProfile } | null> {
     }
 }
 
+export async function deleteAccount(): Promise<{ success: boolean }> {
+    const response = await apiRequest("DELETE", "/me");
+    return response.json();
+}
+
 export async function getMarketProducts(params: {
     page: number;
     limit: number;
@@ -211,4 +216,42 @@ export async function trackShopEvent(data: {
         // Analytics failures should not crash the app
         console.warn('[analytics] Failed to track event:', e);
     }
+}
+
+// ---------- Moderation (App Store UGC compliance) ----------
+
+export type AbuseReportTarget = 'VENDOR' | 'ITEM';
+export type AbuseReportReason = 'SPAM' | 'INAPPROPRIATE' | 'HARASSMENT' | 'SCAM' | 'OTHER';
+
+export interface BlockedUser {
+    id: string;
+    userId: string;
+    handle: string | null;
+    shopName: string | null;
+    createdAt: string;
+}
+
+export async function reportAbuse(payload: {
+    targetType: AbuseReportTarget;
+    targetId: string;
+    reason: AbuseReportReason;
+    details?: string;
+}): Promise<{ id: string; createdAt: string }> {
+    const response = await apiRequest("POST", "/moderation/reports", payload);
+    return response.json();
+}
+
+export async function blockUser(payload: { userId?: string; handle?: string }): Promise<{ success: boolean }> {
+    const response = await apiRequest("POST", "/moderation/blocks", payload);
+    return response.json();
+}
+
+export async function unblockUser(userId: string): Promise<{ success: boolean }> {
+    const response = await apiRequest("DELETE", `/moderation/blocks/${userId}`);
+    return response.json();
+}
+
+export async function listBlockedUsers(): Promise<BlockedUser[]> {
+    const response = await apiRequest("GET", "/moderation/blocks");
+    return response.json();
 }

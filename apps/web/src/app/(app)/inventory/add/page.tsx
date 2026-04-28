@@ -1042,7 +1042,7 @@ export default function AddItemPage() {
                                     {uploadingPhotos[label] ? (
                                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                     ) : uploadedPhotos[idx] ? (
-                                        <img src={getOptimizedImageUrl(uploadedPhotos[idx], { height: 400 })} className="absolute inset-0 w-full h-full object-cover" alt={label} />
+                                        <img src={getOptimizedImageUrl(uploadedPhotos[idx], { height: 400 })} className="absolute inset-0 w-full h-full object-contain" alt={label} />
                                     ) : (
                                         <>
                                             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
