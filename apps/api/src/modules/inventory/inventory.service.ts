@@ -186,7 +186,7 @@ export class InventoryService {
             return this.transformItem(item);
         } catch (error) {
             this.logger.error(`Failed to create inventory item: ${error.message}`, error.stack);
-            if (error instanceof BadRequestException) throw error;
+            if (error instanceof BadRequestException) {throw error;}
             throw new BadRequestException(`Database error: ${error.message}`, { cause: error });
         }
     }
@@ -358,7 +358,7 @@ export class InventoryService {
         // Record history for items that moved columns
         for (const item of items) {
             const existing = existingMap.get(item.id);
-            if (!existing) continue;
+            if (!existing) {continue;}
 
             const hasStageChanged = item.stage !== existing.stage;
             const hasStatusChanged = item.statusId !== (existing as any).statusId;
@@ -449,7 +449,7 @@ export class InventoryService {
         }
     }
 
-    async getMarketValueHistory(userId: string, days: number = 90) {
+    async getMarketValueHistory(userId: string, days = 90) {
         const items = await this.prisma.inventoryItem.findMany({
             where: {
                 userId,
@@ -524,7 +524,7 @@ export class InventoryService {
             let totalSoldCount = 0;
 
             itemsWithAcqDate.forEach(item => {
-                if (item.acqDate > currentDate) return; // Not acquired yet
+                if (item.acqDate > currentDate) {return;} // Not acquired yet
 
                 const qty = item.quantity || 1;
                 const acqCost = (Number(item.acquisitionPrice) || 0) * qty;
@@ -652,7 +652,7 @@ export class InventoryService {
             }
         });
 
-        if (items.length === 0) return [];
+        if (items.length === 0) {return [];}
 
         const updates: { id: string; oldPrice: number | null; newPrice: number | null; lastSaleDate: string | null }[] = [];
         this.marketPriceCache.clear();
@@ -700,7 +700,7 @@ export class InventoryService {
     private marketPriceCache = new Map<string, number | null>();
 
     public getMarketPrice(item: any) {
-        if (!item.refPriceChartingProduct) return null;
+        if (!item.refPriceChartingProduct) {return null;}
 
         const cacheKey = `${item.refPriceChartingProduct.id}_${item.itemType}_${item.gradeValue}`;
         if (this.marketPriceCache.has(cacheKey)) {
@@ -716,7 +716,7 @@ export class InventoryService {
 
         // Helper to calculate average of last 3 sales
         const getAverageOf3 = (filteredSales: any[]) => {
-            if (filteredSales.length === 0) return null;
+            if (filteredSales.length === 0) {return null;}
             const last3 = filteredSales.slice(0, 3);
             const sum = last3.reduce((acc, s) => acc + Number(s.price), 0);
             return sum / last3.length;
@@ -737,11 +737,11 @@ export class InventoryService {
             const numericGrade = gradeStr.match(/\d+(\.\d+)?/)?.[0];
             let fallbackPrice: number | null = null;
 
-            if (numericGrade === '10' && ref.grade10Price) fallbackPrice = Number(ref.grade10Price);
-            else if (numericGrade === '9.5' && ref.grade95Price) fallbackPrice = Number(ref.grade95Price);
-            else if (numericGrade === '9' && ref.grade9Price) fallbackPrice = Number(ref.grade9Price);
-            else if (numericGrade === '8' && ref.grade8Price) fallbackPrice = Number(ref.grade8Price);
-            else if (numericGrade === '7' && ref.grade7Price) fallbackPrice = Number(ref.grade7Price);
+            if (numericGrade === '10' && ref.grade10Price) {fallbackPrice = Number(ref.grade10Price);}
+            else if (numericGrade === '9.5' && ref.grade95Price) {fallbackPrice = Number(ref.grade95Price);}
+            else if (numericGrade === '9' && ref.grade9Price) {fallbackPrice = Number(ref.grade9Price);}
+            else if (numericGrade === '8' && ref.grade8Price) {fallbackPrice = Number(ref.grade8Price);}
+            else if (numericGrade === '7' && ref.grade7Price) {fallbackPrice = Number(ref.grade7Price);}
 
             if (fallbackPrice !== null) {
                 this.marketPriceCache.set(cacheKey, fallbackPrice);

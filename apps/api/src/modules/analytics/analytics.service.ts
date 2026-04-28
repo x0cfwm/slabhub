@@ -72,7 +72,7 @@ export class AnalyticsService {
     });
   }
 
-  async getDashboardStats(userId: string, days: number = 7) {
+  async getDashboardStats(userId: string, days = 7) {
     const seller = await this.prisma.sellerProfile.findUnique({
       where: { userId },
     });
@@ -123,7 +123,7 @@ export class AnalyticsService {
         const stats = viewsByDay.get(day);
         if (stats) {
           stats.views++;
-          if (e.ipHash) stats.unique.add(e.ipHash);
+          if (e.ipHash) {stats.unique.add(e.ipHash);}
         }
       }
     });

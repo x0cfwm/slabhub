@@ -56,7 +56,7 @@ export async function ensureSellerProfile(
     userId: string,
 ) {
     const existing = await prisma.sellerProfile.findUnique({ where: { userId } });
-    if (existing) return existing;
+    if (existing) {return existing;}
 
     const MAX_ATTEMPTS = 12;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -69,7 +69,7 @@ export async function ensureSellerProfile(
             : `${baseHandle}-${Math.floor(Math.random() * 10000)}`;
 
         const handleTaken = await prisma.sellerProfile.findUnique({ where: { handle } });
-        if (handleTaken) continue;
+        if (handleTaken) {continue;}
 
         try {
             return await prisma.sellerProfile.create({
@@ -86,9 +86,9 @@ export async function ensureSellerProfile(
             // Race: another request created the profile / grabbed the handle.
             // Re-check for an existing profile before retrying.
             const now = await prisma.sellerProfile.findUnique({ where: { userId } });
-            if (now) return now;
+            if (now) {return now;}
             // Unique constraint on handle — loop and try a fresh name.
-            if (err?.code === 'P2002') continue;
+            if (err?.code === 'P2002') {continue;}
             throw err;
         }
     }

@@ -59,7 +59,7 @@ describe('Mobile API contracts', () => {
   const prisma = getPrisma();
   let app: INestApplication;
   let authHeader: Record<string, string>;
-  let sellerHandle = 'mobile-seller';
+  const sellerHandle = 'mobile-seller';
   let marketProductId = '';
   let inventoryItemId = '';
 

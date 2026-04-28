@@ -49,8 +49,8 @@ describe('OauthFacebookService', () => {
 
   it('redirects with error when oauth config missing in callback', async () => {
     configService.get = jest.fn((key: string) => {
-      if (key === 'WEB_ORIGIN') return 'http://localhost:3000';
-      if (key === 'NEXT_PUBLIC_API_URL') return 'http://localhost:3001';
+      if (key === 'WEB_ORIGIN') {return 'http://localhost:3000';}
+      if (key === 'NEXT_PUBLIC_API_URL') {return 'http://localhost:3001';}
       return undefined;
     });
     service = new OauthFacebookService(configService, prisma, authService, httpService);

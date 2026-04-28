@@ -32,7 +32,7 @@ export async function disconnectPrisma() {
 }
 
 export async function truncateAllTables(prisma: PrismaClient) {
-  const rows = await prisma.$queryRawUnsafe<Array<{ tablename: string }>>(
+  const rows = await prisma.$queryRawUnsafe<{ tablename: string }[]>(
     `SELECT tablename
      FROM pg_tables
      WHERE schemaname = 'public'
@@ -40,7 +40,7 @@ export async function truncateAllTables(prisma: PrismaClient) {
   );
 
   const tableNames = rows.map((r) => `"public"."${r.tablename}"`);
-  if (tableNames.length === 0) return;
+  if (tableNames.length === 0) {return;}
 
   await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${tableNames.join(', ')} RESTART IDENTITY CASCADE;`);
 }

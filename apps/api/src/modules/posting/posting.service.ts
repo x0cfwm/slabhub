@@ -14,7 +14,7 @@ import {
     PostingVisualOptionsDto,
 } from './dto/generate-post.dto';
 
-type SelectedItem = {
+interface SelectedItem {
     id: string;
     title: string;
     subtitle: string;
@@ -23,21 +23,21 @@ type SelectedItem = {
     price: number | null;
     imageUrl: string | null;
     statusName: string | null;
-};
+}
 
-type LayoutSlot = {
+interface LayoutSlot {
     x: number;
     y: number;
     width: number;
     height: number;
-};
+}
 
-type LayoutFrame = {
+interface LayoutFrame {
     x: number;
     y: number;
     width: number;
     height: number;
-};
+}
 
 @Injectable()
 export class PostingService {
@@ -138,7 +138,7 @@ export class PostingService {
 
     private resolvePrice(item: any): number | null {
         const value = item.listingPrice ?? item.marketPriceSnapshot ?? item.marketPrice ?? null;
-        if (value === null || value === undefined) return null;
+        if (value === null || value === undefined) {return null;}
         const parsed = Number(value);
         return Number.isFinite(parsed) ? parsed : null;
     }
@@ -193,13 +193,13 @@ export class PostingService {
 
     private getCaptionOpener(language: PostingLanguage, tone: PostingTone, itemCount: number): string {
         if (language === PostingLanguage.RU) {
-            if (tone === PostingTone.HYPE) return `Свежий дроп: ${itemCount} позиций уже готовы.`;
-            if (tone === PostingTone.CONCISE) return `В наличии ${itemCount} позиций.`;
+            if (tone === PostingTone.HYPE) {return `Свежий дроп: ${itemCount} позиций уже готовы.`;}
+            if (tone === PostingTone.CONCISE) {return `В наличии ${itemCount} позиций.`;}
             return `Подготовили подборку из ${itemCount} позиций для продажи.`;
         }
 
-        if (tone === PostingTone.HYPE) return `Fresh drop: ${itemCount} items just landed.`;
-        if (tone === PostingTone.CONCISE) return `${itemCount} items are available now.`;
+        if (tone === PostingTone.HYPE) {return `Fresh drop: ${itemCount} items just landed.`;}
+        if (tone === PostingTone.CONCISE) {return `${itemCount} items are available now.`;}
         return `Curated sale update with ${itemCount} items.`;
     }
 
@@ -320,7 +320,7 @@ export class PostingService {
     }
 
     private normalizeImageUrl(url: string): string | null {
-        if (url.startsWith('data:image/')) return url;
+        if (url.startsWith('data:image/')) {return url;}
         
         let normalized = url;
         if (url.startsWith('//')) {
@@ -356,7 +356,7 @@ export class PostingService {
             return null;
         }
 
-        if (normalized.startsWith('data:image/')) return normalized;
+        if (normalized.startsWith('data:image/')) {return normalized;}
 
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
@@ -371,7 +371,7 @@ export class PostingService {
 
 
             const contentType = (response.headers.get('content-type') || '').split(';')[0] || 'image/jpeg';
-            if (!contentType.startsWith('image/')) return null;
+            if (!contentType.startsWith('image/')) {return null;}
 
             const arrayBuffer = await response.arrayBuffer();
             const inputBuffer = Buffer.from(arrayBuffer);
@@ -435,16 +435,16 @@ export class PostingService {
         }
 
 
-        if (count === 2) return this.buildRowLayout(frame, [2], padding, gap);
-        if (count === 3) return this.buildRowLayout(frame, [1, 2], padding, gap);
-        if (count === 4) return this.buildRowLayout(frame, [2, 2], padding, gap);
-        if (count === 5) return this.buildRowLayout(frame, [2, 3], padding, gap);
-        if (count === 6) return this.buildRowLayout(frame, [3, 3], padding, gap);
-        if (count === 7) return this.buildRowLayout(frame, [3, 2, 2], padding, gap);
-        if (count === 8) return this.buildRowLayout(frame, [3, 3, 2], padding, gap);
-        if (count === 9) return this.buildRowLayout(frame, [3, 3, 3], padding, gap);
-        if (count === 10) return this.buildRowLayout(frame, [4, 3, 3], padding, gap);
-        if (count === 11) return this.buildRowLayout(frame, [4, 4, 3], padding, gap);
+        if (count === 2) {return this.buildRowLayout(frame, [2], padding, gap);}
+        if (count === 3) {return this.buildRowLayout(frame, [1, 2], padding, gap);}
+        if (count === 4) {return this.buildRowLayout(frame, [2, 2], padding, gap);}
+        if (count === 5) {return this.buildRowLayout(frame, [2, 3], padding, gap);}
+        if (count === 6) {return this.buildRowLayout(frame, [3, 3], padding, gap);}
+        if (count === 7) {return this.buildRowLayout(frame, [3, 2, 2], padding, gap);}
+        if (count === 8) {return this.buildRowLayout(frame, [3, 3, 2], padding, gap);}
+        if (count === 9) {return this.buildRowLayout(frame, [3, 3, 3], padding, gap);}
+        if (count === 10) {return this.buildRowLayout(frame, [4, 3, 3], padding, gap);}
+        if (count === 11) {return this.buildRowLayout(frame, [4, 4, 3], padding, gap);}
         return this.buildRowLayout(frame, [4, 4, 4], padding, gap);
     }
 
@@ -478,8 +478,8 @@ export class PostingService {
     }
 
     private getImageDimensions(ratio: string) {
-        if (ratio === '1:1') return { width: 1080, height: 1080 };
-        if (ratio === '9:16') return { width: 1080, height: 1920 };
+        if (ratio === '1:1') {return { width: 1080, height: 1080 };}
+        if (ratio === '9:16') {return { width: 1080, height: 1920 };}
         return { width: 1080, height: 1350 };
     }
 
@@ -517,7 +517,7 @@ export class PostingService {
 
     private getEmojiNumber(n: number): string {
         const emojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣'];
-        if (n === 10) return '🔟';
+        if (n === 10) {return '🔟';}
         return n.toString().split('').map(digit => emojis[parseInt(digit)]).join('');
     }
 }

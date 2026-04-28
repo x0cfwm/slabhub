@@ -28,7 +28,7 @@ export class JustTcgSyncService {
 
     async syncDictionaries(options: { only?: string[]; dryRun?: boolean; fresh?: boolean } = {}) {
         const mappings = JUSTTCG_MAPPINGS.filter((m) => {
-            if (m.name === 'catalog') return false;
+            if (m.name === 'catalog') {return false;}
             if (options.only && options.only.length > 0) {
                 return options.only.includes(m.name);
             }
@@ -130,10 +130,10 @@ export class JustTcgSyncService {
                         hasNextPage = !!currentCursor;
                     } else if (mapping.pagination === 'offset') {
                         const hasMore = response.meta?.hasMore ?? items.length >= limit;
-                        if (!hasMore) hasNextPage = false;
+                        if (!hasMore) {hasNextPage = false;}
                     } else if (mapping.pagination === 'page') {
                         const lastPage = response.meta?.lastPage ?? currentPage;
-                        if (currentPage > lastPage) hasNextPage = false;
+                        if (currentPage > lastPage) {hasNextPage = false;}
                     }
                 }
 

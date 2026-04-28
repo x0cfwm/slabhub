@@ -104,7 +104,7 @@ export class PriceChartingParser {
                     const section = $(el);
 
                     // Skip elements that are just tabs (PriceCharting often uses same class for both)
-                    if (section.hasClass('tab')) return;
+                    if (section.hasClass('tab')) {return;}
 
                     const table = section.find('table.hoverable-rows');
                     const rows = table.length > 0 ? table.find('tbody tr') : section.find('tbody tr');
@@ -165,7 +165,7 @@ export class PriceChartingParser {
         rows.each((i: number, el: any) => {
             // Limit per grade to keep payload reasonable
             const gradeSalesCount = entries.filter(e => e.grade === grade).length;
-            if (gradeSalesCount >= 10) return;
+            if (gradeSalesCount >= 10) {return;}
 
             const dateTd = $(el).find('td.date');
             const titleTd = $(el).find('td.title');
@@ -183,10 +183,10 @@ export class PriceChartingParser {
                 priceStr = priceTd.text().trim();
             }
 
-            if (!dateStr || !titleText || !priceStr) return;
+            if (!dateStr || !titleText || !priceStr) {return;}
 
             const price = this.parsePrice(priceStr);
-            if (price === undefined) return;
+            if (price === undefined) {return;}
 
             const date = this.normalizeDate(dateStr);
             const source = this.inferSource(fullTitleCellText);
@@ -203,7 +203,7 @@ export class PriceChartingParser {
     }
 
     private parsePrice(priceStr: string): number | undefined {
-        if (!priceStr) return undefined;
+        if (!priceStr) {return undefined;}
         // Remove currency symbols and commas
         const cleaned = priceStr.replace(/[^\d.]/g, '');
         const val = parseFloat(cleaned);
@@ -213,7 +213,7 @@ export class PriceChartingParser {
     private normalizeDate(dateStr: string): string {
         try {
             const d = new Date(dateStr);
-            if (isNaN(d.getTime())) return dateStr;
+            if (isNaN(d.getTime())) {return dateStr;}
             return d.toISOString().split('T')[0];
         } catch {
             return dateStr;
@@ -222,8 +222,8 @@ export class PriceChartingParser {
 
     private inferSource(text: string): 'eBay' | 'TCGPlayer' | 'Unknown' {
         const lower = text.toLowerCase();
-        if (lower.includes('ebay')) return 'eBay';
-        if (lower.includes('tcgplayer')) return 'TCGPlayer';
+        if (lower.includes('ebay')) {return 'eBay';}
+        if (lower.includes('tcgplayer')) {return 'TCGPlayer';}
         return 'Unknown';
     }
 }

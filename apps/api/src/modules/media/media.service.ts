@@ -182,12 +182,12 @@ export class MediaService {
      * Useful for strings stored in the database that might contain the full S3 URL.
      */
     ensureCdnUrl(url: string | null | undefined): string | null | undefined {
-        if (!url) return url;
+        if (!url) {return url;}
 
         const cdnBase = this.configService.get<string>('S3_CDN_BASE_URL');
         const publicBase = this.configService.get<string>('S3_PUBLIC_BASE_URL');
 
-        if (!cdnBase || !publicBase) return url;
+        if (!cdnBase || !publicBase) {return url;}
 
         const normalizedPublicBase = publicBase.replace(/\/$/, '');
         const normalizedCdnBase = cdnBase.replace(/\/$/, '');

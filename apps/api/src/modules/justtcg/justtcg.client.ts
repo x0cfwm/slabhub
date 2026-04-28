@@ -105,7 +105,7 @@ export class JustTcgClient {
     }
 
     private updateMetadata(key: string, metadata: JustTcgResponse['_metadata']) {
-        if (!metadata) return;
+        if (!metadata) {return;}
 
         const current = this.keyMetadata.get(key)!;
 
@@ -263,8 +263,8 @@ export class JustTcgClient {
                     this.logger.error(`Invalid or unauthorized API key: ${key.substring(0, 8)}...`);
                     // Remove key from rotation if it's invalid
                     const idx = this.apiKeys.indexOf(key);
-                    if (idx > -1) this.apiKeys.splice(idx, 1);
-                    if (this.apiKeys.length === 0) throw new InternalServerErrorException('No valid API keys remaining', { cause: error });
+                    if (idx > -1) {this.apiKeys.splice(idx, 1);}
+                    if (this.apiKeys.length === 0) {throw new InternalServerErrorException('No valid API keys remaining', { cause: error });}
                     continue;
                 }
 

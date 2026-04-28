@@ -135,16 +135,16 @@ export class PriceChartingParser {
         if (Object.keys(details).length === 0) {
             const text = $('body').text();
             const tcgMatch = text.match(/TCGPlayer ID:\s*(\d+)/i);
-            if (tcgMatch) details['TCGPlayer ID'] = tcgMatch[1];
+            if (tcgMatch) {details['TCGPlayer ID'] = tcgMatch[1];}
 
             const pcMatch = text.match(/PriceCharting ID:\s*(\d+)/i);
-            if (pcMatch) details['PriceCharting ID'] = pcMatch[1];
+            if (pcMatch) {details['PriceCharting ID'] = pcMatch[1];}
 
             const cardNumMatch = text.match(/Card Number:\s*([^\n]+)/i);
-            if (cardNumMatch) details['Card Number'] = cardNumMatch[1].trim();
+            if (cardNumMatch) {details['Card Number'] = cardNumMatch[1].trim();}
 
             const setCodeMatch = text.match(/Set Code:\s*([^\n]+)/i);
-            if (setCodeMatch) details['Set Code'] = setCodeMatch[1].trim();
+            if (setCodeMatch) {details['Set Code'] = setCodeMatch[1].trim();}
         }
 
         const tcgPlayerIdStr = details['TCGPlayer ID'];
@@ -204,9 +204,9 @@ export class PriceChartingParser {
         const classToLabel = new Map<string, string>();
         $('#completed-auctions-condition option').each((_, el) => {
             const value = $(el).attr('value');
-            if (!value) return;
+            if (!value) {return;}
             const label = $(el).text().trim().replace(/\s*\(\d+\)\s*$/, '').trim();
-            if (label) classToLabel.set(value, label);
+            if (label) {classToLabel.set(value, label);}
         });
 
         if (classToLabel.size === 0) {
@@ -221,7 +221,7 @@ export class PriceChartingParser {
             const label = rawLabel === 'Ungraded' ? 'Raw' : rawLabel;
             $(`div.${cssClass}`).each((_, el) => {
                 const section = $(el);
-                if (section.hasClass('tab')) return;
+                if (section.hasClass('tab')) {return;}
                 const table = section.find('table.hoverable-rows');
                 const rows = table.length > 0 ? table.find('tbody tr') : section.find('tbody tr');
                 if (rows.length > 0) {
@@ -233,7 +233,7 @@ export class PriceChartingParser {
 
         if (!foundSales) {
             let table = $('#completed_sales_table');
-            if (table.length === 0) table = $('.js-completed-sales-table');
+            if (table.length === 0) {table = $('.js-completed-sales-table');}
             if (table.length === 0) {
                 $('table').each((_, el) => {
                     const text = $(el).text();
@@ -264,12 +264,12 @@ export class PriceChartingParser {
             const link = titleLink.attr('href');
 
             let priceStr = priceTd.find('.js-price').first().text().trim();
-            if (!priceStr) priceStr = priceTd.text().trim();
+            if (!priceStr) {priceStr = priceTd.text().trim();}
 
-            if (!dateStr || !titleText || !priceStr) return;
+            if (!dateStr || !titleText || !priceStr) {return;}
 
             const price = this.parsePrice(priceStr);
-            if (price === undefined) return;
+            if (price === undefined) {return;}
 
             const date = this.normalizeDate(dateStr);
             const source = this.inferSource(fullTitleCellText);
@@ -289,7 +289,7 @@ export class PriceChartingParser {
     private normalizeDate(dateStr: string): string {
         try {
             const d = new Date(dateStr);
-            if (isNaN(d.getTime())) return dateStr;
+            if (isNaN(d.getTime())) {return dateStr;}
             return d.toISOString().split('T')[0];
         } catch {
             return dateStr;
@@ -298,8 +298,8 @@ export class PriceChartingParser {
 
     private inferSource(text: string): string {
         const lower = text.toLowerCase();
-        if (lower.includes('ebay')) return 'eBay';
-        if (lower.includes('tcgplayer')) return 'TCGPlayer';
+        if (lower.includes('ebay')) {return 'eBay';}
+        if (lower.includes('tcgplayer')) {return 'TCGPlayer';}
         return 'Unknown';
     }
 
@@ -321,7 +321,7 @@ export class PriceChartingParser {
         if (headers.length > 0) {
             priceTable.find('tbody tr').first().find('td').each((i, el) => {
                 const label = headers[i];
-                if (!label) return;
+                if (!label) {return;}
 
                 // Take ONLY the main price span, skip the "change" span
                 const priceText = $(el).find('span.price.js-price').first().text().trim() ||
@@ -373,7 +373,7 @@ export class PriceChartingParser {
     }
 
     private parsePrice(text: string): number | undefined {
-        if (!text || text.trim() === '-' || text.trim() === '') return undefined;
+        if (!text || text.trim() === '-' || text.trim() === '') {return undefined;}
         // Handle cases like "$1,234.56"
         const cleaned = text.replace(/[$,]/g, '').trim();
         const price = parseFloat(cleaned);

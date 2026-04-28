@@ -51,8 +51,8 @@ export class ProfileService {
      * Facebook sign-up (email verification derives from Facebook).
      */
     private computeHasRegularEmailAccount(user: any, facebookIdentity: any): boolean {
-        if (!user.emailVerifiedAt) return false;
-        if (!facebookIdentity) return true;
+        if (!user.emailVerifiedAt) {return false;}
+        if (!facebookIdentity) {return true;}
         const userCreated = new Date(user.createdAt).getTime();
         const identityCreated = new Date(facebookIdentity.createdAt).getTime();
         return identityCreated - userCreated > 60 * 1000;
@@ -226,8 +226,8 @@ export class ProfileService {
 
         // Fallback to legacy boolean fields
         const options: string[] = [];
-        if (seller.shippingEnabled) options.push('shipping');
-        if (seller.meetupsEnabled) options.push('meetups_local');
+        if (seller.shippingEnabled) {options.push('shipping');}
+        if (seller.meetupsEnabled) {options.push('meetups_local');}
         return options;
     }
 }

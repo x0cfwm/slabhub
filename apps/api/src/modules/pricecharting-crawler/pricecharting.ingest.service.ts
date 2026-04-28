@@ -36,7 +36,7 @@ export class PriceChartingIngestService {
         // Handle interruption signals to update status instead of leaving it as "RUNNING"
         let isShuttingDown = false;
         const handleShutdown = async (signal: string) => {
-            if (isShuttingDown) return;
+            if (isShuttingDown) {return;}
             isShuttingDown = true;
             this.logger.warn(`Received ${signal}. Gracefully stopping and updating status...`);
             if (!dryRun) {
@@ -70,8 +70,8 @@ export class PriceChartingIngestService {
         // crawl would skip the target if it sits earlier in catalog order. Ignore
         // resume position in that mode and always scan the whole list.
         const ignoreResume = !!options.onlySetSlug;
-        let resumeSetIndex = (progress?.page && !ignoreResume) ? progress.page - 1 : 0;
-        let resumeProductUrl = ignoreResume ? undefined : progress?.cursor;
+        const resumeSetIndex = (progress?.page && !ignoreResume) ? progress.page - 1 : 0;
+        const resumeProductUrl = ignoreResume ? undefined : progress?.cursor;
         let totalProcessed = progress?.processedItems ?? 0;
         let foundResumeProduct = !resumeProductUrl;
 
@@ -89,7 +89,7 @@ export class PriceChartingIngestService {
             }
 
             for (let setIdx = resumeSetIndex; setIdx < setUrls.length; setIdx++) {
-                if (isShuttingDown) break;
+                if (isShuttingDown) {break;}
 
                 const setUrl = setUrls[setIdx];
                 if (options.onlySetSlug && !setUrl.includes(options.onlySetSlug)) {
@@ -123,7 +123,7 @@ export class PriceChartingIngestService {
                 // Filter products for resume logic
                 const productsToProcess = [];
                 for (const productUrl of productUrls) {
-                    if (this.visitedUrls.has(productUrl)) continue;
+                    if (this.visitedUrls.has(productUrl)) {continue;}
 
                     if (!foundResumeProduct) {
                         if (productUrl === resumeProductUrl) {
@@ -137,18 +137,18 @@ export class PriceChartingIngestService {
 
                 // Process products in parallel chunks
                 for (let i = 0; i < productsToProcess.length; i += concurrencyLimit) {
-                    if (isShuttingDown) break;
-                    if (options.maxProducts && productCount >= options.maxProducts) break;
+                    if (isShuttingDown) {break;}
+                    if (options.maxProducts && productCount >= options.maxProducts) {break;}
 
                     let chunk = productsToProcess.slice(i, i + concurrencyLimit);
                     if (options.maxProducts) {
                         const remaining = options.maxProducts - productCount;
-                        if (remaining <= 0) break;
-                        if (chunk.length > remaining) chunk = chunk.slice(0, remaining);
+                        if (remaining <= 0) {break;}
+                        if (chunk.length > remaining) {chunk = chunk.slice(0, remaining);}
                     }
                     await Promise.all(chunk.map(async (productUrl) => {
-                        if (isShuttingDown) return;
-                        if (options.maxProducts && productCount >= options.maxProducts) return;
+                        if (isShuttingDown) {return;}
+                        if (options.maxProducts && productCount >= options.maxProducts) {return;}
 
                         try {
                             await this.crawlAndIngestProduct(productUrl, options, setCode);
@@ -224,7 +224,7 @@ export class PriceChartingIngestService {
         while (queuedPages.length > 0) {
             const batch = queuedPages.splice(0, 5); // Process up to 5 paginated pages in parallel
             await Promise.all(batch.map(async (currentUrl) => {
-                if (visitedPages.has(currentUrl)) return;
+                if (visitedPages.has(currentUrl)) {return;}
                 visitedPages.add(currentUrl);
 
                 try {
@@ -476,7 +476,7 @@ export class PriceChartingIngestService {
             where: { productUrl }
         });
 
-        if (!pcProduct) return;
+        if (!pcProduct) {return;}
 
         const tcgplayerIdStr = tcgPlayerId.toString();
 
@@ -530,14 +530,14 @@ export class PriceChartingIngestService {
                 orderBy: { id: 'asc' },
             });
 
-            if (sales.length === 0) break;
+            if (sales.length === 0) {break;}
             cursor = sales[sales.length - 1].id;
 
             const updates = [];
             for (const sale of sales) {
                 totalProcessed++;
                 const originalUrl = sale.link;
-                if (!originalUrl) continue;
+                if (!originalUrl) {continue;}
 
                 const distilledUrl = distillMarketplaceUrl(originalUrl);
 

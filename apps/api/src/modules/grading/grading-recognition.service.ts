@@ -472,7 +472,7 @@ export class GradingRecognitionService {
     }
 
     private applySetNameFilter(products: MatchedProduct[], tokens: string[]): MatchedProduct[] {
-        if (tokens.length === 0) return products;
+        if (tokens.length === 0) {return products;}
         const matchesAll = (haystack: string) => {
             const h = haystack.toLowerCase();
             return tokens.every((t) => h.includes(t));
@@ -483,35 +483,35 @@ export class GradingRecognitionService {
         };
         const haystack = (p: MatchedProduct) => `${p.set?.name || ''} ${p.title || ''}`;
         const strict = products.filter((p) => matchesAll(haystack(p)));
-        if (strict.length > 0) return strict;
+        if (strict.length > 0) {return strict;}
         const loose = products.filter((p) => matchesAny(haystack(p)));
         return loose.length > 0 ? loose : products;
     }
 
     private applyTreatmentFilter(products: MatchedProduct[], treatment?: string): MatchedProduct[] {
-        if (!treatment) return products;
+        if (!treatment) {return products;}
         let pool = products;
         const t = treatment.toLowerCase();
-        const hints: Array<{ keyword: RegExp; positive: boolean }> = [];
-        if (t.includes('alt')) hints.push({ keyword: /alt.?art/i, positive: true });
-        else if (t.includes('manga')) hints.push({ keyword: /manga/i, positive: true });
-        else if (t.includes('parallel')) hints.push({ keyword: /parallel|foil/i, positive: true });
-        else if (t.includes('pre-release') || t.includes('prerelease')) hints.push({ keyword: /pre.?release/i, positive: true });
-        else if (t.includes('promo') && t.includes('stamp')) hints.push({ keyword: /promo.*stamp|stamp/i, positive: true });
-        else if (t === 'normal') hints.push({ keyword: /alt.?art|manga|parallel|pre.?release|stamp/i, positive: false });
+        const hints: { keyword: RegExp; positive: boolean }[] = [];
+        if (t.includes('alt')) {hints.push({ keyword: /alt.?art/i, positive: true });}
+        else if (t.includes('manga')) {hints.push({ keyword: /manga/i, positive: true });}
+        else if (t.includes('parallel')) {hints.push({ keyword: /parallel|foil/i, positive: true });}
+        else if (t.includes('pre-release') || t.includes('prerelease')) {hints.push({ keyword: /pre.?release/i, positive: true });}
+        else if (t.includes('promo') && t.includes('stamp')) {hints.push({ keyword: /promo.*stamp|stamp/i, positive: true });}
+        else if (t === 'normal') {hints.push({ keyword: /alt.?art|manga|parallel|pre.?release|stamp/i, positive: false });}
 
         for (const h of hints) {
             const narrowed = pool.filter((p) => {
                 const has = h.keyword.test(p.title || '');
                 return h.positive ? has : !has;
             });
-            if (narrowed.length > 0) pool = narrowed;
+            if (narrowed.length > 0) {pool = narrowed;}
         }
         return pool;
     }
 
     private applyLanguageFilter(products: MatchedProduct[], language?: string): MatchedProduct[] {
-        if (!language) return products;
+        if (!language) {return products;}
         const lang = language.toLowerCase();
         if (lang.startsWith('japan') || lang === 'jp') {
             const narrowed = products.filter((p) => /japan/i.test(p.title || ''));
@@ -564,24 +564,24 @@ export class GradingRecognitionService {
     }
 
     private applyMatch(parsed: GradingRecognitionResult, product: MatchedProduct): void {
-        if (!parsed.data) return;
+        if (!parsed.data) {return;}
         this.logger.debug(`Selected product: ${product.title} (${product.id})`);
         parsed.data.refPriceChartingProductId = product.id;
         parsed.data.productName = product.title || undefined;
         parsed.data.productSet = product.set?.name || undefined;
         parsed.data.productNumber = product.cardNumber || undefined;
         parsed.data.productImageUrl = (product.imageUrl as string) || undefined;
-        if (product.rawPrice) parsed.data.marketPrice = Number(product.rawPrice);
-        if (product.grade7Price) parsed.data.grade7Price = Number(product.grade7Price);
-        if (product.grade8Price) parsed.data.grade8Price = Number(product.grade8Price);
-        if (product.grade9Price) parsed.data.grade9Price = Number(product.grade9Price);
-        if (product.grade95Price) parsed.data.grade95Price = Number(product.grade95Price);
-        if (product.grade10Price) parsed.data.grade10Price = Number(product.grade10Price);
-        if (product.sealedPrice) parsed.data.sealedPrice = Number(product.sealedPrice);
+        if (product.rawPrice) {parsed.data.marketPrice = Number(product.rawPrice);}
+        if (product.grade7Price) {parsed.data.grade7Price = Number(product.grade7Price);}
+        if (product.grade8Price) {parsed.data.grade8Price = Number(product.grade8Price);}
+        if (product.grade9Price) {parsed.data.grade9Price = Number(product.grade9Price);}
+        if (product.grade95Price) {parsed.data.grade95Price = Number(product.grade95Price);}
+        if (product.grade10Price) {parsed.data.grade10Price = Number(product.grade10Price);}
+        if (product.sealedPrice) {parsed.data.sealedPrice = Number(product.sealedPrice);}
     }
 
     private applyAmbiguous(parsed: GradingRecognitionResult, products: MatchedProduct[]): void {
-        if (!parsed.data) return;
+        if (!parsed.data) {return;}
         parsed.data.ambiguous = true;
         parsed.data.candidates = products.map<GradingRecognitionCandidate>((p) => ({
             id: p.id,
@@ -608,7 +608,7 @@ export class GradingRecognitionService {
         modelName: string,
         telemetry: TelemetryRecorder,
     ): Promise<string | null> {
-        if (!this.genAI || !parsed.data) return null;
+        if (!this.genAI || !parsed.data) {return null;}
 
         const parts: Part[] = [];
         parts.push({
@@ -692,10 +692,10 @@ export class GradingRecognitionService {
 
 export function generateCardNumberCandidates(raw: string): string[] {
     const cleaned = raw.trim().toUpperCase().replace(/\s+/g, '').replace(/^#+/, '');
-    if (!cleaned) return [];
+    if (!cleaned) {return [];}
 
     const match = cleaned.match(/^([A-Z]+\d{0,2})-?(\d+)$/);
-    if (!match) return [cleaned, `#${cleaned}`];
+    if (!match) {return [cleaned, `#${cleaned}`];}
 
     const prefix = match[1];
     const digitsStripped = match[2].replace(/^0+/, '') || '0';
@@ -741,7 +741,7 @@ const SET_NAME_STOP_WORDS = new Set([
 ]);
 
 export function extractSetNameTokens(setName: string | undefined | null): string[] {
-    if (!setName) return [];
+    if (!setName) {return [];}
     const words = setName
         .toLowerCase()
         .replace(/[^a-z0-9\s]/g, ' ')
@@ -752,8 +752,8 @@ export function extractSetNameTokens(setName: string | undefined | null): string
 
 function inferImageMimeFromUrl(url: string): string {
     const clean = url.split('?')[0].toLowerCase();
-    if (clean.endsWith('.png')) return 'image/png';
-    if (clean.endsWith('.webp')) return 'image/webp';
-    if (clean.endsWith('.gif')) return 'image/gif';
+    if (clean.endsWith('.png')) {return 'image/png';}
+    if (clean.endsWith('.webp')) {return 'image/webp';}
+    if (clean.endsWith('.gif')) {return 'image/gif';}
     return 'image/jpeg';
 }

@@ -1,4 +1,4 @@
-/* eslint-disable no-process-env */
+ 
 
 function ensure(name: string, value: string) {
   if (!process.env[name]) {

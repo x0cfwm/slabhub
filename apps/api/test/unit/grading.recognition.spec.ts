@@ -15,8 +15,8 @@ function makeService(geminiQueue: GeminiResponse[], productsById: Record<string,
     const prisma = createPrismaMock();
     prisma.refPriceChartingProduct.findMany.mockImplementation(async (args: any) => {
         const products = Object.values(productsById);
-        const orClauses = args?.where?.OR as Array<{ cardNumber: { equals: string } }> | undefined;
-        if (!orClauses) return products;
+        const orClauses = args?.where?.OR as { cardNumber: { equals: string } }[] | undefined;
+        if (!orClauses) {return products;}
         const numbers = new Set(orClauses.map((c) => c.cardNumber.equals.toUpperCase()));
         return products.filter((p: any) => p.cardNumber && numbers.has(String(p.cardNumber).toUpperCase()));
     });
@@ -26,7 +26,7 @@ function makeService(geminiQueue: GeminiResponse[], productsById: Record<string,
         getGenerativeModel: jest.fn().mockImplementation(() => ({
             generateContent: jest.fn().mockImplementation(async () => {
                 const next = geminiQueue.shift();
-                if (next === undefined) throw new Error('Gemini queue exhausted');
+                if (next === undefined) {throw new Error('Gemini queue exhausted');}
                 return { response: { text: () => JSON.stringify(next) } };
             }),
         })),
@@ -318,7 +318,7 @@ describe('GradingRecognitionService', () => {
         await service.recognizeFromImage(Buffer.from('x'), 'image/jpeg');
 
         const args = prisma.gradingRecognitionTrace.create.mock.calls[0][0];
-        const steps: Array<{ name: string; input?: any; output?: any }> = args.data.steps;
+        const steps: { name: string; input?: any; output?: any }[] = args.data.steps;
         const names = steps.map((s) => s.name);
         expect(names).toEqual([
             'preprocess',
@@ -393,7 +393,7 @@ describe('GradingRecognitionService', () => {
         await service.recognizeFromImage(Buffer.from('x'), 'image/jpeg');
 
         const args = prisma.gradingRecognitionTrace.create.mock.calls[0][0];
-        const steps: Array<{ name: string; input?: any; output?: any }> = args.data.steps;
+        const steps: { name: string; input?: any; output?: any }[] = args.data.steps;
         const names = steps.map((s) => s.name);
         expect(names).toContain('disambiguation');
         expect(names).toContain('language-tiebreak');
@@ -429,7 +429,7 @@ const TESTS_DIR = path.resolve(__dirname, '../../../../tests');
 function normalizeForCompare(s: string): string {
     const cleaned = s.trim().toUpperCase().replace(/\s+/g, '');
     const m = cleaned.match(/^([A-Z]+\d{0,2})-?(\d+)$/);
-    if (!m) return cleaned;
+    if (!m) {return cleaned;}
     const digits = m[2].replace(/^0+/, '') || '0';
     return `${m[1]}-${digits}`;
 }

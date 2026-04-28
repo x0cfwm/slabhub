@@ -35,7 +35,7 @@ describe('JustTcgClient', () => {
     };
     const configService = {
       get: jest.fn((key: string, fallback?: any) => {
-        if (key === 'JUSTTCG_BASE_URL') return 'https://api.justtcg.com';
+        if (key === 'JUSTTCG_BASE_URL') {return 'https://api.justtcg.com';}
         return fallback;
       }),
       getOrThrow: jest.fn(() => 'k1,k2'),
@@ -56,7 +56,7 @@ describe('JustTcgClient', () => {
     };
     const configService = {
       get: jest.fn((key: string, fallback?: any) => {
-        if (key === 'JUSTTCG_BASE_URL') return 'https://api.justtcg.com';
+        if (key === 'JUSTTCG_BASE_URL') {return 'https://api.justtcg.com';}
         return fallback;
       }),
       getOrThrow: jest.fn(() => 'k1'),

@@ -23,13 +23,13 @@ export class WorkflowStatusController {
         @CurrentUserId() userId: string | undefined,
         @Query('includeDisabled') includeDisabled?: string,
     ) {
-        if (!userId) throw new NotFoundException('No authenticated user');
+        if (!userId) {throw new NotFoundException('No authenticated user');}
         return this.statusService.listStatuses(userId, includeDisabled === 'true');
     }
 
     @Post('seed')
     async seedStatuses(@CurrentUserId() userId: string | undefined) {
-        if (!userId) throw new NotFoundException('No authenticated user');
+        if (!userId) {throw new NotFoundException('No authenticated user');}
         return this.statusService.seedStatuses(userId);
     }
 
@@ -38,7 +38,7 @@ export class WorkflowStatusController {
         @CurrentUserId() userId: string | undefined,
         @Body() dto: CreateWorkflowStatusDto,
     ) {
-        if (!userId) throw new NotFoundException('No authenticated user');
+        if (!userId) {throw new NotFoundException('No authenticated user');}
         return this.statusService.createStatus(userId, dto);
     }
 
@@ -47,7 +47,7 @@ export class WorkflowStatusController {
         @CurrentUserId() userId: string | undefined,
         @Body(new ParseArrayPipe({ items: ReorderWorkflowStatusDto })) items: ReorderWorkflowStatusDto[],
     ) {
-        if (!userId) throw new NotFoundException('No authenticated user');
+        if (!userId) {throw new NotFoundException('No authenticated user');}
         return this.statusService.reorderStatuses(userId, items);
     }
 
@@ -57,7 +57,7 @@ export class WorkflowStatusController {
         @Param('id') id: string,
         @Body() dto: UpdateWorkflowStatusDto,
     ) {
-        if (!userId) throw new NotFoundException('No authenticated user');
+        if (!userId) {throw new NotFoundException('No authenticated user');}
         return this.statusService.updateStatus(userId, id, dto);
     }
 
@@ -67,7 +67,7 @@ export class WorkflowStatusController {
         @Param('id') id: string,
         @Query('moveTo') moveItemsToStatusId?: string,
     ) {
-        if (!userId) throw new NotFoundException('No authenticated user');
+        if (!userId) {throw new NotFoundException('No authenticated user');}
         return this.statusService.deleteStatus(userId, id, moveItemsToStatusId);
     }
 }

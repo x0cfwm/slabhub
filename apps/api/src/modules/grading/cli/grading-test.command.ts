@@ -42,8 +42,8 @@ export class GradingTestCommand extends CommandRunner {
         const buffer = fs.readFileSync(filePath);
         const ext = path.extname(filePath).toLowerCase();
         let mimeType = 'image/jpeg';
-        if (ext === '.png') mimeType = 'image/png';
-        if (ext === '.webp') mimeType = 'image/webp';
+        if (ext === '.png') {mimeType = 'image/png';}
+        if (ext === '.webp') {mimeType = 'image/webp';}
 
         console.log(`Starting recognition for ${filePath} (${mimeType})...`);
         const result = await this.recognitionService.recognizeFromImage(buffer, mimeType);

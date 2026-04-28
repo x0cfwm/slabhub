@@ -4,7 +4,7 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from '../../src/app.module';
 
 export async function createTestApp(overrides?: (module: TestingModuleBuilderLike) => void): Promise<INestApplication> {
-  let builder = Test.createTestingModule({
+  const builder = Test.createTestingModule({
     imports: [AppModule],
   });
 
@@ -33,8 +33,8 @@ export async function createTestApp(overrides?: (module: TestingModuleBuilderLik
   return app;
 }
 
-type TestingModuleBuilderLike = {
+interface TestingModuleBuilderLike {
   overrideProvider: (token: unknown) => {
     useValue: (value: unknown) => TestingModuleBuilderLike;
   };
-};
+}

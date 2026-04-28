@@ -6,8 +6,8 @@ describe('PriceChartingIngestService', () => {
     const prisma = createPrismaMock();
     const client = {
       fetch: jest.fn(async (url: string) => {
-        if (url.includes('/category/')) return '<category />';
-        if (url.includes('/console/')) return '<set />';
+        if (url.includes('/category/')) {return '<category />';}
+        if (url.includes('/console/')) {return '<set />';}
         return '<product />';
       }),
       fetchBinary: jest.fn(),

@@ -17,7 +17,7 @@ function getDatabaseName(dbUrl: string): string {
 
 async function ensureDatabaseExists(dbUrl: string) {
   const dbName = getDatabaseName(dbUrl);
-  if (!dbName) return;
+  if (!dbName) {return;}
 
   const adminUrl = new URL(dbUrl);
   adminUrl.pathname = '/postgres';
@@ -34,7 +34,7 @@ async function ensureDatabaseExists(dbUrl: string) {
 
   try {
     await adminPrisma.$connect();
-    const rows = await adminPrisma.$queryRawUnsafe<Array<{ exists: boolean }>>(
+    const rows = await adminPrisma.$queryRawUnsafe<{ exists: boolean }[]>(
       `SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = '${escapedDbNameForSql}') AS "exists"`,
     );
     if (!rows[0]?.exists) {

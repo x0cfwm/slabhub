@@ -16,8 +16,8 @@ export function extractSlug(url: string, prefix: string): string | undefined {
     return undefined;
 }
 
-export function canonicalizeUrl(url: string, baseUrl: string = 'https://www.pricecharting.com'): string {
-    if (url.startsWith('http')) return url;
+export function canonicalizeUrl(url: string, baseUrl = 'https://www.pricecharting.com'): string {
+    if (url.startsWith('http')) {return url;}
     const cleanUrl = url.startsWith('/') ? url : `/${url}`;
     return `${baseUrl}${cleanUrl}`.split('?')[0];
 }
@@ -30,7 +30,7 @@ export function canonicalizeUrl(url: string, baseUrl: string = 'https://www.pric
  * @returns Normalised URL without tracking/referral components
  */
 export function distillMarketplaceUrl(url: string): string {
-    if (!url) return url;
+    if (!url) {return url;}
 
     try {
         const urlObj = new URL(url);
