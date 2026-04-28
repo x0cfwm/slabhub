@@ -151,6 +151,8 @@ if [[ ! -f "$IPA_PATH" ]]; then
 fi
 
 echo "==> 4/4 Upload IPA to TestFlight"
+# --verbose streams per-asset progress to stderr so you see the upload live;
+# JSON result still goes to stdout and gets captured for delivery-uuid parsing.
 UPLOAD_OUTPUT="$(xcrun altool \
   --upload-app \
   -f "$IPA_PATH" \
@@ -158,6 +160,7 @@ UPLOAD_OUTPUT="$(xcrun altool \
   --apiKey "$ASC_KEY_ID" \
   --apiIssuer "$ASC_ISSUER_ID" \
   --p8-file-path "$ASC_KEY_PATH" \
+  --verbose \
   --output-format json)"
 
 echo "$UPLOAD_OUTPUT" | tee "$BUILD_DIR/upload.json"
